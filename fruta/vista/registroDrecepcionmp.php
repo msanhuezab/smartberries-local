@@ -944,13 +944,32 @@ if ($_POST) {
                     }
 
                     try {
+                        var urlQr = new URL(texto, window.location.origin);
+                        urlQr.searchParams.forEach(function (valorParametro, claveParametro) {
+                            datos[claveParametro] = valorParametro;
+                        });
+                        var qrParam = urlQr.searchParams.get('qr');
+                        if (qrParam) {
+                            var datosQrParam = parsearCodigoQrRecepcion(qrParam);
+                            for (var claveQrParam in datosQrParam) {
+                                if (Object.prototype.hasOwnProperty.call(datosQrParam, claveQrParam)) {
+                                    datos[claveQrParam] = datosQrParam[claveQrParam];
+                                }
+                            }
+                        }
+                        if (Object.keys(datos).length) {
+                            return datos;
+                        }
+                    } catch (e) {}
+
+                    try {
                         datos = JSON.parse(texto);
                         if (datos && typeof datos === 'object') {
                             return datos;
                         }
                     } catch (e) {}
 
-                    texto.split(/[;|,\n]/).forEach(function (parte) {
+                    texto.split(/[;|,&\n]/).forEach(function (parte) {
                         var piezas = parte.split(/[:=]/);
                         if (piezas.length >= 2) {
                             var clave = piezas.shift().trim();
@@ -1244,13 +1263,13 @@ if ($_POST) {
                                             <div class="d-flex justify-content-between align-items-center flex-wrap">
                                                 <div>
                                                     <h5 class="mb-0">Lectura QR productor / folio / variedad</h5>
-                                                    <small class="text-muted">Formato esperado: ETQ|P=153306|V=31|F=12345. P: CSG productor, V: ID variedad, F: folio productor.</small>
+                                                    <small class="text-muted">Acepta URL infoPallet.php?P=153306&V=31&F=12345 o ETQ|P=153306|V=31|F=12345. P: CSG productor, V: ID variedad, F: folio productor.</small>
                                                 </div>
                                                 <span id="qrRecepcionEstado" class="badge badge-secondary mt-2 mt-md-0">Opcional</span>
                                             </div>
                                             <div class="row mt-10">
                                                 <div class="col-xl-8 col-lg-8 col-md-12">
-                                                    <input type="text" class="form-control" id="qrRecepcionTexto" placeholder="Pegue aqui el contenido del QR o use la camara" <?php echo $DISABLED; ?> <?php echo $DISABLEDSTYLE; ?> />
+                                                    <input type="text" class="form-control" id="qrRecepcionTexto" placeholder="Pegue aqui la URL del QR o use la camara" <?php echo $DISABLED; ?> <?php echo $DISABLEDSTYLE; ?> />
                                                 </div>
                                                 <div class="col-xl-4 col-lg-4 col-md-12 mt-2 mt-lg-0">
                                                     <div class="btn-group btn-block" role="group">

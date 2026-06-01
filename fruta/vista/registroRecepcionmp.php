@@ -814,7 +814,30 @@ if (isset($_POST)) {
                 var texto = String(valor || '').trim();
                 var datos = {};
 
-                texto.split(/[;|,\n]/).forEach(function (parte) {
+                if (!texto) {
+                    return datos;
+                }
+
+                try {
+                    var urlQr = new URL(texto, window.location.origin);
+                    urlQr.searchParams.forEach(function (valorParametro, claveParametro) {
+                        datos[String(claveParametro).toUpperCase()] = valorParametro;
+                    });
+                    var qrParam = urlQr.searchParams.get('qr');
+                    if (qrParam) {
+                        var datosQrParam = parsearQrEncabezado(qrParam);
+                        for (var claveQrParam in datosQrParam) {
+                            if (Object.prototype.hasOwnProperty.call(datosQrParam, claveQrParam)) {
+                                datos[claveQrParam] = datosQrParam[claveQrParam];
+                            }
+                        }
+                    }
+                    if (Object.keys(datos).length) {
+                        return datos;
+                    }
+                } catch (e) {}
+
+                texto.split(/[;|,&\n]/).forEach(function (parte) {
                     var piezas = parte.split(/[:=]/);
                     if (piezas.length >= 2) {
                         datos[piezas.shift().trim().toUpperCase()] = piezas.join('=').trim();
@@ -1015,8 +1038,8 @@ if (isset($_POST)) {
                                                 <div class="row align-items-end">
                                                     <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12 col-xs-12">
                                                         <label>QR productor</label>
-                                                        <input type="text" class="form-control" id="qrEncabezadoTexto" placeholder="ETQ|P=153306|V=31|F=12345" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?> />
-                                                        <small class="text-muted">En cabecera se usa P para seleccionar el productor por CSG. V y F se usan en el detalle.</small>
+                                                        <input type="text" class="form-control" id="qrEncabezadoTexto" placeholder="infoPallet.php?P=153306&V=31&F=12345" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?> />
+                                                        <small class="text-muted">Acepta URL o ETQ. En cabecera se usa P para seleccionar el productor por CSG. V y F se usan en el detalle.</small>
                                                     </div>
                                                     <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6 col-6 col-xs-6">
                                                         <button type="button" class="btn btn-info btn-block" onclick="leerQrEncabezadoPegado()" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
