@@ -1,0 +1,29 @@
+.DS_Store
+Thumbs.db
+
+# Local database dumps and import logs
+*.sql
+*.log
+*.err
+!database/
+!database/migrations/
+!database/migrations/*.sql
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Local assistant/work notes
+.claude/
+CODEx_MEMORIA.md
+
+# Dependencies and caches
+node_modules/
+vendor/
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,14 @@
+ALTER TABLE liquidacion_detalle_exp
+    ADD COLUMN ID_EXIEXPORTACION BIGINT NOT NULL DEFAULT 0 AFTER ID_ICARGA,
+    ADD COLUMN FOLIO_EXIEXPORTACION INT NULL AFTER ID_EXIEXPORTACION;
+
+ALTER TABLE liquidacion_detalle_exp
+    DROP INDEX uq_liq_exp_linea,
+    ADD UNIQUE KEY uq_liq_exp_linea (
+        ID_VALOR,
+        ID_EXIEXPORTACION,
+        ID_PRODUCTOR,
+        ID_VESPECIES,
+        ID_ESTANDAR,
+        ID_TCALIBRE
+    );

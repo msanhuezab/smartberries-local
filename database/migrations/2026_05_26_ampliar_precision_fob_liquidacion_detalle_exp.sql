@@ -1,0 +1,2 @@
+ALTER TABLE liquidacion_detalle_exp
+    MODIFY FOB_REAL DECIMAL(14,8) DEFAULT 0;
