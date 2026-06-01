@@ -35,6 +35,7 @@ $query_cajasPorPais = $CONSULTA_ADO->CajasAprobadasPorPais($TEMPORADAS, $EMPRESA
 //existencia materia prima
 $query_existenciaVariedad = $CONSULTA_ADO->ExistenciaMateriaPrimaPorVariedad($TEMPORADAS, $EMPRESAS, $PLANTAS);
 $query_registrosAbiertos = $CONSULTA_ADO->contarRegistrosAbiertosFruta($EMPRESAS, $PLANTAS, $TEMPORADAS);
+$ARRAYREGISTROSABIERTOSMENU = $query_registrosAbiertos;
 
 $kilosMateriaPrimaAcumulado = $query_acumuladoMP ? $query_acumuladoMP[0]["TOTAL"] : 0;
 $kilosMateriaPrimaActual = $query_existenciaActual ? $query_existenciaActual[0]["TOTAL"] : 0;
@@ -46,6 +47,17 @@ $kilosEntradaProceso = ($query_totalesProceso && isset($query_totalesProceso[0][
 $kilosSalidaProceso = ($query_totalesProceso && isset($query_totalesProceso[0]["SALIDA"])) ? $query_totalesProceso[0]["SALIDA"] : 0;
 $recepcionesAbiertas = $query_registrosAbiertos ? $query_registrosAbiertos[0]["RECEPCION"] : 0;
 $procesosAbiertos = $query_registrosAbiertos ? $query_registrosAbiertos[0]["PROCESO"] : 0;
+$recepcionMpAbierta = $query_registrosAbiertos ? $query_registrosAbiertos[0]["RECEPCIONMP"] : 0;
+$recepcionIndAbierta = $query_registrosAbiertos ? $query_registrosAbiertos[0]["RECEPCIONIND"] : 0;
+$recepcionPtAbierta = $query_registrosAbiertos ? $query_registrosAbiertos[0]["RECEPCIONPT"] : 0;
+$despachosAbiertos = $query_registrosAbiertos ? $query_registrosAbiertos[0]["DESPACHO"] : 0;
+$despachoMpAbierto = $query_registrosAbiertos ? $query_registrosAbiertos[0]["DESPACHOMP"] : 0;
+$despachoIndAbierto = $query_registrosAbiertos ? $query_registrosAbiertos[0]["DESPACHOIND"] : 0;
+$despachoPtAbierto = $query_registrosAbiertos ? $query_registrosAbiertos[0]["DESPACHOPT"] : 0;
+$despachoExpoAbierto = $query_registrosAbiertos ? $query_registrosAbiertos[0]["DESPACHOEXPO"] : 0;
+$reembalajesAbiertos = $query_registrosAbiertos ? $query_registrosAbiertos[0]["REEMBALAJE"] : 0;
+$repaletizajesAbiertos = $query_registrosAbiertos ? $query_registrosAbiertos[0]["REPALETIZAJE"] : 0;
+$totalPendientes = $recepcionesAbiertas + $procesosAbiertos + $despachosAbiertos + $reembalajesAbiertos + $repaletizajesAbiertos;
 $maxExportProd = 0;
 $maxExportVariedad = 0;
 $maxExportPais = 0;
@@ -173,7 +185,7 @@ if($ARRAYREGISTROSABIERTOS){
     <meta name="description" content="">
     <meta name="author" content="">
         <!- LLAMADA DE LOS ARCHIVOS NECESARIOS PARA DISEÑO Y FUNCIONES BASE DE LA VISTA -!>
-        <?php include_once "../../assest/config/urlHead.php"; ?>
+        <?php include_once "../../assest/config/urlHeadDashboard.php"; ?>
         <style>
             .dashboard-card {
                 color: #fff;
@@ -240,6 +252,61 @@ if($ARRAYREGISTROSABIERTOS){
             section.content {
                 padding-top: 10px;
             }
+            .ops-card {
+                border-left: 4px solid #1d8cf8;
+                min-height: 118px;
+            }
+            .ops-card .metric {
+                font-size: 26px;
+                font-weight: 700;
+                line-height: 1.1;
+            }
+            .ops-card .label {
+                color: #6c757d;
+                font-size: 12px;
+                text-transform: uppercase;
+            }
+            .ops-card .shortcut {
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .ops-card.danger { border-left-color: #ff4d4f; }
+            .ops-card.success { border-left-color: #2ecc71; }
+            .ops-card.warning { border-left-color: #f5a623; }
+            .ops-card.teal { border-left-color: #00a6a4; }
+            .action-list .action-item {
+                align-items: center;
+                border-bottom: 1px solid #edf1f5;
+                display: flex;
+                justify-content: space-between;
+                padding: 10px 0;
+            }
+            .action-list .action-item:last-child {
+                border-bottom: 0;
+            }
+            .action-list .action-count {
+                font-size: 20px;
+                font-weight: 700;
+                margin-right: 12px;
+                min-width: 42px;
+                text-align: right;
+            }
+            .flow-card .flow-title {
+                font-size: 13px;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            .flow-card .flow-kpi {
+                background: #f7f9fb;
+                border-radius: 6px;
+                padding: 8px;
+            }
+            .flow-card .btn {
+                margin-bottom: 6px;
+            }
+            .dashboard-legacy {
+                display: none;
+            }
         </style>
         <!- FUNCIONES BASES -!>
         <script type="text/javascript">
@@ -267,6 +334,210 @@ if($ARRAYREGISTROSABIERTOS){
                             </div>
                         </div>
 
+                        <div class="row dashboard-row">
+                            <div class="col-xl-3 col-md-6 col-12">
+                                <div class="box box-body ops-card success">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="label">Recepcion hoy</div>
+                                            <div class="metric"><?php echo number_format(round($kilosRecepcionDiaActual, 0), 0, ",", "."); ?> kg</div>
+                                            <div class="text-muted small">MP ingresada durante el dia.</div>
+                                        </div>
+                                        <span class="badge badge-success"><?php echo intval($recepcionesAbiertas); ?> abiertas</span>
+                                    </div>
+                                    <a class="shortcut" href="listarRecepcionmp.php">Ver recepciones</a>
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-md-6 col-12">
+                                <div class="box box-body ops-card warning">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="label">Proceso hoy</div>
+                                            <div class="metric"><?php echo number_format(round($kilosProcesoDiaActual, 0), 0, ",", "."); ?> kg</div>
+                                            <div class="text-muted small">Entrada registrada en procesos cerrados.</div>
+                                        </div>
+                                        <span class="badge badge-warning"><?php echo intval($procesosAbiertos); ?> abiertos</span>
+                                    </div>
+                                    <a class="shortcut" href="listarProceso.php">Ver procesos</a>
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-md-6 col-12">
+                                <div class="box box-body ops-card danger">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="label">Despacho MP hoy</div>
+                                            <div class="metric"><?php echo number_format(round($kilosDespachoDiaActual, 0), 0, ",", "."); ?> kg</div>
+                                            <div class="text-muted small">Salida de materia prima del dia.</div>
+                                        </div>
+                                        <span class="badge badge-danger"><?php echo intval($despachosAbiertos); ?> abiertos</span>
+                                    </div>
+                                    <a class="shortcut" href="listarDespachomp.php">Ver despachos</a>
+                                </div>
+                            </div>
+                            <div class="col-xl-3 col-md-6 col-12">
+                                <div class="box box-body ops-card teal">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="label">Existencia actual</div>
+                                            <div class="metric"><?php echo number_format(round($kilosMateriaPrimaActual, 0), 0, ",", "."); ?> kg</div>
+                                            <div class="text-muted small">Materia prima disponible al momento.</div>
+                                        </div>
+                                        <span class="badge badge-info">MP</span>
+                                    </div>
+                                    <a class="shortcut" href="listarEximateriaprima.php">Ver existencia</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row dashboard-row align-items-stretch">
+                            <div class="col-xl-4 col-12">
+                                <div class="box compact-card collage-card">
+                                    <div class="box-header with-border">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h4 class="box-title mb-0">Pendientes operativos</h4>
+                                            <span class="badge badge-primary"><?php echo intval($totalPendientes); ?> total</span>
+                                        </div>
+                                    </div>
+                                    <div class="box-body action-list">
+                                        <div class="action-item">
+                                            <div>
+                                                <div class="font-weight-600">Recepciones abiertas</div>
+                                                <div class="text-muted small">MP: <?php echo intval($recepcionMpAbierta); ?> / Industrial: <?php echo intval($recepcionIndAbierta); ?> / PT: <?php echo intval($recepcionPtAbierta); ?></div>
+                                            </div>
+                                            <a href="listarRecepcionmp.php" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                        </div>
+                                        <div class="action-item">
+                                            <div>
+                                                <div class="font-weight-600">Despachos abiertos</div>
+                                                <div class="text-muted small">MP: <?php echo intval($despachoMpAbierto); ?> / IND: <?php echo intval($despachoIndAbierto); ?> / PT: <?php echo intval($despachoPtAbierto); ?> / EX: <?php echo intval($despachoExpoAbierto); ?></div>
+                                            </div>
+                                            <a href="listarDespachomp.php" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                        </div>
+                                        <div class="action-item">
+                                            <div>
+                                                <div class="font-weight-600">Procesos abiertos</div>
+                                                <div class="text-muted small">Pendientes de cierre o revision.</div>
+                                            </div>
+                                            <a href="listarProceso.php" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                        </div>
+                                        <div class="action-item">
+                                            <div>
+                                                <div class="font-weight-600">Reembalaje / repaletizaje</div>
+                                                <div class="text-muted small">Reembalajes: <?php echo intval($reembalajesAbiertos); ?> / Repaletizajes: <?php echo intval($repaletizajesAbiertos); ?></div>
+                                            </div>
+                                            <a href="listarReembalajeEx.php" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-xl-8 col-12">
+                                <div class="row">
+                                    <div class="col-lg-6 col-12">
+                                        <div class="box compact-card flow-card">
+                                            <div class="box-body">
+                                                <div class="flow-title mb-2">Granel / materia prima</div>
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Acumulado</div>
+                                                            <div class="font-weight-700"><?php echo number_format(round($kilosMateriaPrimaAcumulado, 0), 0, ",", "."); ?> kg</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Existencia 05:00</div>
+                                                            <div class="font-weight-700"><?php echo number_format(round($kilosMateriaPrimaHastaCinco, 0), 0, ",", "."); ?> kg</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <a href="registroRecepcionmp.php" class="btn btn-sm btn-primary">Registrar recepcion</a>
+                                                    <a href="listarEximateriaprima.php" class="btn btn-sm btn-outline-primary">Existencia MP</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6 col-12">
+                                        <div class="box compact-card flow-card">
+                                            <div class="box-body">
+                                                <div class="flow-title mb-2">Packing / proceso</div>
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Entrada</div>
+                                                            <div class="font-weight-700"><?php echo number_format(round($kilosEntradaProceso, 0), 0, ",", "."); ?> kg</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Salida</div>
+                                                            <div class="font-weight-700"><?php echo number_format(round($kilosSalidaProceso, 0), 0, ",", "."); ?> kg</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <a href="registroProceso.php" class="btn btn-sm btn-primary">Registrar proceso</a>
+                                                    <a href="listarProceso.php" class="btn btn-sm btn-outline-primary">Procesos</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6 col-12">
+                                        <div class="box compact-card flow-card">
+                                            <div class="box-body">
+                                                <div class="flow-title mb-2">Frigorifico / producto terminado</div>
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Recep. PT abiertas</div>
+                                                            <div class="font-weight-700"><?php echo intval($recepcionPtAbierta); ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Desp. PT abiertas</div>
+                                                            <div class="font-weight-700"><?php echo intval($despachoPtAbierto); ?></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <a href="listarExiexportacion.php" class="btn btn-sm btn-primary">Existencia PT</a>
+                                                    <a href="listarRecepcionpt.php" class="btn btn-sm btn-outline-primary">Recepcion PT</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6 col-12">
+                                        <div class="box compact-card flow-card">
+                                            <div class="box-body">
+                                                <div class="flow-title mb-2">Exportacion</div>
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Desp. EX abiertos</div>
+                                                            <div class="font-weight-700"><?php echo intval($despachoExpoAbierto); ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="flow-kpi">
+                                                            <div class="text-muted small">Cajas top paises</div>
+                                                            <div class="font-weight-700"><?php echo number_format(round($totalCajasAprobadas, 0), 0, ",", "."); ?></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <a href="listarDespachoEX.php" class="btn btn-sm btn-primary">Despacho EX</a>
+                                                    <a href="listarInpSag.php" class="btn btn-sm btn-outline-primary">SAG</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dashboard-legacy">
                         <div class="row dashboard-row">
                             <div class="col-xl-5th col-lg-6 col-12">
                                 <div class="box box-body dashboard-card bg-gradient-sky">
@@ -732,6 +1003,7 @@ if($ARRAYREGISTROSABIERTOS){
                                 </div>
                             </div>
                         </div>
+                        </div>
                     </section>
                     <!-- /.content -->
                 </div>
@@ -741,7 +1013,7 @@ if($ARRAYREGISTROSABIERTOS){
             <?php include_once "../../assest/config/menuExtraFruta.php"; ?>
     </div>
     <!- LLAMADA URL DE ARCHIVOS DE DISEÑO Y JQUERY E OTROS -!>
-        <?php include_once "../../assest/config/urlBase.php"; ?>
+        <?php include_once "../../assest/config/urlBaseDashboard.php"; ?>
         <!--<script>
     Morris.Bar({
         element: 'graficofrigorifico',

@@ -195,6 +195,16 @@ $ARRAYTRANSPORTE = $TRANSPORTE_ADO->listarTransportePorEmpresaCBX($EMPRESAS);
 $ARRAYCONDUCTOR = $CONDUCTOR_ADO->listarConductorPorEmpresaCBX($EMPRESAS);
 $ARRAYVESPECIES = $VESPECIES_ADO->listarVespeciesPorEmpresaCBX($EMPRESAS);
 $ARRAYPRODUCTOR = $PRODUCTOR_ADO->listarProductorPorEmpresaCBX($EMPRESAS);
+$PRODUCTORES_QR_ENCABEZADO = [];
+foreach ($ARRAYPRODUCTOR as $productorQr) {
+    $csgQr = trim((string) $productorQr['CSG_PRODUCTOR']);
+    if ($csgQr !== '' && !isset($PRODUCTORES_QR_ENCABEZADO[$csgQr])) {
+        $PRODUCTORES_QR_ENCABEZADO[$csgQr] = [
+            'id' => $productorQr['ID_PRODUCTOR'],
+            'nombre' => trim($productorQr['CSG_PRODUCTOR'] . ': ' . $productorQr['NOMBRE_PRODUCTOR']),
+        ];
+    }
+}
 $ARRAYTDOCUMENTO = $TDOCUMENTO_ADO->listarTdocumentoPorEmpresaCBX($EMPRESAS);
 //$ARRAYBODEGA =  $BODEGA_ADO->listarBodegaPorEmpresaCBX($EMPRESAS);
 $ARRAYPLANTA2 = $PLANTA_ADO->listarPlantaExternaCBX();
@@ -581,6 +591,7 @@ if (isset($_POST)) {
     <meta name="author" content="">
     <!-- LLAMADA DE LOS ARCHIVOS NECESARIOS PARA DISEÑO Y FUNCIONES BASE DE LA VISTA -->
     <?php include_once "../../assest/config/urlHead.php"; ?>
+    <script src="../../assest/js/jsQR.min.js"></script>
     <!- FUNCIONES BASES -!>
         <script type="text/javascript">
             //VALIDACION DE FORMULARIO            
@@ -791,6 +802,170 @@ if (isset($_POST)) {
                 var win = window.open(url, '_blank');
                 win.focus();
             }
+
+            var productoresQrEncabezado = <?php echo json_encode($PRODUCTORES_QR_ENCABEZADO, JSON_UNESCAPED_UNICODE); ?>;
+            var qrEncabezadoStream = null;
+            var qrEncabezadoDetector = null;
+            var qrEncabezadoTimer = null;
+            var qrEncabezadoCanvas = document.createElement('canvas');
+            var qrEncabezadoCanvasContext = qrEncabezadoCanvas.getContext('2d', { willReadFrequently: true });
+
+            function parsearQrEncabezado(valor) {
+                var texto = String(valor || '').trim();
+                var datos = {};
+
+                texto.split(/[;|,\n]/).forEach(function (parte) {
+                    var piezas = parte.split(/[:=]/);
+                    if (piezas.length >= 2) {
+                        datos[piezas.shift().trim().toUpperCase()] = piezas.join('=').trim();
+                    }
+                });
+
+                return datos;
+            }
+
+            function mostrarEstadoQrEncabezado(mensaje, tipo) {
+                var estado = document.getElementById('qrEncabezadoEstado');
+                if (!estado) {
+                    return;
+                }
+                estado.className = 'badge badge-' + (tipo || 'secondary');
+                estado.innerHTML = mensaje;
+            }
+
+            function aplicarQrEncabezado(valor) {
+                var datos = parsearQrEncabezado(valor);
+                var csg = datos.P || datos.PRODUCTOR || datos.CSG || '';
+                var productor = productoresQrEncabezado[String(csg).trim()];
+                var campoProductor = document.getElementById('PRODUCTOR');
+
+                if (!csg) {
+                    mostrarEstadoQrEncabezado('QR sin codigo P de productor.', 'warning');
+                    return false;
+                }
+
+                if (!productor) {
+                    mostrarEstadoQrEncabezado('No se encontro productor con CSG ' + csg + '.', 'danger');
+                    return false;
+                }
+
+                if (!campoProductor) {
+                    mostrarEstadoQrEncabezado('Seleccione tipo Desde Productor para aplicar el QR.', 'warning');
+                    return false;
+                }
+
+                campoProductor.value = productor.id;
+                var productorHidden = document.getElementById('PRODUCTORE');
+                if (productorHidden) {
+                    productorHidden.value = productor.id;
+                }
+
+                var csgHidden = document.getElementById('CSG');
+                var csgVisible = document.getElementById('CSGV');
+                if (csgHidden) {
+                    csgHidden.value = csg;
+                }
+                if (csgVisible) {
+                    csgVisible.value = csg;
+                }
+
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(campoProductor).trigger('change.select2');
+                }
+
+                mostrarEstadoQrEncabezado('Productor aplicado: ' + productor.nombre + '.', 'success');
+                return true;
+            }
+
+            function leerQrEncabezadoPegado() {
+                var entrada = document.getElementById('qrEncabezadoTexto');
+                if (entrada) {
+                    aplicarQrEncabezado(entrada.value);
+                }
+            }
+
+            function detenerCamaraQrEncabezado() {
+                var video = document.getElementById('qrEncabezadoVideo');
+                if (qrEncabezadoTimer) {
+                    clearInterval(qrEncabezadoTimer);
+                    qrEncabezadoTimer = null;
+                }
+                if (qrEncabezadoStream) {
+                    qrEncabezadoStream.getTracks().forEach(function (track) { track.stop(); });
+                    qrEncabezadoStream = null;
+                }
+                if (video) {
+                    video.srcObject = null;
+                    video.style.display = 'none';
+                }
+            }
+
+            function detectarQrEncabezadoEnVideo(video) {
+                if ('BarcodeDetector' in window) {
+                    if (!qrEncabezadoDetector) {
+                        qrEncabezadoDetector = new BarcodeDetector({ formats: ['qr_code'] });
+                    }
+
+                    return qrEncabezadoDetector.detect(video).then(function (codigos) {
+                        if (codigos && codigos.length) {
+                            return codigos[0].rawValue || '';
+                        }
+                        return '';
+                    }).catch(function () {
+                        return '';
+                    });
+                }
+
+                return new Promise(function (resolve) {
+                    if (!window.jsQR || !video.videoWidth || !video.videoHeight || !qrEncabezadoCanvasContext) {
+                        resolve('');
+                        return;
+                    }
+
+                    qrEncabezadoCanvas.width = video.videoWidth;
+                    qrEncabezadoCanvas.height = video.videoHeight;
+                    qrEncabezadoCanvasContext.drawImage(video, 0, 0, qrEncabezadoCanvas.width, qrEncabezadoCanvas.height);
+                    var imagen = qrEncabezadoCanvasContext.getImageData(0, 0, qrEncabezadoCanvas.width, qrEncabezadoCanvas.height);
+                    var resultado = jsQR(imagen.data, imagen.width, imagen.height);
+                    resolve(resultado && resultado.data ? resultado.data : '');
+                });
+            }
+
+            function iniciarCamaraQrEncabezado() {
+                var video = document.getElementById('qrEncabezadoVideo');
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    mostrarEstadoQrEncabezado('El navegador no permite abrir camara en esta pagina. Use localhost/HTTPS o pegue el codigo.', 'warning');
+                    return;
+                }
+
+                if (!('BarcodeDetector' in window) && !window.jsQR) {
+                    mostrarEstadoQrEncabezado('Lector QR no disponible. Pegue el codigo o seleccione manualmente.', 'warning');
+                    return;
+                }
+
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
+                    qrEncabezadoStream = stream;
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    video.play();
+                    mostrarEstadoQrEncabezado('Camara activa. Apunte al QR.', 'info');
+
+                    qrEncabezadoTimer = setInterval(function () {
+                        detectarQrEncabezadoEnVideo(video).then(function (valor) {
+                            if (valor) {
+                                document.getElementById('qrEncabezadoTexto').value = valor;
+                                aplicarQrEncabezado(valor);
+                                detenerCamaraQrEncabezado();
+                            }
+                        });
+                    }, 700);
+                }).catch(function () {
+                    mostrarEstadoQrEncabezado('No se pudo abrir la camara. Pegue el codigo o seleccione manualmente.', 'warning');
+                });
+            }
+
+            window.addEventListener('beforeunload', detenerCamaraQrEncabezado);
          
         </script>
 
@@ -834,6 +1009,33 @@ if (isset($_POST)) {
                                     <h4 class="box-title">Registro de Recepcion</h4>                                        
                                 </div>
                                 <div class="box-body ">
+                                    <div class="row">
+                                        <div class="col-xxl-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 col-xs-12">
+                                            <div class="alert alert-light border">
+                                                <div class="row align-items-end">
+                                                    <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12 col-xs-12">
+                                                        <label>QR productor</label>
+                                                        <input type="text" class="form-control" id="qrEncabezadoTexto" placeholder="ETQ|P=153306|V=31|F=12345" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?> />
+                                                        <small class="text-muted">En cabecera se usa P para seleccionar el productor por CSG. V y F se usan en el detalle.</small>
+                                                    </div>
+                                                    <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6 col-6 col-xs-6">
+                                                        <button type="button" class="btn btn-info btn-block" onclick="leerQrEncabezadoPegado()" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
+                                                            <i class="fa fa-qrcode"></i> Aplicar QR
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6 col-6 col-xs-6">
+                                                        <button type="button" class="btn btn-secondary btn-block" onclick="iniciarCamaraQrEncabezado()" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
+                                                            <i class="fa fa-camera"></i> Leer camara
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <span id="qrEncabezadoEstado" class="badge badge-secondary">Lectura QR opcional. Tambien puede seleccionar productor manualmente.</span>
+                                                </div>
+                                                <video id="qrEncabezadoVideo" style="display:none; width:100%; max-height:260px; margin-top:10px;" muted playsinline></video>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="row">
                                         <div class="col-xxl-2 col-xl-3 col-lg-3 col-md-6 col-sm-6 col-6 col-xs-6">
                                             <div class="form-group">

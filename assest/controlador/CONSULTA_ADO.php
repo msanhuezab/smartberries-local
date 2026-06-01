@@ -270,7 +270,9 @@ class CONSULTA_ADO
                                                 WHERE R.ID_PLANTA = '".$PLANTA."'
                                                 AND R.ID_EMPRESA = '".$EMPRESA."'
                                                 AND R.ID_TEMPORADA = '".$TEMPORADA."'
-                                                AND R.ESTADO_REGISTRO = 1");
+                                                AND R.ESTADO = 0
+                                                AND R.ESTADO_REGISTRO = 1
+                                                AND R.KILOS_NETO_RECEPCION > 0");
             $datos->execute();
             $resultado = $datos->fetchAll();
             $datos=null;
@@ -400,6 +402,7 @@ class CONSULTA_ADO
                                                 AND R.ESTADO = 0
                                                 AND R.ESTADO_REGISTRO = 1
                                                 AND DR.ESTADO_REGISTRO = 1
+                                                AND DR.KILOS_NETO_DRECEPCION > 0
                                                 AND DATE(R.FECHA_RECEPCION) = CURDATE()");
             $datos->execute();
             $resultado = $datos->fetchAll();
@@ -416,7 +419,7 @@ class CONSULTA_ADO
         try {
 
             $datos = $this->conexion->prepare("SELECT SUM(EXI.KILOS_NETO_EXIMATERIAPRIMA) AS TOTAL FROM fruta_eximateriaprima EXI
-            WHERE EXI.ID_PLANTA = '".$PLANTA."' AND EXI.ID_EMPRESA = '".$EMPRESA."' AND EXI.ESTADO = 2 AND EXI.ESTADO_REGISTRO = 1 AND EXI.ID_TEMPORADA = '".$TEMPORADA."'");
+            WHERE EXI.ID_PLANTA = '".$PLANTA."' AND EXI.ID_EMPRESA = '".$EMPRESA."' AND EXI.ESTADO = 2 AND EXI.ESTADO_REGISTRO = 1 AND EXI.KILOS_NETO_EXIMATERIAPRIMA > 0 AND EXI.ID_TEMPORADA = '".$TEMPORADA."'");
             $datos->execute();
             $resultado = $datos->fetchAll();
             $datos=null;
@@ -547,6 +550,8 @@ class CONSULTA_ADO
                                                 WHERE P.ID_PLANTA = '".$PLANTA."'
                                                 AND P.ID_EMPRESA = '".$EMPRESA."'
                                                 AND P.ESTADO = 0
+                                                AND P.ESTADO_REGISTRO = 1
+                                                AND P.KILOS_NETO_ENTRADA > 0
                                                 AND P.ID_TEMPORADA = '".$TEMPORADA."'");
             $datos->execute();
             $resultado = $datos->fetchAll();
@@ -586,6 +591,8 @@ class CONSULTA_ADO
                                                 WHERE P.ID_PLANTA = '".$PLANTA."'
                                                 AND P.ID_EMPRESA = '".$EMPRESA."'
                                                 AND P.ESTADO = 0
+                                                AND P.ESTADO_REGISTRO = 1
+                                                AND P.KILOS_NETO_ENTRADA > 0
                                                 AND P.ID_TEMPORADA = '".$TEMPORADA."'
                                                 AND DATE(P.FECHA_PROCESO) = CURDATE()");
             $datos->execute();
@@ -628,6 +635,7 @@ class CONSULTA_ADO
                                                 AND D.ID_EMPRESA = '".$EMPRESA."'
                                                 AND D.ESTADO = 0
                                                 AND D.ESTADO_REGISTRO = 1
+                                                AND D.KILOS_NETO_DESPACHO > 0
                                                 AND D.ID_TEMPORADA = '".$TEMPORADA."'
                                                 AND DATE(D.FECHA_DESPACHO) = CURDATE()");
             $datos->execute();

@@ -8,6 +8,8 @@ include_once '../../assest/controlador/TPRODUCTOR_ADO.php';
 include_once '../../assest/controlador/COMUNA_ADO.php';
 include_once '../../assest/controlador/PROVINCIA_ADO.php';
 include_once '../../assest/controlador/REGION_ADO.php';
+include_once '../../assest/controlador/VESPECIES_ADO.php';
+include_once '../../assest/controlador/MERCADO_ADO.php';
 
 include_once '../../assest/controlador/PRODUCTOR_ADO.php';
 include_once '../../assest/modelo/PRODUCTOR.php';
@@ -19,6 +21,8 @@ $TPRODUCTOR_ADO =  new TPRODUCTOR_ADO();
 $COMUNA_ADO =  new COMUNA_ADO();
 $PROVINCIA_ADO =  new PROVINCIA_ADO();
 $REGION_ADO =  new REGION_ADO();
+$VESPECIES_ADO =  new VESPECIES_ADO();
+$MERCADO_ADO =  new MERCADO_ADO();
 
 $PRODUCTOR_ADO =  new PRODUCTOR_ADO();
 //INIICIALIZAR MODELO
@@ -71,6 +75,10 @@ $ARRAYNUMERO = "";
 $ARRAYCOMUNA = "";
 $ARRAYPROVINCIA = "";
 $ARRAYREGION = "";
+$ARRAYVESPECIES = "";
+$ARRAYMERCADO = "";
+$ARRAYPRODUCTORVESPECIES = array();
+$ARRAYPRODUCTORMERCADO = array();
 
 //DEFINIR ARREGLOS CON LOS DATOS OBTENIDOS DE LAS FUNCIONES DE LOS CONTROLADORES
 $ARRAYPRODUCTOR = $PRODUCTOR_ADO->listarProductorPorEmpresaCBX($EMPRESAS);
@@ -81,10 +89,106 @@ $ARRAYTPRODUCTOR = $TPRODUCTOR_ADO->listarTproductorPorEmpresaCBX($EMPRESAS);
 $ARRAYCOMUNA = $COMUNA_ADO->listarComuna3CBX();
 $ARRAYPROVINCIA  = $PROVINCIA_ADO->listarProvincia3CBX();
 $ARRAYREGION = $REGION_ADO->listarRegion3CBX();
+$ARRAYVESPECIES = $VESPECIES_ADO->listarVespeciesPorEmpresaCBX($EMPRESAS);
+$ARRAYMERCADO = $MERCADO_ADO->listarMercadoPorEmpresaCBX($EMPRESAS);
 
 
 include_once "../../assest/config/validarDatosUrl.php";
 include_once "../../assest/config/datosUrl.php";
+
+function productorIdsSeleccionados($nombreCampo)
+{
+    if (!isset($_REQUEST[$nombreCampo]) || !is_array($_REQUEST[$nombreCampo])) {
+        return array();
+    }
+
+    $ids = array();
+    foreach ($_REQUEST[$nombreCampo] as $id) {
+        $id = (int)$id;
+        if ($id > 0) {
+            $ids[$id] = $id;
+        }
+    }
+    return array_values($ids);
+}
+
+function productorRelacionesSeleccionadas($tabla, $campoRelacion, $idProductor, $idEmpresa)
+{
+    $conexion = BDCONFIG::conectar();
+    if (!$conexion || empty($idProductor)) {
+        return array();
+    }
+
+    $sql = "SELECT " . $campoRelacion . "
+            FROM " . $tabla . "
+            WHERE ID_PRODUCTOR = ?
+              AND ID_EMPRESA = ?
+              AND ESTADO_REGISTRO = 1";
+    $stmt = $conexion->prepare($sql);
+    $stmt->execute(array($idProductor, $idEmpresa));
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+function sincronizarRelacionesProductor($tabla, $campoRelacion, $idProductor, $idsSeleccionados, $idEmpresa, $idUsuario)
+{
+    $conexion = BDCONFIG::conectar();
+    if (!$conexion || empty($idProductor)) {
+        return;
+    }
+
+    $idsSeleccionados = array_values(array_unique(array_map('intval', $idsSeleccionados)));
+
+    $conexion->beginTransaction();
+    $desactivar = $conexion->prepare(
+        "UPDATE " . $tabla . "
+         SET ESTADO_REGISTRO = 0,
+             MODIFICACION = SYSDATE(),
+             ID_USUARIOM = ?
+         WHERE ID_PRODUCTOR = ?
+           AND ID_EMPRESA = ?"
+    );
+    $desactivar->execute(array($idUsuario, $idProductor, $idEmpresa));
+
+    if (!empty($idsSeleccionados)) {
+        $activar = $conexion->prepare(
+            "INSERT INTO " . $tabla . "
+                (ID_PRODUCTOR, " . $campoRelacion . ", ID_EMPRESA, ESTADO_REGISTRO, INGRESO, MODIFICACION, ID_USUARIOI, ID_USUARIOM)
+             VALUES
+                (?, ?, ?, 1, SYSDATE(), SYSDATE(), ?, ?)
+             ON DUPLICATE KEY UPDATE
+                ESTADO_REGISTRO = 1,
+                MODIFICACION = SYSDATE(),
+                ID_USUARIOM = VALUES(ID_USUARIOM)"
+        );
+
+        foreach ($idsSeleccionados as $idRelacion) {
+            if ($idRelacion > 0) {
+                $activar->execute(array($idProductor, $idRelacion, $idEmpresa, $idUsuario, $idUsuario));
+            }
+        }
+    }
+
+    $conexion->commit();
+}
+
+function ultimoProductorCreado($idEmpresa, $numeroProductor)
+{
+    $conexion = BDCONFIG::conectar();
+    if (!$conexion) {
+        return null;
+    }
+
+    $stmt = $conexion->prepare(
+        "SELECT ID_PRODUCTOR
+         FROM fruta_productor
+         WHERE ID_EMPRESA = ?
+           AND NUMERO_PRODUCTOR = ?
+         ORDER BY ID_PRODUCTOR DESC
+         LIMIT 1"
+    );
+    $stmt->execute(array($idEmpresa, $numeroProductor));
+    return $stmt->fetchColumn();
+}
 
 
 if (isset($_GET["id"])) {
@@ -252,6 +356,9 @@ if (isset($id_dato) && isset($accion_dato)) {
     }
 }
 
+$ARRAYPRODUCTORVESPECIES = productorRelacionesSeleccionadas('fruta_productor_vespecies', 'ID_VESPECIES', $IDOP, $EMPRESAS);
+$ARRAYPRODUCTORMERCADO = productorRelacionesSeleccionadas('fruta_productor_mercado', 'ID_MERCADO', $IDOP, $EMPRESAS);
+
 if($_POST){
     if (isset($_REQUEST['RUTPRODUCTOR'])) {
         $RUTPRODUCTOR = $_REQUEST['RUTPRODUCTOR'];
@@ -313,6 +420,8 @@ if($_POST){
     if (isset($_REQUEST['TPRODUCTOR'])) {
         $TPRODUCTOR = $_REQUEST['TPRODUCTOR'];
     }
+    $ARRAYPRODUCTORVESPECIES = productorIdsSeleccionados('VESPECIES_PRODUCTOR');
+    $ARRAYPRODUCTORMERCADO = productorIdsSeleccionados('MERCADOS_PRODUCTOR');
 }
 
 
@@ -809,6 +918,42 @@ if($_POST){
                                                         </button>
                                                     </div>
                                                 </div>
+                                                <div class="col-12">
+                                                    <hr class="my-15">
+                                                    <h5 class="mb-15">Asociaciones comerciales</h5>
+                                                </div>
+                                                <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12 col-xs-12">
+                                                    <div class="form-group">
+                                                        <label>Variedades asociadas</label>
+                                                        <select class="form-control select2" id="VESPECIES_PRODUCTOR" name="VESPECIES_PRODUCTOR[]" multiple="multiple" style="width: 100%;" <?php echo $DISABLED; ?>>
+                                                            <?php foreach ($ARRAYVESPECIES as $r) : ?>
+                                                                <?php if ($ARRAYVESPECIES) { ?>
+                                                                    <option value="<?php echo $r['ID_VESPECIES']; ?>"
+                                                                        <?php if (in_array((int)$r['ID_VESPECIES'], $ARRAYPRODUCTORVESPECIES)) { echo "selected"; } ?>>
+                                                                        <?php echo $r['NOMBRE_VESPECIES']; ?>
+                                                                    </option>
+                                                                <?php } ?>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <small class="form-text text-muted">Seleccione una o varias variedades disponibles para este productor.</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-sm-12 col-12 col-xs-12">
+                                                    <div class="form-group">
+                                                        <label>Mercados disponibles</label>
+                                                        <select class="form-control select2" id="MERCADOS_PRODUCTOR" name="MERCADOS_PRODUCTOR[]" multiple="multiple" style="width: 100%;" <?php echo $DISABLED; ?>>
+                                                            <?php foreach ($ARRAYMERCADO as $r) : ?>
+                                                                <?php if ($ARRAYMERCADO) { ?>
+                                                                    <option value="<?php echo $r['ID_MERCADO']; ?>"
+                                                                        <?php if (in_array((int)$r['ID_MERCADO'], $ARRAYPRODUCTORMERCADO)) { echo "selected"; } ?>>
+                                                                        <?php echo $r['NOMBRE_MERCADO']; ?>
+                                                                    </option>
+                                                                <?php } ?>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <small class="form-text text-muted">Seleccione los mercados habilitados para trabajar con este productor.</small>
+                                                    </div>
+                                                </div>
                                                 
                                             </div>
                                         </div>
@@ -1020,6 +1165,9 @@ if($_POST){
                 $PRODUCTOR->__SET('ID_USUARIOM', $IDUSUARIOS);
                 //LLAMADA AL METODO DE REGISTRO DEL CONTROLADOR
                 $PRODUCTOR_ADO->agregarProductor($PRODUCTOR);
+                $IDPRODUCTORNUEVO = ultimoProductorCreado($_REQUEST['EMPRESA'], $NUMERO);
+                sincronizarRelacionesProductor('fruta_productor_vespecies', 'ID_VESPECIES', $IDPRODUCTORNUEVO, productorIdsSeleccionados('VESPECIES_PRODUCTOR'), $_REQUEST['EMPRESA'], $IDUSUARIOS);
+                sincronizarRelacionesProductor('fruta_productor_mercado', 'ID_MERCADO', $IDPRODUCTORNUEVO, productorIdsSeleccionados('MERCADOS_PRODUCTOR'), $_REQUEST['EMPRESA'], $IDUSUARIOS);
 
                 $AUSUARIO_ADO->agregarAusuario2("NULL",3,1,"".$_SESSION["NOMBRE_USUARIO"].", Registro de Productor.","fruta_productor","NULL",$_SESSION["ID_USUARIO"],$_SESSION['ID_EMPRESA'],'NULL',$_SESSION['ID_TEMPORADA'] );  
 
@@ -1064,6 +1212,8 @@ if($_POST){
                 $PRODUCTOR->__SET('ID_PRODUCTOR', $_REQUEST['ID']);
                 //LLAMADA AL METODO DE EDICION DEL CONTROLADOR
                 $PRODUCTOR_ADO->actualizarProductor($PRODUCTOR);
+                sincronizarRelacionesProductor('fruta_productor_vespecies', 'ID_VESPECIES', $_REQUEST['ID'], productorIdsSeleccionados('VESPECIES_PRODUCTOR'), $_REQUEST['EMPRESA'], $IDUSUARIOS);
+                sincronizarRelacionesProductor('fruta_productor_mercado', 'ID_MERCADO', $_REQUEST['ID'], productorIdsSeleccionados('MERCADOS_PRODUCTOR'), $_REQUEST['EMPRESA'], $IDUSUARIOS);
 
                 $AUSUARIO_ADO->agregarAusuario2("NULL",3,2,"".$_SESSION["NOMBRE_USUARIO"].", Modificación de Productor.","fruta_productor", $_REQUEST['ID'],$_SESSION["ID_USUARIO"],$_SESSION['ID_EMPRESA'],'NULL',$_SESSION['ID_TEMPORADA'] );     
                 

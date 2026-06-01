@@ -8,6 +8,7 @@ include_once '../../assest/controlador/VESPECIES_ADO.php';
 include_once '../../assest/controlador/FOLIO_ADO.php';
 include_once '../../assest/controlador/TMANEJO_ADO.php';
 include_once '../../assest/controlador/PRODUCTOR_ADO.php';
+include_once '../../assest/config/BDCONFIG.php';
 
 
 include_once '../../assest/controlador/TTRATAMIENTO1_ADO.php';
@@ -91,6 +92,55 @@ function enviarCorreoSMTP($destinatarios, $asunto, $mensaje, $remitente, $usuari
     $enviar("QUIT\r\n");
     fclose($conexion);
     return [true, null];
+}
+
+function obtenerProductorVespeciesPermitidas($empresa)
+{
+    $relaciones = [];
+
+    try {
+        $conexion = BDCONFIG::conectar();
+        if (!$conexion) {
+            return $relaciones;
+        }
+
+        $datos = $conexion->prepare("
+            SELECT ID_PRODUCTOR, ID_VESPECIES
+            FROM fruta_productor_vespecies
+            WHERE ID_EMPRESA = ?
+              AND ESTADO_REGISTRO = 1
+        ");
+        $datos->execute([$empresa]);
+
+        foreach ($datos->fetchAll(PDO::FETCH_ASSOC) as $fila) {
+            $productor = (string) $fila['ID_PRODUCTOR'];
+            $vespecies = (string) $fila['ID_VESPECIES'];
+            if (!isset($relaciones[$productor])) {
+                $relaciones[$productor] = [];
+            }
+            $relaciones[$productor][] = $vespecies;
+        }
+    } catch (Exception $e) {
+        $relaciones = [];
+    }
+
+    return $relaciones;
+}
+
+function productorTieneVariedadPermitida($relaciones, $productor, $vespecies)
+{
+    $productor = (string) $productor;
+    $vespecies = (string) $vespecies;
+
+    if ($productor === '' || $vespecies === '') {
+        return true;
+    }
+
+    if (!isset($relaciones[$productor]) || count($relaciones[$productor]) === 0) {
+        return true;
+    }
+
+    return in_array($vespecies, array_map('strval', $relaciones[$productor]), true);
 }
 
 //INCIALIZAR LAS VARIBLES
@@ -198,6 +248,16 @@ $ARRAYPRODUCTOR = $PRODUCTOR_ADO->listarProductorPorEmpresaCBX($EMPRESAS);
 $ARRAYTTRATAMIENTO1=$TTRATAMIENTO1_ADO->listarTtratamientoPorEmpresaCBX($EMPRESAS);
 $ARRAYTTRATAMIENTO2=$TTRATAMIENTO2_ADO->listarTtratamientoPorEmpresaCBX($EMPRESAS);
 //$ARRAYPRODUCTOR = 
+$PRODUCTORES_QR = [];
+foreach ($ARRAYPRODUCTOR as $productorQr) {
+    $PRODUCTORES_QR[$productorQr['ID_PRODUCTOR']] = trim($productorQr['CSG_PRODUCTOR'] . ': ' . $productorQr['NOMBRE_PRODUCTOR']);
+}
+$VARIEDADES_QR = $VESPECIES_ADO->listarVespeciesPorEmpresaCBX($EMPRESAS);
+$VARIEDADES_QR_MAP = [];
+foreach ($VARIEDADES_QR as $variedadQr) {
+    $VARIEDADES_QR_MAP[$variedadQr['ID_VESPECIES']] = trim($variedadQr['CODIGO_SAG_VESPECIES'] . ': ' . $variedadQr['NOMBRE_VESPECIES']);
+}
+$PRODUCTOR_VESPECIES_PERMITIDAS = obtenerProductorVespeciesPermitidas($EMPRESAS);
 $ARRAYFECHAACTUAL = $DRECEPCIONMP_ADO->obtenerFecha();
 $FECHACOSECHADRECEPCION = $ARRAYFECHAACTUAL[0]['FECHA'];
 include_once "../../assest/config/validarDatosUrlD.php";
@@ -539,6 +599,7 @@ if ($_POST) {
     <meta name="author" content="">
     <!- LLAMADA DE LOS ARCHIVOS NECESARIOS PARA DISEÑO Y FUNCIONES BASE DE LA VISTA -!>
         <?php include_once "../../assest/config/urlHead.php"; ?>
+        <script src="../../assest/js/jsQR.min.js"></script>
         <!- FUNCIONES BASES -!>
             <script type="text/javascript">
                 //VALIDACION DE FORMULARIO
@@ -600,7 +661,21 @@ if ($_POST) {
                     document.getElementById('KILOSNETODRECEPCIONV').value = pesoneto;
                 }
 
-                function validacion() {
+                function continuarSubmitConAdvertencia(boton) {
+                    var formulario = document.form_reg_dato;
+
+                    if (boton && boton.name) {
+                        var accion = document.createElement('input');
+                        accion.type = 'hidden';
+                        accion.name = boton.name;
+                        accion.value = boton.value || boton.name;
+                        formulario.appendChild(accion);
+                    }
+
+                    formulario.submit();
+                }
+
+                function validacion(boton) {
 
                     FOLIOMANUAL = document.getElementById('FOLIOMANUAL').checked;
                     FECHACOSECHADRECEPCION = document.getElementById("FECHACOSECHADRECEPCION").value;
@@ -763,6 +838,22 @@ if ($_POST) {
                         document.form_reg_dato.TTRATAMIENTO2.style.borderColor = "#4AF575";
                     }
 
+                    if (debeAdvertirRelacionProductorVariedad()) {
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Variedad no asociada",
+                            text: "La variedad seleccionada no esta asociada al productor en el maestro. Puede continuar, pero revise la informacion.",
+                            showCancelButton: true,
+                            confirmButtonText: "Continuar",
+                            cancelButtonText: "Revisar"
+                        }).then(function (result) {
+                            if (result.isConfirmed) {
+                                continuarSubmitConAdvertencia(boton);
+                            }
+                        });
+                        return false;
+                    }
+
 
 
                     /*
@@ -774,11 +865,338 @@ if ($_POST) {
                         }
                         document.form_reg_dato.NOTADRECEPCION.style.borderColor = "#4AF575";
                     */
+                    return true;
                 }
                 //REDIRECCIONAR A LA PAGINA SELECIONADA
                 function irPagina(url) {
                     location.href = "" + url;
                 }
+
+                var productoresQr = <?php echo json_encode($PRODUCTORES_QR, JSON_UNESCAPED_UNICODE); ?>;
+                var variedadesQr = <?php echo json_encode($VARIEDADES_QR_MAP, JSON_UNESCAPED_UNICODE); ?>;
+                var productorVespeciesPermitidas = <?php echo json_encode($PRODUCTOR_VESPECIES_PERMITIDAS, JSON_UNESCAPED_UNICODE); ?>;
+                var qrScannerStream = null;
+                var qrDetector = null;
+                var qrScannerTimer = null;
+                var qrCanvas = document.createElement('canvas');
+                var qrCanvasContext = qrCanvas.getContext('2d', { willReadFrequently: true });
+
+                function relacionProductorVariedadValida(productor, variedad) {
+                    productor = String(productor || '').trim();
+                    variedad = String(variedad || '').trim();
+
+                    if (!productor || !variedad) {
+                        return true;
+                    }
+
+                    var permitidas = productorVespeciesPermitidas[productor] || [];
+                    if (!permitidas.length) {
+                        return true;
+                    }
+
+                    return permitidas.map(String).indexOf(variedad) !== -1;
+                }
+
+                function debeAdvertirRelacionProductorVariedad(productor, variedad) {
+                    var campoProductor = document.getElementById('PRODUCTOR');
+                    var campoVariedad = document.getElementById('VESPECIES');
+
+                    productor = productor || (campoProductor ? campoProductor.value : '');
+                    variedad = variedad || (campoVariedad ? campoVariedad.value : '');
+
+                    if (relacionProductorVariedadValida(productor, variedad)) {
+                        return false;
+                    }
+
+                    if (campoVariedad) {
+                        campoVariedad.style.borderColor = "#F4B400";
+                    }
+                    var mensaje = document.getElementById('val_vespecies');
+                    if (mensaje) {
+                        mensaje.innerHTML = "ALERTA: VARIEDAD NO ASOCIADA AL PRODUCTOR";
+                    }
+                    return true;
+                }
+
+                function normalizarClaveQr(clave) {
+                    return String(clave || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                }
+
+                function obtenerDatoQr(datos, claves) {
+                    for (var clave in datos) {
+                        if (!Object.prototype.hasOwnProperty.call(datos, clave)) {
+                            continue;
+                        }
+                        var normalizada = normalizarClaveQr(clave);
+                        if (claves.indexOf(normalizada) !== -1) {
+                            return datos[clave];
+                        }
+                    }
+                    return '';
+                }
+
+                function parsearCodigoQrRecepcion(valor) {
+                    var texto = String(valor || '').trim();
+                    var datos = {};
+
+                    if (!texto) {
+                        return datos;
+                    }
+
+                    try {
+                        datos = JSON.parse(texto);
+                        if (datos && typeof datos === 'object') {
+                            return datos;
+                        }
+                    } catch (e) {}
+
+                    texto.split(/[;|,\n]/).forEach(function (parte) {
+                        var piezas = parte.split(/[:=]/);
+                        if (piezas.length >= 2) {
+                            var clave = piezas.shift().trim();
+                            datos[clave] = piezas.join('=').trim();
+                        }
+                    });
+
+                    return datos;
+                }
+
+                function seleccionarValorCampo(id, valor, texto) {
+                    var campo = document.getElementById(id);
+                    if (!campo || valor === undefined || valor === null || String(valor).trim() === '') {
+                        return false;
+                    }
+
+                    valor = String(valor).trim();
+
+                    if (campo.tagName === 'SELECT') {
+                        var opcion = campo.querySelector('option[value="' + valor.replace(/"/g, '\\"') + '"]');
+                        if (!opcion) {
+                            opcion = document.createElement('option');
+                            opcion.value = valor;
+                            opcion.text = texto || ('QR: ' + valor);
+                            campo.appendChild(opcion);
+                        }
+                        campo.value = valor;
+                        if (window.jQuery && jQuery.fn.select2) {
+                            jQuery(campo).trigger('change.select2');
+                        }
+                        return true;
+                    }
+
+                    campo.value = valor;
+                    return true;
+                }
+
+                function buscarIdPorTexto(mapa, texto) {
+                    var objetivo = normalizarClaveQr(texto);
+                    if (!objetivo) {
+                        return '';
+                    }
+
+                    for (var id in mapa) {
+                        if (!Object.prototype.hasOwnProperty.call(mapa, id)) {
+                            continue;
+                        }
+                        var nombre = normalizarClaveQr(mapa[id]);
+                        if (nombre === objetivo || nombre.indexOf(objetivo) !== -1 || objetivo.indexOf(nombre) !== -1) {
+                            return id;
+                        }
+                    }
+                    return '';
+                }
+
+                function resolverIdQr(mapa, valor) {
+                    if (valor === undefined || valor === null || String(valor).trim() === '') {
+                        return '';
+                    }
+                    var texto = String(valor).trim();
+                    if (Object.prototype.hasOwnProperty.call(mapa, texto)) {
+                        return texto;
+                    }
+                    return buscarIdPorTexto(mapa, texto);
+                }
+
+                function habilitarFolioManualDesdeQr(folio) {
+                    var checkManual = document.getElementById('FOLIOMANUAL');
+                    var inputFolio = document.getElementById('NUMEROFOLIODRECEPCION');
+
+                    if (!inputFolio || folio === undefined || folio === null || String(folio).trim() === '') {
+                        return false;
+                    }
+
+                    if (checkManual) {
+                        checkManual.checked = true;
+                    }
+
+                    inputFolio.disabled = false;
+                    inputFolio.style.backgroundColor = '';
+                    inputFolio.value = String(folio).trim();
+                    return true;
+                }
+
+                function aplicarCodigoQrRecepcion(valor) {
+                    var datos = parsearCodigoQrRecepcion(valor);
+                    var productor = obtenerDatoQr(datos, ['p', 'productor', 'idproductor', 'prod', 'csg', 'codigosagproductor']);
+                    var folio = obtenerDatoQr(datos, ['f', 'folio', 'numerofolio', 'foliodrecepcion', 'folioproductor']);
+                    var variedad = obtenerDatoQr(datos, ['v', 'vespecies', 'idvespecies', 'variedad', 'idvariedad', 'codigosagvariedad']);
+                    var estandar = obtenerDatoQr(datos, ['estandar', 'idestandar']);
+                    var mensajes = [];
+
+                    if (!productor && !folio && !variedad && !estandar) {
+                        productor = valor;
+                    }
+
+                    var productorId = resolverIdQr(productoresQr, productor);
+                    var variedadId = resolverIdQr(variedadesQr, variedad);
+                    var productorActualQr = document.getElementById('PRODUCTOR') ? document.getElementById('PRODUCTOR').value : '';
+                    var productorValidacionQr = productorId || productorActualQr;
+
+                    if (!productor && !folio && !variedad && !estandar) {
+                        mostrarEstadoQr('No se reconocio el formato del QR.', 'danger');
+                        return false;
+                    }
+
+                    if (folio && habilitarFolioManualDesdeQr(folio)) {
+                        mensajes.push('folio');
+                    }
+
+                    if (productorId) {
+                        var campoProductor = document.getElementById('PRODUCTOR');
+                        var productorActual = campoProductor ? String(campoProductor.value || '') : '';
+
+                        if (campoProductor && campoProductor.tagName === 'INPUT' && productorActual && productorActual !== String(productorId)) {
+                            mostrarEstadoQr('El productor del QR no coincide con el productor de la recepcion.', 'warning');
+                        } else if (seleccionarValorCampo('PRODUCTOR', productorId, productoresQr[productorId])) {
+                            var productorVisible = document.getElementById('PRODUCTORV');
+                            if (productorVisible) {
+                                productorVisible.value = productoresQr[productorId] || ('QR: ' + productorId);
+                            }
+                            mensajes.push('productor');
+                        }
+                    }
+
+                    if (estandar && seleccionarValorCampo('ESTANDAR', estandar)) {
+                        mensajes.push('estandar');
+                    }
+
+                    if (variedadId && seleccionarValorCampo('VESPECIES', variedadId, variedadesQr[variedadId])) {
+                        mensajes.push('variedad');
+                    }
+
+                    if (productorValidacionQr && variedadId && debeAdvertirRelacionProductorVariedad(productorValidacionQr, variedadId)) {
+                        mensajes.push('alerta productor-variedad');
+                        mostrarEstadoQr('QR aplicado, pero la variedad no esta asociada al productor en el maestro.', 'warning');
+                        return true;
+                    }
+
+                    if (mensajes.length) {
+                        mostrarEstadoQr('QR aplicado: ' + mensajes.join(', ') + '.', 'success');
+                        return true;
+                    }
+
+                    mostrarEstadoQr('QR leido, pero no se pudieron aplicar datos al formulario.', 'warning');
+                    return false;
+                }
+
+                function mostrarEstadoQr(mensaje, tipo) {
+                    var estado = document.getElementById('qrRecepcionEstado');
+                    if (!estado) {
+                        return;
+                    }
+                    estado.className = 'badge badge-' + (tipo || 'secondary');
+                    estado.innerHTML = mensaje;
+                }
+
+                function leerQrPegado() {
+                    var entrada = document.getElementById('qrRecepcionTexto');
+                    if (entrada) {
+                        aplicarCodigoQrRecepcion(entrada.value);
+                    }
+                }
+
+                function detenerCamaraQr() {
+                    var video = document.getElementById('qrRecepcionVideo');
+                    if (qrScannerTimer) {
+                        clearInterval(qrScannerTimer);
+                        qrScannerTimer = null;
+                    }
+                    if (qrScannerStream) {
+                        qrScannerStream.getTracks().forEach(function (track) { track.stop(); });
+                        qrScannerStream = null;
+                    }
+                    if (video) {
+                        video.srcObject = null;
+                        video.style.display = 'none';
+                    }
+                }
+
+                function detectarQrEnVideo(video) {
+                    if ('BarcodeDetector' in window) {
+                        if (!qrDetector) {
+                            qrDetector = new BarcodeDetector({ formats: ['qr_code'] });
+                        }
+
+                        return qrDetector.detect(video).then(function (codigos) {
+                            if (codigos && codigos.length) {
+                                return codigos[0].rawValue || '';
+                            }
+                            return '';
+                        }).catch(function () {
+                            return '';
+                        });
+                    }
+
+                    return new Promise(function (resolve) {
+                        if (!window.jsQR || !video.videoWidth || !video.videoHeight || !qrCanvasContext) {
+                            resolve('');
+                            return;
+                        }
+
+                        qrCanvas.width = video.videoWidth;
+                        qrCanvas.height = video.videoHeight;
+                        qrCanvasContext.drawImage(video, 0, 0, qrCanvas.width, qrCanvas.height);
+                        var imagen = qrCanvasContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+                        var resultado = jsQR(imagen.data, imagen.width, imagen.height);
+                        resolve(resultado && resultado.data ? resultado.data : '');
+                    });
+                }
+
+                function iniciarCamaraQr() {
+                    var video = document.getElementById('qrRecepcionVideo');
+
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        mostrarEstadoQr('El navegador no permite abrir camara en esta pagina. Use localhost/HTTPS o pegue el codigo.', 'warning');
+                        return;
+                    }
+
+                    if (!('BarcodeDetector' in window) && !window.jsQR) {
+                        mostrarEstadoQr('Lector QR no disponible. Pegue el codigo o digite manualmente.', 'warning');
+                        return;
+                    }
+
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
+                        qrScannerStream = stream;
+                        video.srcObject = stream;
+                        video.style.display = 'block';
+                        video.play();
+                        mostrarEstadoQr('Camara activa. Apunte al QR.', 'info');
+
+                        qrScannerTimer = setInterval(function () {
+                            detectarQrEnVideo(video).then(function (valor) {
+                                if (valor) {
+                                    document.getElementById('qrRecepcionTexto').value = valor;
+                                    aplicarCodigoQrRecepcion(valor);
+                                    detenerCamaraQr();
+                                }
+                            });
+                        }, 700);
+                    }).catch(function () {
+                        mostrarEstadoQr('No se pudo abrir la camara. Pegue el codigo o digite manualmente.', 'warning');
+                    });
+                }
+
+                window.addEventListener('beforeunload', detenerCamaraQr);
 
 
                
@@ -821,6 +1239,36 @@ if ($_POST) {
                             </div>
                             <form class="form" role="form" method="post" name="form_reg_dato" >
                                 <div class="box-body form-element">
+                                    <div class="box bg-light mb-15">
+                                        <div class="box-body p-15">
+                                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                <div>
+                                                    <h5 class="mb-0">Lectura QR productor / folio / variedad</h5>
+                                                    <small class="text-muted">Formato esperado: ETQ|P=153306|V=31|F=12345. P: CSG productor, V: ID variedad, F: folio productor.</small>
+                                                </div>
+                                                <span id="qrRecepcionEstado" class="badge badge-secondary mt-2 mt-md-0">Opcional</span>
+                                            </div>
+                                            <div class="row mt-10">
+                                                <div class="col-xl-8 col-lg-8 col-md-12">
+                                                    <input type="text" class="form-control" id="qrRecepcionTexto" placeholder="Pegue aqui el contenido del QR o use la camara" <?php echo $DISABLED; ?> <?php echo $DISABLEDSTYLE; ?> />
+                                                </div>
+                                                <div class="col-xl-4 col-lg-4 col-md-12 mt-2 mt-lg-0">
+                                                    <div class="btn-group btn-block" role="group">
+                                                        <button type="button" class="btn btn-primary" onclick="leerQrPegado()" <?php echo $DISABLED; ?>>
+                                                            <i class="fa fa-qrcode"></i> Aplicar QR
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-primary" onclick="iniciarCamaraQr()" <?php echo $DISABLED; ?>>
+                                                            <i class="fa fa-camera"></i> Camara
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-secondary" onclick="detenerCamaraQr()">
+                                                            <i class="fa fa-stop"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <video id="qrRecepcionVideo" class="mt-10" style="display:none; width:100%; max-height:260px; background:#111;" muted playsinline></video>
+                                        </div>
+                                    </div>
                                     <div class="form-group">
                                         <!-- Envía siempre 'off' si el checkbox está desmarcado -->
                                         <input type="hidden" name="FOLIOMANUAL" value="off" />
@@ -1056,18 +1504,18 @@ if ($_POST) {
                                                 <i class="ti-back-left "></i> Volver
                                             </button>
                                             <?php if ($OP == "") { ?>
-                                                <button type="submit" class="btn btn-primary " data-toggle="tooltip" title="Guardar" name="CREAR" value="CREAR" <?php echo $DISABLED; ?>  onclick="return validacion()">
+                                                <button type="submit" class="btn btn-primary " data-toggle="tooltip" title="Guardar" name="CREAR" value="CREAR" <?php echo $DISABLED; ?>  onclick="return validacion(this)">
                                                     <i class="ti-save-alt"></i> Guardar
                                                 </button>
                                             <?php } ?>
                                             <?php if ($OP != "") { ?>
                                                 <?php if ($OP == "crear") { ?>
-                                                    <button type="submit" class="btn btn-primary " data-toggle="tooltip" title="Guardar" name="CREAR" value="CREAR" <?php echo $DISABLED; ?>  onclick="return validacion()">
+                                                    <button type="submit" class="btn btn-primary " data-toggle="tooltip" title="Guardar" name="CREAR" value="CREAR" <?php echo $DISABLED; ?>  onclick="return validacion(this)">
                                                         <i class="ti-save-alt"></i> Guardar
                                                     </button>
                                                 <?php } ?>
                                                 <?php if ($OP == "editar") { ?>
-                                                    <button type="submit" class="btn btn-warning   " data-toggle="tooltip" title="Guardar" name="EDITAR" value="EDITAR" <?php echo $DISABLED; ?>  onclick="return validacion()">
+                                                    <button type="submit" class="btn btn-warning   " data-toggle="tooltip" title="Guardar" name="EDITAR" value="EDITAR" <?php echo $DISABLED; ?>  onclick="return validacion(this)">
                                                         <i class="ti-save-alt"></i> Guardar
                                                     </button>
                                                 <?php } ?>
@@ -1389,11 +1837,17 @@ if ($_POST) {
                 //REDIRECCIONAR A PAGINA registroRecepcionmp.php
                 $id_dato =  $_REQUEST['IDP'];
                 $accion_dato =  $_REQUEST['OPP'];
+                $ADVERTENCIA_PRODUCTOR_VARIEDAD = !productorTieneVariedadPermitida($PRODUCTOR_VESPECIES_PERMITIDAS, $_REQUEST['PRODUCTOR'], $_REQUEST['VESPECIES']);
+                $ICONO_REGISTRO = $ADVERTENCIA_PRODUCTOR_VARIEDAD ? "warning" : "success";
+                $TITULO_REGISTRO = $ADVERTENCIA_PRODUCTOR_VARIEDAD ? "Registro creado con alerta" : "Registro creado";
+                $TEXTO_REGISTRO = $ADVERTENCIA_PRODUCTOR_VARIEDAD
+                    ? "El registro fue creado, pero la variedad no esta asociada al productor en el maestro."
+                    : "El registro de detalle de recepcion se ha creado correctamente";
                 echo '<script>
                         Swal.fire({
-                            icon:"success",
-                            title:"Registro creado",
-                            text:"El registro de detalle de recepción se ha creado correctamente",
+                            icon:"' . $ICONO_REGISTRO . '",
+                            title:"' . $TITULO_REGISTRO . '",
+                            text:"' . $TEXTO_REGISTRO . '",
                             showConfirmButton:true,
                             confirmButtonText:"Volver a recepcion"
                         }).then((result)=>{
@@ -1530,11 +1984,17 @@ if ($_POST) {
             //REDIRECCIONAR A PAGINA registroRecepcionmp.php 
             $id_dato =  $_REQUEST['IDP'];
             $accion_dato =  $_REQUEST['OPP'];
+            $ADVERTENCIA_PRODUCTOR_VARIEDAD = !productorTieneVariedadPermitida($PRODUCTOR_VESPECIES_PERMITIDAS, $_REQUEST['PRODUCTOR'], $_REQUEST['VESPECIES']);
+            $ICONO_REGISTRO = $ADVERTENCIA_PRODUCTOR_VARIEDAD ? "warning" : "info";
+            $TITULO_REGISTRO = $ADVERTENCIA_PRODUCTOR_VARIEDAD ? "Registro modificado con alerta" : "Registro Modificado";
+            $TEXTO_REGISTRO = $ADVERTENCIA_PRODUCTOR_VARIEDAD
+                ? "El registro fue modificado, pero la variedad no esta asociada al productor en el maestro."
+                : "El registro del detalle de recepcion se ha modificado correctamente";
             echo '<script>
                     Swal.fire({
-                        icon:"info",
-                        title:"Registro Modificado",
-                        text:"El registro del detalle de recepcion se ha modificada correctamente",
+                        icon:"' . $ICONO_REGISTRO . '",
+                        title:"' . $TITULO_REGISTRO . '",
+                        text:"' . $TEXTO_REGISTRO . '",
                         showConfirmButton:true,
                         confirmButtonText:"Volver a recepcion"
                     }).then((result)=>{
