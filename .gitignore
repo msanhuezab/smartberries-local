@@ -21,6 +21,8 @@ CODEx_MEMORIA.md
 # Dependencies and caches
 node_modules/
 vendor/
+!api/vendor/
+!api/vendor/**
 
 # Editor and OS files
 .idea/
