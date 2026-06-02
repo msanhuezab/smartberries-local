@@ -1,6 +1,7 @@
 <?php
 
 include_once "../../assest/config/validarUsuarioFruta.php";
+include_once "includes/reporteRecepcionGranel.php";
 
 //LLAMADA ARCHIVOS NECESARIOS PARA LAS OPERACIONES¿
 
@@ -454,7 +455,7 @@ $ARRAYPRODUCTOR = "";
 
 
 if ($EMPRESAS  && $PLANTAS && $TEMPORADAS) {
-    $ARRAYRECEPCION = $RECEPCIONIND_ADO->listarRecepcionEmpresaPlantaTemporadaCBX($EMPRESAS, $PLANTAS, $TEMPORADAS);
+    $ARRAYRECEPCION = listarRecepcionGranelVista('vw_recepcion_ind_listado', $EMPRESAS, $PLANTAS, $TEMPORADAS);
 }
 
 include_once "../../assest/config/validarDatosUrl.php";
@@ -587,67 +588,16 @@ include_once "../../assest/config/datosUrLP.php";
                                             </thead>
                                             <tbody>
                                                 <?php foreach ($ARRAYRECEPCION as $r) : ?>
-                                                    <?php   
-                                                            if ($r['TRECEPCION'] == "1") {
-                                                                $TRECEPCION = "Desde Productor ";
-                                                                $ARRAYPRODUCTOR2 = $PRODUCTOR_ADO->verProductor($r['ID_PRODUCTOR']);
-                                                                if ($ARRAYPRODUCTOR2) {
-                                                                    $CSGCSPORIGEN=$ARRAYPRODUCTOR2[0]['CSG_PRODUCTOR'] ;
-                                                                    $ORIGEN =  $ARRAYPRODUCTOR2[0]['NOMBRE_PRODUCTOR'];
-                                                                } else {
-                                                                    $ORIGEN = "Sin Datos";
-                                                                    $CSGCSPORIGEN="Sin Datos";
-                                                                }
-                                                            } else if ($r['TRECEPCION'] == "2") {
-                                                                $TRECEPCION = "Planta Externa";
-                                                                $ARRAYPLANTA2 = $PLANTA_ADO->verPlanta($r['ID_PLANTA2']);
-                                                                if ($ARRAYPLANTA2) {
-                                                                    $CSGCSPORIGEN=$ARRAYPLANTA2[0]['CODIGO_SAG_PLANTA'];
-                                                                    $ORIGEN = $ARRAYPLANTA2[0]['NOMBRE_PLANTA'];
-                                                                } else {
-                                                                    $ORIGEN = "Sin Datos";
-                                                                    $CSGCSPORIGEN="Sin Datos";
-                                                                }
-                                                            } else {
-                                                                $TRECEPCION = "Sin Datos";
-                                                                $CSGCSPORIGEN="Sin Datos";
-                                                                $ORIGEN = "Sin Datos";
-                                                            }
-                                                            $ARRAYVEREMPRESA = $EMPRESA_ADO->verEmpresa($r['ID_EMPRESA']);
-                                                            if($ARRAYVEREMPRESA){
-                                                                $NOMBREEMPRESA= $ARRAYVEREMPRESA[0]['NOMBRE_EMPRESA'];
-                                                            }else{
-                                                                $NOMBREEMPRESA="Sin Datos";
-                                                            }
-                                                            $ARRAYPLANTA = $PLANTA_ADO->verPlanta($r['ID_PLANTA']);
-                                                            if ($ARRAYPLANTA) {
-                                                                $NOMBREPLANTA = $ARRAYPLANTA[0]['NOMBRE_PLANTA'];
-                                                            } else {
-                                                                $NOMBREPLANTA = "Sin Datos";
-                                                            }
-                                                            $ARRAYTEMPORADA = $TEMPORADA_ADO->verTemporada($r['ID_TEMPORADA']);
-                                                            if ($ARRAYTEMPORADA) {
-                                                                $NOMBRETEMPORADA = $ARRAYTEMPORADA[0]['NOMBRE_TEMPORADA'];
-                                                            } else {
-                                                                $NOMBRETEMPORADA = "Sin Datos";
-                                                            }
-
-
-                                                            
-                                                            $ARRAYVERTRANSPORTE = $TRANSPORTE_ADO->verTransporte($r['ID_TRANSPORTE']);
-                                                            if($ARRAYVERTRANSPORTE){
-                                                                $NOMBRETRANSPORTE= $ARRAYVERTRANSPORTE[0]['NOMBRE_TRANSPORTE'];
-                                                            }else{
-                                                                $NOMBRETRANSPORTE="Sin Datos";
-                                                            }
-                                                            $ARRAYVERCONDUCTOR = $CONDUCTOR_ADO->verConductor($r['ID_CONDUCTOR']);
-                                                            if($ARRAYVERCONDUCTOR){
-                                                                $NOMBRECONDUCTOR= $ARRAYVERCONDUCTOR[0]['NOMBRE_CONDUCTOR'];
-                                                            }else{
-                                                                $NOMBRECONDUCTOR="Sin Datos";
-                                                            }
-                                                            
-                                                        ?>
+                                                    <?php
+                                                        $TRECEPCION = $r['TIPO_RECEPCION'];
+                                                        $CSGCSPORIGEN = $r['CSGCSP_ORIGEN'];
+                                                        $ORIGEN = $r['ORIGEN_RECEPCION'];
+                                                        $NOMBREEMPRESA = $r['NOMBRE_EMPRESA'];
+                                                        $NOMBREPLANTA = $r['NOMBRE_PLANTA'];
+                                                        $NOMBRETEMPORADA = $r['NOMBRE_TEMPORADA'];
+                                                        $NOMBRETRANSPORTE = $r['NOMBRE_TRANSPORTE'];
+                                                        $NOMBRECONDUCTOR = $r['NOMBRE_CONDUCTOR'];
+                                                    ?>
                                                     <tr class="text-center">
                                                         <td>
                                                             <a href="#" class="text-warning hover-warning">
@@ -729,8 +679,8 @@ include_once "../../assest/config/datosUrLP.php";
                                                         <td><?php echo $r['ENVASE']; ?></td>
                                                         <td><?php echo $r['NETO']; ?></td>
                                                         <td><?php echo $r['BRUTO']; ?></td>
-                                                        <td><?php echo $r['INGRESO']; ?></td>
-                                                        <td><?php echo $r['MODIFICACION']; ?></td>
+                                                        <td><?php echo $r['INGRESO_FORMATO']; ?></td>
+                                                        <td><?php echo $r['MODIFICACION_FORMATO']; ?></td>
                                                         <td><?php echo $NOMBRETRANSPORTE; ?></td>           
                                                         <td><?php echo $NOMBRECONDUCTOR; ?></td>                                                         
                                                         <td><?php echo $r['PATENTE_CAMION']; ?></td>

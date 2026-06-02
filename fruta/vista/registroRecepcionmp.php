@@ -1033,33 +1033,6 @@ if (isset($_POST)) {
                                 </div>
                                 <div class="box-body ">
                                     <div class="row">
-                                        <div class="col-xxl-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 col-xs-12">
-                                            <div class="alert alert-light border">
-                                                <div class="row align-items-end">
-                                                    <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12 col-xs-12">
-                                                        <label>QR productor</label>
-                                                        <input type="text" class="form-control" id="qrEncabezadoTexto" placeholder="infoPallet.php?P=153306&V=31&F=12345" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?> />
-                                                        <small class="text-muted">Acepta URL o ETQ. En cabecera se usa P para seleccionar el productor por CSG. V y F se usan en el detalle.</small>
-                                                    </div>
-                                                    <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6 col-6 col-xs-6">
-                                                        <button type="button" class="btn btn-info btn-block" onclick="leerQrEncabezadoPegado()" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
-                                                            <i class="fa fa-qrcode"></i> Aplicar QR
-                                                        </button>
-                                                    </div>
-                                                    <div class="col-xxl-3 col-xl-3 col-lg-3 col-md-6 col-sm-6 col-6 col-xs-6">
-                                                        <button type="button" class="btn btn-secondary btn-block" onclick="iniciarCamaraQrEncabezado()" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
-                                                            <i class="fa fa-camera"></i> Leer camara
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <span id="qrEncabezadoEstado" class="badge badge-secondary">Lectura QR opcional. Tambien puede seleccionar productor manualmente.</span>
-                                                </div>
-                                                <video id="qrEncabezadoVideo" style="display:none; width:100%; max-height:260px; margin-top:10px;" muted playsinline></video>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
                                         <div class="col-xxl-2 col-xl-3 col-lg-3 col-md-6 col-sm-6 col-6 col-xs-6">
                                             <div class="form-group">
                                                 <label>Número Recepción</label>
@@ -1257,6 +1230,23 @@ if (isset($_POST)) {
                                                         <?php endforeach; ?>
                                                     </select>
                                                     <label id="val_productor" class="validacion"> </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-12 col-sm-12 col-12 col-xs-12">
+                                                <div class="form-group">
+                                                    <label>QR productor</label>
+                                                    <input type="text" class="form-control" id="qrEncabezadoTexto" placeholder="infoPallet.php?P=153306&V=31&F=12345" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?> />
+                                                    <small class="text-muted">Acepta URL o ETQ. En cabecera se usa P para seleccionar productor por CSG.</small>
+                                                    <div class="btn-group btn-block mt-2">
+                                                        <button type="button" class="btn btn-info" onclick="leerQrEncabezadoPegado()" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
+                                                            <i class="fa fa-qrcode"></i> Aplicar QR
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary" onclick="iniciarCamaraQrEncabezado()" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
+                                                            <i class="fa fa-camera"></i> Leer camara
+                                                        </button>
+                                                    </div>
+                                                    <span id="qrEncabezadoEstado" class="badge badge-secondary">Lectura QR opcional. Tambien puede seleccionar productor manualmente.</span>
+                                                    <video id="qrEncabezadoVideo" style="display:none; width:100%; max-height:260px; margin-top:10px;" muted playsinline></video>
                                                 </div>
                                             </div>
                                         <?php } ?>

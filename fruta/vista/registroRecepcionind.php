@@ -206,6 +206,16 @@ $ARRAYPRODUCTOR = $PRODUCTOR_ADO->listarProductorPorEmpresaCBX($EMPRESAS);
 $ARRAYTDOCUMENTO = $TDOCUMENTO_ADO->listarTdocumentoPorEmpresaCBX($EMPRESAS);
 $ARRAYPLANTA2 = $PLANTA_ADO->listarPlantaExternaCBX();
 
+$PRODUCTORES_QR_ENCABEZADO_IND = [];
+foreach ($ARRAYPRODUCTOR as $productorQr) {
+    $csgQr = trim((string) $productorQr['CSG_PRODUCTOR']);
+    if ($csgQr !== '' && !isset($PRODUCTORES_QR_ENCABEZADO_IND[$csgQr])) {
+        $PRODUCTORES_QR_ENCABEZADO_IND[$csgQr] = [
+            'id' => $productorQr['ID_PRODUCTOR'],
+            'nombre' => trim($productorQr['CSG_PRODUCTOR'] . ': ' . $productorQr['NOMBRE_PRODUCTOR']),
+        ];
+    }
+}
 
 $ARRAYFECHAACTUAL = $RECEPCIONIND_ADO->obtenerFecha();
 $FECHARECEPCION = $ARRAYFECHAACTUAL[0]['FECHA'];
@@ -547,6 +557,7 @@ if (isset($_POST)) {
     <meta name="author" content="">
     <!-- LLAMADA DE LOS ARCHIVOS NECESARIOS PARA DISEÑO Y FUNCIONES BASE DE LA VISTA -->
     <?php include_once "../../assest/config/urlHead.php"; ?>
+    <script src="../../assest/js/jsQR.min.js"></script>
     <!- FUNCIONES BASES -!>
         <script type="text/javascript">
             //VALIDACION DE FORMULARIO
@@ -759,6 +770,194 @@ if (isset($_POST)) {
                 var win = window.open(url, '_blank');
                 win.focus();
             }
+
+            var productoresQrEncabezadoInd = <?php echo json_encode($PRODUCTORES_QR_ENCABEZADO_IND, JSON_UNESCAPED_UNICODE); ?>;
+            var qrIndustrialStream = null;
+            var qrIndustrialDetector = null;
+            var qrIndustrialTimer = null;
+            var qrIndustrialCanvas = document.createElement('canvas');
+            var qrIndustrialCanvasContext = qrIndustrialCanvas.getContext('2d', { willReadFrequently: true });
+
+            function parsearQrIndustrial(valor) {
+                var texto = (valor || '').trim();
+                var datos = {};
+
+                if (!texto) {
+                    return datos;
+                }
+
+                try {
+                    var urlQr = new URL(texto, window.location.origin);
+                    var qrParam = urlQr.searchParams.get('qr');
+                    if (qrParam) {
+                        return parsearQrIndustrial(qrParam);
+                    }
+                    ['P', 'V', 'F'].forEach(function (clave) {
+                        var valorParam = urlQr.searchParams.get(clave);
+                        if (valorParam) {
+                            datos[clave] = valorParam.trim();
+                        }
+                    });
+                    if (datos.P || datos.V || datos.F) {
+                        return datos;
+                    }
+                } catch (e) {}
+
+                texto.split(/[|;,&\n]/).forEach(function (parte) {
+                    var piezas = parte.split('=');
+                    if (piezas.length < 2) {
+                        return;
+                    }
+                    var clave = piezas.shift().trim().toUpperCase();
+                    var valorParte = piezas.join('=').trim();
+                    if (['P', 'PROD', 'PRODUCTOR'].indexOf(clave) !== -1) {
+                        datos.P = valorParte;
+                    }
+                    if (['V', 'VAR', 'VARIEDAD'].indexOf(clave) !== -1) {
+                        datos.V = valorParte;
+                    }
+                    if (['F', 'FOLIO'].indexOf(clave) !== -1) {
+                        datos.F = valorParte;
+                    }
+                });
+
+                return datos;
+            }
+
+            function mostrarEstadoQrInd(mensaje, tipo) {
+                var estado = document.getElementById('qrIndustrialEstado');
+                if (!estado) {
+                    return;
+                }
+                estado.className = 'badge badge-' + (tipo || 'secondary');
+                estado.textContent = mensaje;
+            }
+
+            function aplicarQrIndustrialEncabezado() {
+                var entrada = document.getElementById('qrIndustrialTexto');
+                return aplicarQrIndustrialValor(entrada ? entrada.value : '');
+            }
+
+            function aplicarQrIndustrialValor(valor) {
+                var datos = parsearQrIndustrial(valor);
+                var trecepcion = document.getElementById('TRECEPCION');
+                var productor = document.getElementById('PRODUCTOR');
+
+                if (!datos.P) {
+                    mostrarEstadoQrInd('QR sin codigo P de productor.', 'warning');
+                    return false;
+                }
+
+                if (!trecepcion || trecepcion.value !== '1') {
+                    mostrarEstadoQrInd('Seleccione tipo Desde Productor para aplicar el QR.', 'warning');
+                    return false;
+                }
+
+                if (!productor) {
+                    mostrarEstadoQrInd('El campo productor aun no esta disponible.', 'warning');
+                    return false;
+                }
+
+                if (!productoresQrEncabezadoInd[datos.P]) {
+                    mostrarEstadoQrInd('Productor CSG ' + datos.P + ' no encontrado.', 'danger');
+                    return false;
+                }
+
+                productor.value = productoresQrEncabezadoInd[datos.P].id;
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(productor).trigger('change.select2');
+                }
+                mostrarEstadoQrInd('QR aplicado: productor ' + productoresQrEncabezadoInd[datos.P].nombre + '.', 'success');
+                return true;
+            }
+
+            function detenerCamaraQrIndustrial() {
+                var video = document.getElementById('qrIndustrialVideo');
+                if (qrIndustrialTimer) {
+                    clearInterval(qrIndustrialTimer);
+                    qrIndustrialTimer = null;
+                }
+                if (qrIndustrialStream) {
+                    qrIndustrialStream.getTracks().forEach(function (track) { track.stop(); });
+                    qrIndustrialStream = null;
+                }
+                if (video) {
+                    video.srcObject = null;
+                    video.style.display = 'none';
+                }
+            }
+
+            function detectarQrIndustrialEnVideo(video) {
+                if ('BarcodeDetector' in window) {
+                    if (!qrIndustrialDetector) {
+                        qrIndustrialDetector = new BarcodeDetector({ formats: ['qr_code'] });
+                    }
+
+                    return qrIndustrialDetector.detect(video).then(function (codigos) {
+                        if (codigos && codigos.length) {
+                            return codigos[0].rawValue || '';
+                        }
+                        return '';
+                    }).catch(function () {
+                        return '';
+                    });
+                }
+
+                return new Promise(function (resolve) {
+                    if (!window.jsQR || !video.videoWidth || !video.videoHeight || !qrIndustrialCanvasContext) {
+                        resolve('');
+                        return;
+                    }
+
+                    qrIndustrialCanvas.width = video.videoWidth;
+                    qrIndustrialCanvas.height = video.videoHeight;
+                    qrIndustrialCanvasContext.drawImage(video, 0, 0, qrIndustrialCanvas.width, qrIndustrialCanvas.height);
+                    var imagen = qrIndustrialCanvasContext.getImageData(0, 0, qrIndustrialCanvas.width, qrIndustrialCanvas.height);
+                    var resultado = jsQR(imagen.data, imagen.width, imagen.height);
+                    resolve(resultado && resultado.data ? resultado.data : '');
+                });
+            }
+
+            function iniciarCamaraQrIndustrial() {
+                var video = document.getElementById('qrIndustrialVideo');
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    mostrarEstadoQrInd('El navegador no permite abrir camara en esta pagina. Use localhost/HTTPS o pegue el codigo.', 'warning');
+                    return false;
+                }
+
+                if (!('BarcodeDetector' in window) && !window.jsQR) {
+                    mostrarEstadoQrInd('Lector QR no disponible. Pegue el codigo o seleccione manualmente.', 'warning');
+                    return false;
+                }
+
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
+                    qrIndustrialStream = stream;
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    video.play();
+                    mostrarEstadoQrInd('Camara activa. Apunte al QR.', 'info');
+
+                    qrIndustrialTimer = setInterval(function () {
+                        detectarQrIndustrialEnVideo(video).then(function (valor) {
+                            if (valor) {
+                                var entrada = document.getElementById('qrIndustrialTexto');
+                                if (entrada) {
+                                    entrada.value = valor;
+                                }
+                                aplicarQrIndustrialValor(valor);
+                                detenerCamaraQrIndustrial();
+                            }
+                        });
+                    }, 700);
+                }).catch(function () {
+                    mostrarEstadoQrInd('No se pudo abrir la camara. Pegue el codigo o seleccione manualmente.', 'warning');
+                });
+
+                return false;
+            }
+
+            window.addEventListener('beforeunload', detenerCamaraQrIndustrial);
           
         </script>
 
@@ -1004,6 +1203,23 @@ if (isset($_POST)) {
                                                         <?php endforeach; ?>
                                                     </select>
                                                     <label id="val_productor" class="validacion"> </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-xxl-4 col-xl-4 col-lg-6 col-md-12 col-sm-12 col-12 col-xs-12">
+                                                <div class="form-group">
+                                                    <label>QR productor</label>
+                                                    <input type="text" class="form-control" id="qrIndustrialTexto" placeholder="infoPallet.php?P=153306&V=31&F=12345" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?> />
+                                                    <small class="text-muted">Acepta URL o ETQ. En cabecera se usa P para seleccionar productor por CSG.</small>
+                                                    <div class="btn-group btn-block mt-2">
+                                                        <button type="button" class="btn btn-info" onclick="return aplicarQrIndustrialEncabezado();" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
+                                                            <i class="fa fa-qrcode"></i> Aplicar QR
+                                                        </button>
+                                                        <button type="button" class="btn btn-secondary" onclick="return iniciarCamaraQrIndustrial();" <?php echo $DISABLEDFOLIO; ?> <?php echo $DISABLED; ?> <?php echo $DISABLED3; ?>>
+                                                            <i class="fa fa-camera"></i> Leer camara
+                                                        </button>
+                                                    </div>
+                                                    <span id="qrIndustrialEstado" class="badge badge-secondary">Lectura QR opcional. Tambien puede seleccionar productor manualmente.</span>
+                                                    <video id="qrIndustrialVideo" style="display:none; width:100%; max-height:260px; margin-top:10px;" muted playsinline></video>
                                                 </div>
                                             </div>
                                         <?php } ?>

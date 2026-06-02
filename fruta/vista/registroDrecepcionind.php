@@ -109,6 +109,15 @@ $ARRAYVERFOLIOPOIND = "";
 $ARRAYESTANDAR = $EINDUSTRIAL_ADO->listarEstandarRecepcionPorEmpresaCBX($EMPRESAS);
 $ARRAYPRODUCTOR = $PRODUCTOR_ADO->listarProductorPorEmpresaCBX($EMPRESAS);
 $ARRAYTMANEJO = $TMANEJO_ADO->listarTmanejoCBX();
+$PRODUCTORES_QR_IND = [];
+foreach ($ARRAYPRODUCTOR as $productorQr) {
+    $PRODUCTORES_QR_IND[$productorQr['ID_PRODUCTOR']] = trim($productorQr['CSG_PRODUCTOR'] . ': ' . $productorQr['NOMBRE_PRODUCTOR']);
+}
+$VARIEDADES_QR_IND = $VESPECIES_ADO->listarVespeciesPorEmpresaCBX($EMPRESAS);
+$VARIEDADES_QR_IND_MAP = [];
+foreach ($VARIEDADES_QR_IND as $variedadQr) {
+    $VARIEDADES_QR_IND_MAP[$variedadQr['ID_VESPECIES']] = trim($variedadQr['CODIGO_SAG_VESPECIES'] . ': ' . $variedadQr['NOMBRE_VESPECIES']);
+}
 $ARRAYFECHAACTUAL = $DRECEPCIONIND_ADO->obtenerFecha();
 $FECHAEMBALADODINDUSTRIAL = $ARRAYFECHAACTUAL[0]['FECHA'];
 include_once "../../assest/config/validarDatosUrlD.php";
@@ -661,6 +670,152 @@ if ($FOLIOMANUAL != "on" && ($OP == "" || $OP == "crear")) {
             function irPagina(url) {
                 location.href = "" + url;
             }
+
+            var productoresQrInd = <?php echo json_encode($PRODUCTORES_QR_IND, JSON_UNESCAPED_UNICODE); ?>;
+            var variedadesQrInd = <?php echo json_encode($VARIEDADES_QR_IND_MAP, JSON_UNESCAPED_UNICODE); ?>;
+
+            function parsearQrIndustrialDetalle(valor) {
+                var texto = (valor || '').trim();
+                var datos = {};
+
+                if (!texto) {
+                    return datos;
+                }
+
+                try {
+                    var urlQr = new URL(texto, window.location.origin);
+                    var qrParam = urlQr.searchParams.get('qr');
+                    if (qrParam) {
+                        return parsearQrIndustrialDetalle(qrParam);
+                    }
+                    ['P', 'V', 'F'].forEach(function (clave) {
+                        var valorParam = urlQr.searchParams.get(clave);
+                        if (valorParam) {
+                            datos[clave] = valorParam.trim();
+                        }
+                    });
+                    if (datos.P || datos.V || datos.F) {
+                        return datos;
+                    }
+                } catch (e) {}
+
+                texto.split(/[|;,&\n]/).forEach(function (parte) {
+                    var piezas = parte.split('=');
+                    if (piezas.length < 2) {
+                        return;
+                    }
+                    var clave = piezas.shift().trim().toUpperCase();
+                    var valorParte = piezas.join('=').trim();
+                    if (['P', 'PROD', 'PRODUCTOR'].indexOf(clave) !== -1) {
+                        datos.P = valorParte;
+                    }
+                    if (['V', 'VAR', 'VARIEDAD'].indexOf(clave) !== -1) {
+                        datos.V = valorParte;
+                    }
+                    if (['F', 'FOLIO'].indexOf(clave) !== -1) {
+                        datos.F = valorParte;
+                    }
+                });
+
+                return datos;
+            }
+
+            function mostrarEstadoQrIndDetalle(mensaje, tipo) {
+                var estado = document.getElementById('qrIndustrialDetalleEstado');
+                if (!estado) {
+                    return;
+                }
+                estado.className = 'badge badge-' + (tipo || 'secondary');
+                estado.textContent = mensaje;
+            }
+
+            function seleccionarOpcionSelect(select, valor) {
+                if (!select || valor === undefined || valor === null || valor === '') {
+                    return false;
+                }
+                var existe = Array.prototype.some.call(select.options, function (opcion) {
+                    return opcion.value === String(valor);
+                });
+                if (!existe) {
+                    return false;
+                }
+                select.value = String(valor);
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(select).trigger('change.select2');
+                }
+                return true;
+            }
+
+            function aplicarQrIndustrialDetalle() {
+                var entrada = document.getElementById('qrIndustrialDetalleTexto');
+                var datos = parsearQrIndustrialDetalle(entrada ? entrada.value : '');
+                var mensajes = [];
+
+                if (!datos.P && !datos.V && !datos.F) {
+                    mostrarEstadoQrIndDetalle('No se reconocio el formato del QR.', 'danger');
+                    return false;
+                }
+
+                if (datos.F) {
+                    var checkFolio = document.getElementById('FOLIOMANUAL');
+                    var folio = document.getElementById('NUMEROFOLIODINDUSTRIAL');
+                    if (checkFolio && !checkFolio.checked) {
+                        checkFolio.checked = true;
+                    }
+                    if (folio) {
+                        folio.disabled = false;
+                        folio.style.backgroundColor = '';
+                        folio.value = datos.F;
+                        mensajes.push('folio ' + datos.F);
+                    }
+                }
+
+                if (datos.P) {
+                    var productor = document.getElementById('PRODUCTOR');
+                    var productorVisible = document.getElementById('PRODUCTORV');
+                    var productorId = null;
+                    Object.keys(productoresQrInd).some(function (id) {
+                        if (String(productoresQrInd[id]).split(':')[0].trim() === String(datos.P)) {
+                            productorId = id;
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (productorId && productor) {
+                        productor.value = productorId;
+                        if (productorVisible) {
+                            productorVisible.value = productoresQrInd[productorId];
+                        }
+                        if (window.jQuery && jQuery.fn.select2) {
+                            jQuery(productor).trigger('change.select2');
+                        }
+                        mensajes.push('productor ' + datos.P);
+                    } else {
+                        mostrarEstadoQrIndDetalle('Productor CSG ' + datos.P + ' no encontrado.', 'warning');
+                    }
+                }
+
+                if (datos.V) {
+                    var variedad = document.getElementById('VESPECIES');
+                    if (seleccionarOpcionSelect(variedad, datos.V)) {
+                        mensajes.push('variedad ' + datos.V);
+                    } else if (variedadesQrInd[datos.V]) {
+                        var opcion = document.createElement('option');
+                        opcion.value = datos.V;
+                        opcion.text = variedadesQrInd[datos.V];
+                        variedad.add(opcion);
+                        seleccionarOpcionSelect(variedad, datos.V);
+                        mensajes.push('variedad ' + datos.V);
+                    } else {
+                        mostrarEstadoQrIndDetalle('Variedad ID ' + datos.V + ' no disponible.', 'warning');
+                    }
+                }
+
+                if (mensajes.length > 0) {
+                    mostrarEstadoQrIndDetalle('QR aplicado: ' + mensajes.join(', ') + '.', 'success');
+                }
+                return false;
+            }
         </script>
 
 </head>
@@ -700,6 +855,29 @@ if ($FOLIOMANUAL != "on" && ($OP == "" || $OP == "crear")) {
                                     <h4 class="box-title">Registro Detalle</h4>                                        
                                 </div>
                                 <div class="box-body ">
+                                    <div class="row">
+                                        <div class="col-xxl-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 col-xs-12">
+                                            <div class="card border border-info">
+                                                <div class="card-body">
+                                                    <div class="d-flex justify-content-between align-items-start flex-wrap">
+                                                        <div>
+                                                            <h5 class="mb-0">Lectura QR productor / folio / variedad</h5>
+                                                            <small class="text-muted">Acepta URL infoPallet.php?P=153306&V=31&F=12345 o ETQ|P=153306|V=31|F=12345.</small>
+                                                        </div>
+                                                        <span id="qrIndustrialDetalleEstado" class="badge badge-secondary mt-2 mt-md-0">Opcional</span>
+                                                    </div>
+                                                    <div class="input-group mt-2">
+                                                        <input type="text" class="form-control" id="qrIndustrialDetalleTexto" placeholder="Pegue aqui la URL del QR o use lector fisico" <?php echo $DISABLED; ?> <?php echo $DISABLEDSTYLE; ?> />
+                                                        <div class="input-group-append">
+                                                            <button type="button" class="btn btn-info" onclick="return aplicarQrIndustrialDetalle();" <?php echo $DISABLED; ?>>
+                                                                <i class="fa fa-qrcode"></i> Aplicar QR
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <?php if ($ESTADO_FOLIOMANUAL == 1) { ?>
                                         <div class="form-group">
                                             <input type="hidden" class="form-control" placeholder="FOLIOMANUAL" id="FOLIOMANUALE" name="FOLIOMANUALE" value="<?php echo $FOLIOMANUAL; ?>" />

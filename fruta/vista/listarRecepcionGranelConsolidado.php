@@ -1,6 +1,7 @@
 <?php
 
 include_once "../../assest/config/validarUsuarioFruta.php";
+include_once "includes/reporteRecepcionGranel.php";
 
 //LLAMADA ARCHIVOS NECESARIOS PARA LAS OPERACIONES
 
@@ -76,7 +77,10 @@ $PRODUCTOR = "";
 $NUMEROGUIA = "";
 
 //INICIALIZAR ARREGLOS
-$ARRAYRECEPCION = "";
+$ARRAYRECEPCION = array();
+$ARRAYRECEPCIONIND = array();
+$ARRAYRECEPCIONMP = array();
+$ARRAYRECEPCIONGRANEL = array();
 $ARRAYRECEPCIONTOTALES = "";
 $ARRAYVEREMPRESA = "";
 $ARRAYVERPRODUCTOR = "";
@@ -89,8 +93,7 @@ $ARRAYPRODUCTOR = "";
 
 
 if ($EMPRESAS && $PLANTAS && $TEMPORADAS) {
-    $ARRAYRECEPCIONIND = $RECEPCIONIND_ADO->listarRecepcionEmpresaPlantaTemporadaCBX($EMPRESAS,$PLANTAS,  $TEMPORADAS);
-    $ARRAYRECEPCIONMP = $RECEPCIONMP_ADO->listarRecepcionEmpresaPlantaTemporadaCBX($EMPRESAS, $PLANTAS, $TEMPORADAS);
+    $ARRAYRECEPCIONGRANEL = listarRecepcionGranelVista('vw_recepcion_granel_consolidado', $EMPRESAS, $PLANTAS, $TEMPORADAS);
 }
 
 
@@ -215,7 +218,39 @@ if ($EMPRESAS && $PLANTAS && $TEMPORADAS) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                
+                                                <?php foreach ($ARRAYRECEPCIONGRANEL as $r) : ?>
+                                                    <tr class="text-center">
+                                                        <td><?php echo textoReporteGranel($r['FOLIO_DRECEPCION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['FECHA_DETALLE']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['TIPO_PRODUCTO']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['CODIGO_ESTANDAR']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_ESTANDAR']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['CSG_PRODUCTOR']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_PRODUCTOR']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_ESPECIES']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_VESPECIES']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['ENVASE']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NETO']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['BRUTO']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NUMERO_RECEPCION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['FECHA_RECEPCION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['TIPO_RECEPCION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['ORIGEN_RECEPCION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NUMERO_GUIA_RECEPCION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['FECHA_GUIA_RECEPCION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_TMANEJO']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['GASIFICACION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_TRANSPORTE']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_CONDUCTOR']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['PATENTE_CAMION']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['PATENTE_CARRO']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['SEMANA']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['SEMANAGUIA']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_EMPRESA']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_PLANTA']); ?></td>
+                                                        <td><?php echo textoReporteGranel($r['NOMBRE_TEMPORADA']); ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
 
                                                 <?php foreach ($ARRAYRECEPCIONIND as $r) : ?>
 
