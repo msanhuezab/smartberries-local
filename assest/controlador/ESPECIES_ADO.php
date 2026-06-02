@@ -82,6 +82,52 @@ class ESPECIES_ADO {
         
     }
 
+    public function listarEspeciesCalidadEmpresaCBX($EMPRESA){
+        try{
+            $datos=$this->conexion->prepare("
+                SELECT DISTINCT
+                    ESP.ID_ESPECIES,
+                    ESP.NOMBRE_ESPECIES,
+                    ESP.CODIGO_SAG_ESPECIES
+                FROM fruta_especies ESP
+                INNER JOIN fruta_vespecies VES ON VES.ID_ESPECIES = ESP.ID_ESPECIES
+                WHERE ESP.ESTADO_REGISTRO = 1
+                AND VES.ESTADO_REGISTRO = 1
+                AND VES.ID_EMPRESA = ?
+                ORDER BY ESP.NOMBRE_ESPECIES ASC;
+            ");
+            $datos->execute([$EMPRESA]);
+            $resultado = $datos->fetchAll(PDO::FETCH_ASSOC);
+            $datos=null;
+            return $resultado;
+        }catch(Exception $e){
+            die($e->getMessage());
+        }
+        
+    }
+
+    public function listarEspeciesCalidadCBX(){
+        try{
+            $datos=$this->conexion->prepare("
+                SELECT *
+                FROM fruta_especies
+                WHERE ESTADO_REGISTRO = 1
+                AND (
+                    UPPER(NOMBRE_ESPECIES) LIKE '%ARAND%'
+                    OR UPPER(NOMBRE_ESPECIES) LIKE '%ESPARR%'
+                )
+                ORDER BY NOMBRE_ESPECIES ASC;
+            ");
+            $datos->execute();
+            $resultado = $datos->fetchAll(PDO::FETCH_ASSOC);
+            $datos=null;
+            return $resultado;
+        }catch(Exception $e){
+            die($e->getMessage());
+        }
+        
+    }
+
 
     public function listarEspecies2CBX(){
         try{

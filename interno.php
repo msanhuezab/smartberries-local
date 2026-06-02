@@ -120,6 +120,15 @@
                         </span>
                     </button>
                 </a>
+                <a href="calidad/" style="text-decoration:none">
+                    <button type="button" class="modern-btn-card">
+                        <span class="material-icons">fact_check</span>
+                        <span class="btn-content">
+                            <span class="btn-title">Calidad</span>
+                            <span class="btn-desc">Control y parametros de calidad</span>
+                        </span>
+                    </button>
+                </a>
                 <a href="estadistica/" style="text-decoration:none">
                     <button type="button" class="modern-btn-card">
                         <span class="material-icons">bar_chart</span>
