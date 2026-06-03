@@ -22,30 +22,30 @@ $GRUPOS = array(
     "DEFECTOS_CALIDAD" => "Defectos de Calidad"
 );
 
-function recepcionTexto($valor) {
+function controlesTexto($valor) {
     return htmlspecialchars((string) $valor, ENT_QUOTES, "UTF-8");
 }
 
-function recepcionNumero($valor) {
+function controlesNumero($valor) {
     if ($valor === "" || $valor === null) {
         return 0;
     }
     return (float) str_replace(",", ".", (string) $valor);
 }
 
-function recepcionPorcentaje($valor, $muestra) {
+function controlesPorcentaje($valor, $muestra) {
     if ((float) $muestra <= 0) {
         return 0;
     }
     return round(((float) $valor / (float) $muestra) * 100, 4);
 }
 
-function recepcionEsFirme($nombre) {
+function controlesEsFirme($nombre) {
     $nombre = strtoupper((string) $nombre);
     return strpos($nombre, "FIRME") !== false;
 }
 
-function recepcionDetalleControles($CALIDADCONTROL_ADO, $controles) {
+function controlesDetalleControles($CALIDADCONTROL_ADO, $controles) {
     $resultado = array();
     foreach ($controles as $control) {
         $detalleControl = array();
@@ -62,30 +62,9 @@ $ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadCBX();
 $ARRAYINSPECTORES = $CALIDADINSPECTOR_ADO->listarInspectorActivo($EMPRESAS, $TEMPORADAS);
 
 $ID_ESPECIES = $_GET["ID_ESPECIES"] ?? ($_POST["ID_ESPECIES"] ?? "");
-$MODO_INGRESO = $_GET["MODO_INGRESO"] ?? ($_POST["MODO_INGRESO"] ?? "AGRUPADO");
 $ID_RECEPCION = $_GET["ID_RECEPCION"] ?? ($_POST["ID_RECEPCION"] ?? "");
-$ID_FOLIO = $_GET["ID_FOLIO"] ?? ($_POST["ID_FOLIO"] ?? "");
-$FOLIO_BUSCAR = $_GET["FOLIO_BUSCAR"] ?? "";
-$RECEPCION_BUSCADA = array();
-
-if (!in_array($MODO_INGRESO, array("AGRUPADO", "FOLIO"), true)) {
-    $MODO_INGRESO = "AGRUPADO";
-}
-
-if ($FOLIO_BUSCAR !== "") {
-    $ARRAYBUSQUEDA = $CALIDADCONTROL_ADO->buscarRecepcionPorFolioCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $FOLIO_BUSCAR);
-    if (!empty($ARRAYBUSQUEDA)) {
-        $RECEPCION_BUSCADA = $ARRAYBUSQUEDA[0];
-        $ID_ESPECIES = $RECEPCION_BUSCADA["ID_ESPECIES"];
-        $ID_RECEPCION = $RECEPCION_BUSCADA["ID_RECEPCION"];
-    } else {
-        $MENSAJE = "No se encontro el folio " . $FOLIO_BUSCAR . " para la empresa, planta y temporada actual.";
-        $TIPOMENSAJE = "warning";
-    }
-}
 
 $ARRAYRECEPCIONES = array();
-$ARRAYFOLIOS = array();
 $ARRAYCONTROLES = array();
 $ARRAYDETALLESCONTROL = array();
 $PARAMETROS_GRUPO = array();
@@ -93,12 +72,11 @@ $PARAMETROS_GRUPO = array();
 if ($ID_ESPECIES !== "") {
     $ARRAYRECEPCIONES = $CALIDADCONTROL_ADO->listarRecepcionMateriaPrimaCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $ID_ESPECIES);
     if ($ID_RECEPCION !== "") {
-        $ARRAYFOLIOS = $CALIDADCONTROL_ADO->listarFolioRecepcionMateriaPrimaCalidad($ID_RECEPCION, $ID_ESPECIES);
         $ARRAYCONTROLES = $CALIDADCONTROL_ADO->listarControlRecepcionCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $ID_ESPECIES, $ID_RECEPCION);
-        $ARRAYDETALLESCONTROL = recepcionDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
-    }
-    foreach ($GRUPOS as $codigoGrupo => $nombreGrupo) {
-        $PARAMETROS_GRUPO[$codigoGrupo] = $CALIDADPARAMETRO_ADO->listarParametroActivo($EMPRESAS, $TEMPORADAS, $ID_ESPECIES, "RECEPCION", $codigoGrupo);
+        $ARRAYDETALLESCONTROL = controlesDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
+        foreach ($GRUPOS as $codigoGrupo => $nombreGrupo) {
+            $PARAMETROS_GRUPO[$codigoGrupo] = $CALIDADPARAMETRO_ADO->listarParametroActivo($EMPRESAS, $TEMPORADAS, $ID_ESPECIES, "RECEPCION", $codigoGrupo);
+        }
     }
 }
 
@@ -110,11 +88,6 @@ if (isset($_POST["GUARDARCONTROL"])) {
         $MENSAJE = "Debe seleccionar especie, recepcion e inspector.";
         $TIPOMENSAJE = "warning";
     }
-    if ($_POST["MODO_INGRESO"] === "FOLIO" && $_POST["ID_FOLIO"] === "") {
-        $puedeGuardar = false;
-        $MENSAJE = "Debe seleccionar un folio para guardar el control por folio.";
-        $TIPOMENSAJE = "warning";
-    }
     if (!in_array($_POST["MODO_INGRESO"], array("AGRUPADO", "FOLIO"), true)) {
         $puedeGuardar = false;
         $MENSAJE = "Modo de ingreso no valido.";
@@ -122,117 +95,102 @@ if (isset($_POST["GUARDARCONTROL"])) {
     }
 
     if ($puedeGuardar) {
-    $muestra = recepcionNumero($_POST["MUESTRA_GRAMOS"]);
-    $valores = $_POST["VALOR_PARAMETRO"] ?? array();
-    $nombres = $_POST["NOMBRE_PARAMETRO"] ?? array();
-    $grupos = $_POST["GRUPO_PARAMETRO"] ?? array();
+        $muestra = controlesNumero($_POST["MUESTRA_GRAMOS"]);
+        $valores = $_POST["VALOR_PARAMETRO"] ?? array();
+        $nombres = $_POST["NOMBRE_PARAMETRO"] ?? array();
+        $grupos = $_POST["GRUPO_PARAMETRO"] ?? array();
 
-    $totalDefectoCondicion = 0;
-    $totalDefectoCalidad = 0;
-    $valorFirme = 0;
+        $totalDefectoCondicion = 0;
+        $totalDefectoCalidad = 0;
+        $valorFirme = 0;
 
-    foreach ($valores as $idParametro => $valorIngresado) {
-        $valor = recepcionNumero($valorIngresado);
-        $grupo = $grupos[$idParametro] ?? "";
-        $nombre = $nombres[$idParametro] ?? "";
-        if ($grupo === "DEFECTOS_CONDICION") {
-            $totalDefectoCondicion += $valor;
+        foreach ($valores as $idParametro => $valorIngresado) {
+            $valor = controlesNumero($valorIngresado);
+            $grupo = $grupos[$idParametro] ?? "";
+            $nombre = $nombres[$idParametro] ?? "";
+            if ($grupo === "DEFECTOS_CONDICION") {
+                $totalDefectoCondicion += $valor;
+            }
+            if ($grupo === "DEFECTOS_CALIDAD") {
+                $totalDefectoCalidad += $valor;
+            }
+            if ($grupo === "PRESIONES" && controlesEsFirme($nombre)) {
+                $valorFirme += $valor;
+            }
         }
-        if ($grupo === "DEFECTOS_CALIDAD") {
-            $totalDefectoCalidad += $valor;
+
+        $porcDefectoCondicion = controlesPorcentaje($totalDefectoCondicion, $muestra);
+        $porcDefectoCalidad = controlesPorcentaje($totalDefectoCalidad, $muestra);
+        $porcFirmeza = controlesPorcentaje($valorFirme, $muestra);
+        $porcEstimadoExportacion = round(100 - $porcDefectoCondicion, 4);
+        if ($porcEstimadoExportacion < 0) {
+            $porcEstimadoExportacion = 0;
         }
-        if ($grupo === "PRESIONES" && recepcionEsFirme($nombre)) {
-            $valorFirme += $valor;
+
+        $ARRAYRESOLUCION = $CALIDADCONTROL_ADO->resolverResultado($EMPRESAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $porcEstimadoExportacion);
+        $resultadoGeneral = $ARRAYRESOLUCION ? $ARRAYRESOLUCION[0]["RESULTADO"] : "SIN_REGLA";
+
+        $numeroOperacion = "";
+        foreach ($ARRAYRECEPCIONES as $recepcion) {
+            if ((string) $recepcion["ID_RECEPCION"] === (string) $_POST["ID_RECEPCION"]) {
+                $numeroOperacion = $recepcion["NUMERO_RECEPCION"];
+                break;
+            }
         }
-    }
 
-    $porcDefectoCondicion = recepcionPorcentaje($totalDefectoCondicion, $muestra);
-    $porcDefectoCalidad = recepcionPorcentaje($totalDefectoCalidad, $muestra);
-    $porcFirmeza = recepcionPorcentaje($valorFirme, $muestra);
-    $porcEstimadoExportacion = round(100 - $porcDefectoCondicion, 4);
-    if ($porcEstimadoExportacion < 0) {
-        $porcEstimadoExportacion = 0;
-    }
+        $CONTROL = new CALIDADCONTROL();
+        $CONTROL->__SET("ETAPA", "RECEPCION");
+        $CONTROL->__SET("MODO_INGRESO", $_POST["MODO_INGRESO"]);
+        $CONTROL->__SET("TIPO_PRODUCTO", "MP");
+        $CONTROL->__SET("ID_OPERACION", $_POST["ID_RECEPCION"]);
+        $CONTROL->__SET("NUMERO_OPERACION", $numeroOperacion);
+        $CONTROL->__SET("FECHA", date("Y-m-d"));
+        $CONTROL->__SET("HORA", date("H:i:s"));
+        $CONTROL->__SET("ID_EMPRESA", $EMPRESAS);
+        $CONTROL->__SET("ID_PLANTA", $PLANTAS);
+        $CONTROL->__SET("ID_TEMPORADA", $TEMPORADAS);
+        $CONTROL->__SET("ID_ESPECIES", $_POST["ID_ESPECIES"]);
+        $CONTROL->__SET("ID_USUARIO", $IDUSUARIOS);
+        $CONTROL->__SET("ID_CALIDAD_INSPECTOR", $_POST["ID_CALIDAD_INSPECTOR"]);
+        $CONTROL->__SET("MUESTRA_GRAMOS", $muestra);
+        $CONTROL->__SET("RESULTADO_GENERAL", $resultadoGeneral);
+        $CONTROL->__SET("ESTADO_CONTROL", "ABIERTO");
+        $CONTROL->__SET("PORC_DEFECTO_CONDICION", $porcDefectoCondicion);
+        $CONTROL->__SET("PORC_DEFECTO_CALIDAD", $porcDefectoCalidad);
+        $CONTROL->__SET("PORC_FIRMEZA", $porcFirmeza);
+        $CONTROL->__SET("PORC_ESTIMADO_EXPORTACION", $porcEstimadoExportacion);
+        $CONTROL->__SET("OBSERVACION", $_POST["OBSERVACION"]);
 
-    $ARRAYRESOLUCION = $CALIDADCONTROL_ADO->resolverResultado($EMPRESAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $porcEstimadoExportacion);
-    $resultadoGeneral = $ARRAYRESOLUCION ? $ARRAYRESOLUCION[0]["RESULTADO"] : "SIN_REGLA";
-
-    $numeroOperacion = "";
-    foreach ($ARRAYRECEPCIONES as $recepcion) {
-        if ((string) $recepcion["ID_RECEPCION"] === (string) $_POST["ID_RECEPCION"]) {
-            $numeroOperacion = $recepcion["NUMERO_RECEPCION"];
-            break;
+        if ($IDCONTROL_EDITAR !== "") {
+            $CONTROL->__SET("ID_CALIDAD_CONTROL", $IDCONTROL_EDITAR);
+            $CALIDADCONTROL_ADO->actualizarControlRecepcion($CONTROL);
+            $CALIDADCONTROL_ADO->limpiarDetalleControl($IDCONTROL_EDITAR);
+            $IDCONTROL = $IDCONTROL_EDITAR;
+        } else {
+            $IDCONTROL = $CALIDADCONTROL_ADO->agregarControl($CONTROL);
         }
-    }
 
-    $CONTROL = new CALIDADCONTROL();
-    $CONTROL->__SET("ETAPA", "RECEPCION");
-    $CONTROL->__SET("MODO_INGRESO", $_POST["MODO_INGRESO"]);
-    $CONTROL->__SET("TIPO_PRODUCTO", "MP");
-    $CONTROL->__SET("ID_OPERACION", $_POST["ID_RECEPCION"]);
-    $CONTROL->__SET("NUMERO_OPERACION", $numeroOperacion);
-    $CONTROL->__SET("FECHA", date("Y-m-d"));
-    $CONTROL->__SET("HORA", date("H:i:s"));
-    $CONTROL->__SET("ID_EMPRESA", $EMPRESAS);
-    $CONTROL->__SET("ID_PLANTA", $PLANTAS);
-    $CONTROL->__SET("ID_TEMPORADA", $TEMPORADAS);
-    $CONTROL->__SET("ID_ESPECIES", $_POST["ID_ESPECIES"]);
-    $CONTROL->__SET("ID_USUARIO", $IDUSUARIOS);
-    $CONTROL->__SET("ID_CALIDAD_INSPECTOR", $_POST["ID_CALIDAD_INSPECTOR"]);
-    $CONTROL->__SET("MUESTRA_GRAMOS", $muestra);
-    $CONTROL->__SET("RESULTADO_GENERAL", $resultadoGeneral);
-    $CONTROL->__SET("ESTADO_CONTROL", "ABIERTO");
-    $CONTROL->__SET("PORC_DEFECTO_CONDICION", $porcDefectoCondicion);
-    $CONTROL->__SET("PORC_DEFECTO_CALIDAD", $porcDefectoCalidad);
-    $CONTROL->__SET("PORC_FIRMEZA", $porcFirmeza);
-    $CONTROL->__SET("PORC_ESTIMADO_EXPORTACION", $porcEstimadoExportacion);
-    $CONTROL->__SET("OBSERVACION", $_POST["OBSERVACION"]);
-    if ($IDCONTROL_EDITAR !== "") {
-        $CONTROL->__SET("ID_CALIDAD_CONTROL", $IDCONTROL_EDITAR);
-        $CALIDADCONTROL_ADO->actualizarControlRecepcion($CONTROL);
-        $CALIDADCONTROL_ADO->limpiarDetalleControl($IDCONTROL_EDITAR);
-        $IDCONTROL = $IDCONTROL_EDITAR;
-    } else {
-        $IDCONTROL = $CALIDADCONTROL_ADO->agregarControl($CONTROL);
-    }
-
-    foreach ($valores as $idParametro => $valorIngresado) {
-        if ($valorIngresado === "") {
-            continue;
-        }
-        $DETALLE = new CALIDADCONTROLDETALLE();
-        $DETALLE->__SET("ID_CALIDAD_CONTROL", $IDCONTROL);
-        $DETALLE->__SET("ID_CALIDAD_PARAMETRO", $idParametro);
-        $DETALLE->__SET("TIPO_PARAMETRO", $grupos[$idParametro] ?? "");
-        $DETALLE->__SET("NOMBRE_PARAMETRO", $nombres[$idParametro] ?? "");
-        $DETALLE->__SET("UNIDAD_MEDIDA", "g");
-        $DETALLE->__SET("VALOR_NUMERICO", recepcionNumero($valorIngresado));
-        $DETALLE->__SET("VALOR_TEXTO", null);
-        $DETALLE->__SET("RESULTADO", null);
-        $DETALLE->__SET("OBSERVACION", null);
-        $CALIDADCONTROL_ADO->agregarDetalle($DETALLE);
-    }
-
-    if ($IDCONTROL_EDITAR === "") {
-        $foliosAsociar = $CALIDADCONTROL_ADO->listarFolioRecepcionMateriaPrimaCalidad($_POST["ID_RECEPCION"], $_POST["ID_ESPECIES"]);
-        foreach ($foliosAsociar as $folio) {
-            if ($_POST["MODO_INGRESO"] === "FOLIO" && (string) $folio["ID_EXIMATERIAPRIMA"] !== (string) $_POST["ID_FOLIO"]) {
+        foreach ($valores as $idParametro => $valorIngresado) {
+            if ($valorIngresado === "") {
                 continue;
             }
-            $FOLIO = new CALIDADCONTROLFOLIO();
-            $FOLIO->__SET("ID_CALIDAD_CONTROL", $IDCONTROL);
-            $FOLIO->__SET("TIPO_PRODUCTO", "MP");
-            $FOLIO->__SET("ID_EXISTENCIA", $folio["ID_EXIMATERIAPRIMA"]);
-            $FOLIO->__SET("FOLIO_ORIGINAL", $folio["FOLIO_EXIMATERIAPRIMA"]);
-            $FOLIO->__SET("FOLIO_AUXILIAR", $folio["FOLIO_AUXILIAR_EXIMATERIAPRIMA"]);
-            $CALIDADCONTROL_ADO->agregarFolio($FOLIO);
+            $DETALLE = new CALIDADCONTROLDETALLE();
+            $DETALLE->__SET("ID_CALIDAD_CONTROL", $IDCONTROL);
+            $DETALLE->__SET("ID_CALIDAD_PARAMETRO", $idParametro);
+            $DETALLE->__SET("TIPO_PARAMETRO", $grupos[$idParametro] ?? "");
+            $DETALLE->__SET("NOMBRE_PARAMETRO", $nombres[$idParametro] ?? "");
+            $DETALLE->__SET("UNIDAD_MEDIDA", "g");
+            $DETALLE->__SET("VALOR_NUMERICO", controlesNumero($valorIngresado));
+            $DETALLE->__SET("VALOR_TEXTO", null);
+            $DETALLE->__SET("RESULTADO", null);
+            $DETALLE->__SET("OBSERVACION", null);
+            $CALIDADCONTROL_ADO->agregarDetalle($DETALLE);
         }
-    }
 
-    $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Estimado exportacion: " . $porcEstimadoExportacion . "% - " . $resultadoGeneral;
-    $TIPOMENSAJE = "success";
-    $ARRAYCONTROLES = $CALIDADCONTROL_ADO->listarControlRecepcionCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $_POST["ID_RECEPCION"]);
-    $ARRAYDETALLESCONTROL = recepcionDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
+        $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Estimado exportacion: " . $porcEstimadoExportacion . "% - " . $resultadoGeneral;
+        $TIPOMENSAJE = "success";
+        $ARRAYCONTROLES = $CALIDADCONTROL_ADO->listarControlRecepcionCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $_POST["ID_RECEPCION"]);
+        $ARRAYDETALLESCONTROL = controlesDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
     }
 }
 
@@ -253,7 +211,7 @@ if (isset($_POST["CERRARCONTROL"])) {
 
     if ($ID_ESPECIES !== "" && $ID_RECEPCION !== "") {
         $ARRAYCONTROLES = $CALIDADCONTROL_ADO->listarControlRecepcionCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $ID_ESPECIES, $ID_RECEPCION);
-        $ARRAYDETALLESCONTROL = recepcionDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
+        $ARRAYDETALLESCONTROL = controlesDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
     }
 }
 
@@ -277,11 +235,9 @@ foreach ($ARRAYCONTROLES as $control) {
 <html lang="es">
 
 <head>
-    <title>Control Calidad Recepcion</title>
+    <title>Controles de Calidad</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="">
-    <meta name="author" content="">
     <?php include_once "../../assest/config/urlHead.php"; ?>
     <style>
         #modalControlCalidad .modal-dialog {
@@ -357,14 +313,14 @@ foreach ($ARRAYCONTROLES as $control) {
                 <div class="content-header">
                     <div class="d-flex align-items-center">
                         <div class="mr-auto">
-                            <h3 class="page-title">Control Calidad Recepcion</h3>
+                            <h3 class="page-title">Controles de Calidad</h3>
                             <div class="d-inline-block align-items-center">
                                 <nav>
                                     <ol class="breadcrumb">
                                         <li class="breadcrumb-item"><a href="index.php"><i class="mdi mdi-home-outline"></i></a></li>
                                         <li class="breadcrumb-item" aria-current="page">Calidad</li>
                                         <li class="breadcrumb-item" aria-current="page">Registro</li>
-                                        <li class="breadcrumb-item active" aria-current="page"><a href="#">Recepcion</a></li>
+                                        <li class="breadcrumb-item active" aria-current="page"><a href="#">Controles</a></li>
                                     </ol>
                                 </nav>
                             </div>
@@ -381,31 +337,25 @@ foreach ($ARRAYCONTROLES as $control) {
                         <form method="GET">
                             <div class="box-body">
                                 <div class="row">
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                         <div class="form-group">
                                             <label>Especie</label>
                                             <select class="form-control select2" name="ID_ESPECIES" required onchange="this.form.submit()">
                                                 <option></option>
                                                 <?php foreach ($ARRAYESPECIES as $especie) { ?>
-                                                    <option value="<?php echo $especie["ID_ESPECIES"]; ?>" <?php echo ((string) $ID_ESPECIES === (string) $especie["ID_ESPECIES"]) ? "selected" : ""; ?>><?php echo recepcionTexto($especie["NOMBRE_ESPECIES"]); ?></option>
+                                                    <option value="<?php echo $especie["ID_ESPECIES"]; ?>" <?php echo ((string) $ID_ESPECIES === (string) $especie["ID_ESPECIES"]) ? "selected" : ""; ?>><?php echo controlesTexto($especie["NOMBRE_ESPECIES"]); ?></option>
                                                 <?php } ?>
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-3">
-                                        <div class="form-group">
-                                            <label>Buscar folio</label>
-                                            <input type="text" class="form-control" name="FOLIO_BUSCAR" value="<?php echo recepcionTexto($FOLIO_BUSCAR); ?>" placeholder="Folio">
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Recepcion</label>
                                             <select class="form-control select2" name="ID_RECEPCION" onchange="this.form.submit()" <?php echo $ID_ESPECIES === "" ? "disabled" : ""; ?>>
                                                 <option></option>
                                                 <?php foreach ($ARRAYRECEPCIONES as $recepcion) { ?>
                                                     <option value="<?php echo $recepcion["ID_RECEPCION"]; ?>" <?php echo ((string) $ID_RECEPCION === (string) $recepcion["ID_RECEPCION"]) ? "selected" : ""; ?>>
-                                                        <?php echo "N " . recepcionTexto($recepcion["NUMERO_RECEPCION"]) . " / Guia " . recepcionTexto($recepcion["NUMERO_GUIA_RECEPCION"]) . " / " . recepcionTexto($recepcion["FECHA_RECEPCION"]); ?>
+                                                        <?php echo "N " . controlesTexto($recepcion["NUMERO_RECEPCION"]) . " / Guia " . controlesTexto($recepcion["NUMERO_GUIA_RECEPCION"]) . " / " . controlesTexto($recepcion["FECHA_RECEPCION"]); ?>
                                                     </option>
                                                 <?php } ?>
                                             </select>
@@ -424,50 +374,84 @@ foreach ($ARRAYCONTROLES as $control) {
                     <?php if ($ID_ESPECIES !== "" && $ID_RECEPCION !== "") { ?>
                         <div class="box">
                             <div class="box-header with-border">
-                                <h4 class="box-title">Folios de la recepcion</h4>
+                                <h4 class="box-title">Controles ingresados</h4>
                                 <div class="box-controls pull-right">
-                                    <a href="controlesCalidad.php?ID_ESPECIES=<?php echo recepcionTexto($ID_ESPECIES); ?>&ID_RECEPCION=<?php echo recepcionTexto($ID_RECEPCION); ?>" class="btn btn-rounded btn-info btn-sm mr-5">
-                                        <i class="fa fa-list"></i> Ver controles
+                                    <a href="registroRecepcion.php?ID_ESPECIES=<?php echo controlesTexto($ID_ESPECIES); ?>&ID_RECEPCION=<?php echo controlesTexto($ID_RECEPCION); ?>" class="btn btn-rounded btn-secondary btn-sm">
+                                        <i class="fa fa-arrow-left"></i> Ir a Recepcion
                                     </a>
-                                    <button type="button" class="btn btn-rounded btn-primary btn-sm abrir-control-calidad"
-                                        data-toggle="modal"
-                                        data-target="#modalControlCalidad"
-                                        data-modo="AGRUPADO"
-                                        data-folio=""
-                                        data-folio-texto="Recepcion completa">
-                                        <i class="fa fa-check-square-o"></i> Control agrupado
-                                    </button>
                                 </div>
                             </div>
                             <div class="box-body">
                                 <div class="table-responsive">
-                                    <table class="table table-hover table-bordered mb-0" id="tablaFoliosRecepcion">
+                                    <table class="table table-hover table-bordered mb-0" id="tablaControlesCalidad">
                                         <thead>
                                             <tr>
-                                                <th>Folio</th>
-                                                <th>Folio auxiliar</th>
-                                                <th>Variedad</th>
-                                                <th class="text-right">Kilos neto</th>
-                                                <th class="text-center">Accion</th>
+                                                <th>Estado</th>
+                                                <th>Tipo</th>
+                                                <th>Folios</th>
+                                                <th>Inspector</th>
+                                                <th class="text-center">Resolucion</th>
+                                                <th class="text-right">% Condicion</th>
+                                                <th class="text-right">% Calidad</th>
+                                                <th class="text-right">% Firmeza</th>
+                                                <th class="text-right">% Exportacion</th>
+                                                <th class="text-center">Cierre</th>
+                                                <th class="text-center">PDF</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ($ARRAYFOLIOS as $folio) { ?>
+                                            <?php foreach ($ARRAYCONTROLES as $control) { ?>
                                                 <tr>
-                                                    <td><?php echo recepcionTexto($folio["FOLIO_EXIMATERIAPRIMA"]); ?></td>
-                                                    <td><?php echo recepcionTexto($folio["FOLIO_AUXILIAR_EXIMATERIAPRIMA"]); ?></td>
-                                                    <td><?php echo recepcionTexto($folio["NOMBRE_VESPECIES"]); ?></td>
-                                                    <td class="text-right"><?php echo recepcionTexto($folio["KILOS_NETO_EXIMATERIAPRIMA"]); ?></td>
-                                                    <td class="text-center">
-                                                        <button type="button" class="btn btn-rounded btn-info btn-sm abrir-control-calidad"
-                                                            data-toggle="modal"
-                                                            data-target="#modalControlCalidad"
-                                                            data-modo="FOLIO"
-                                                            data-folio="<?php echo recepcionTexto($folio["ID_EXIMATERIAPRIMA"]); ?>"
-                                                            data-folio-texto="Folio <?php echo recepcionTexto($folio["FOLIO_AUXILIAR_EXIMATERIAPRIMA"]); ?>">
-                                                            <i class="fa fa-edit"></i> Ingresar
-                                                        </button>
+                                                    <td>
+                                                        <?php if ($control["ESTADO_CONTROL"] === "CERRADO") { ?>
+                                                            <span class="badge badge-success">CERRADO</span>
+                                                        <?php } else { ?>
+                                                            <span class="badge badge-warning">ABIERTO</span>
+                                                        <?php } ?>
                                                     </td>
+                                                    <td><?php echo controlesTexto($control["MODO_INGRESO"]); ?></td>
+                                                    <td><?php echo controlesTexto($control["MODO_INGRESO"] === "AGRUPADO" ? "Recepcion completa" : $control["FOLIOS"]); ?></td>
+                                                    <td><?php echo controlesTexto($control["NOMBRE_INSPECTOR"]); ?></td>
+                                                    <td class="text-center"><strong><?php echo controlesTexto($control["RESULTADO_GENERAL"]); ?></strong></td>
+                                                    <td class="text-right"><?php echo controlesTexto($control["PORC_DEFECTO_CONDICION"]); ?></td>
+                                                    <td class="text-right"><?php echo controlesTexto($control["PORC_DEFECTO_CALIDAD"]); ?></td>
+                                                    <td class="text-right"><?php echo controlesTexto($control["PORC_FIRMEZA"]); ?></td>
+                                                    <td class="text-right"><?php echo controlesTexto($control["PORC_ESTIMADO_EXPORTACION"]); ?></td>
+                                                    <td class="text-center">
+                                                        <?php if ($control["ESTADO_CONTROL"] === "CERRADO") { ?>
+                                                            <?php echo controlesTexto($control["FECHA_CIERRE"]); ?>
+                                                        <?php } else { ?>
+                                                            <button type="button" class="btn btn-rounded btn-warning btn-sm editar-control-calidad"
+                                                                data-toggle="modal"
+                                                                data-target="#modalControlCalidad"
+                                                                data-id="<?php echo controlesTexto($control["ID_CALIDAD_CONTROL"]); ?>">
+                                                                <i class="fa fa-edit"></i> Editar
+                                                            </button>
+                                                            <button type="button" class="btn btn-rounded btn-success btn-sm cerrar-control-calidad"
+                                                                data-toggle="modal"
+                                                                data-target="#modalCerrarControl"
+                                                                data-id="<?php echo controlesTexto($control["ID_CALIDAD_CONTROL"]); ?>"
+                                                                data-resolucion="<?php echo controlesTexto($control["RESULTADO_GENERAL"]); ?>"
+                                                                data-exportacion="<?php echo controlesTexto($control["PORC_ESTIMADO_EXPORTACION"]); ?>">
+                                                                <i class="fa fa-check"></i> Cerrar
+                                                            </button>
+                                                        <?php } ?>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <?php if ($control["ESTADO_CONTROL"] === "CERRADO") { ?>
+                                                            <button type="button" class="btn btn-rounded btn-danger btn-sm"
+                                                                onclick="window.open('../../assest/documento/informeCalidadRecepcion.php?parametro=<?php echo controlesTexto($control["ID_CALIDAD_CONTROL"]); ?>&usuario=<?php echo controlesTexto($IDUSUARIOS); ?>', '_blank');">
+                                                                <i class="fa fa-file-pdf-o"></i> PDF
+                                                            </button>
+                                                        <?php } else { ?>
+                                                            <span class="text-muted">Pendiente</span>
+                                                        <?php } ?>
+                                                    </td>
+                                                </tr>
+                                            <?php } ?>
+                                            <?php if (empty($ARRAYCONTROLES)) { ?>
+                                                <tr>
+                                                    <td colspan="11" class="text-center text-muted">No hay controles ingresados para esta recepcion.</td>
                                                 </tr>
                                             <?php } ?>
                                         </tbody>
@@ -481,12 +465,12 @@ foreach ($ARRAYCONTROLES as $control) {
                                 <div class="modal-content">
                                     <form method="POST">
                                         <input type="hidden" name="ID_CALIDAD_CONTROL" id="modalIdControl" value="">
-                                        <input type="hidden" name="ID_ESPECIES" value="<?php echo recepcionTexto($ID_ESPECIES); ?>">
+                                        <input type="hidden" name="ID_ESPECIES" value="<?php echo controlesTexto($ID_ESPECIES); ?>">
                                         <input type="hidden" name="MODO_INGRESO" id="modalModoIngreso" value="AGRUPADO">
-                                        <input type="hidden" name="ID_RECEPCION" value="<?php echo recepcionTexto($ID_RECEPCION); ?>">
+                                        <input type="hidden" name="ID_RECEPCION" value="<?php echo controlesTexto($ID_RECEPCION); ?>">
                                         <input type="hidden" name="ID_FOLIO" id="modalIdFolio" value="">
                                         <div class="modal-header">
-                                            <h5 class="modal-title" id="modalControlCalidadLabel">Ingreso control calidad</h5>
+                                            <h5 class="modal-title" id="modalControlCalidadLabel">Editar control calidad</h5>
                                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                                 <span aria-hidden="true">&times;</span>
                                             </button>
@@ -504,7 +488,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                                         <select class="form-control select2-modal" name="ID_CALIDAD_INSPECTOR" required>
                                                             <option></option>
                                                             <?php foreach ($ARRAYINSPECTORES as $inspector) { ?>
-                                                                <option value="<?php echo $inspector["ID_CALIDAD_INSPECTOR"]; ?>"><?php echo recepcionTexto($inspector["NOMBRE_INSPECTOR"]); ?></option>
+                                                                <option value="<?php echo $inspector["ID_CALIDAD_INSPECTOR"]; ?>"><?php echo controlesTexto($inspector["NOMBRE_INSPECTOR"]); ?></option>
                                                             <?php } ?>
                                                         </select>
                                                     </div>
@@ -522,14 +506,14 @@ foreach ($ARRAYCONTROLES as $control) {
                                             <?php foreach ($GRUPOS as $codigoGrupo => $nombreGrupo) { ?>
                                                 <?php if (!empty($PARAMETROS_GRUPO[$codigoGrupo])) { ?>
                                                     <div class="calidad-bloque">
-                                                        <div class="calidad-bloque-titulo"><?php echo recepcionTexto($nombreGrupo); ?></div>
+                                                        <div class="calidad-bloque-titulo"><?php echo controlesTexto($nombreGrupo); ?></div>
                                                         <div class="calidad-matriz">
                                                             <?php foreach ($PARAMETROS_GRUPO[$codigoGrupo] as $parametro) { ?>
                                                                 <div class="calidad-campo">
-                                                                    <label><?php echo recepcionTexto($parametro["NOMBRE_PARAMETRO"]); ?></label>
+                                                                    <label><?php echo controlesTexto($parametro["NOMBRE_PARAMETRO"]); ?></label>
                                                                     <input type="number" step="0.01" class="form-control" name="VALOR_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" <?php echo ((int) $parametro["ES_REQUERIDO"] === 1) ? "required" : ""; ?>>
-                                                                    <input type="hidden" name="NOMBRE_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" value="<?php echo recepcionTexto($parametro["NOMBRE_PARAMETRO"]); ?>">
-                                                                    <input type="hidden" name="GRUPO_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" value="<?php echo recepcionTexto($codigoGrupo); ?>">
+                                                                    <input type="hidden" name="NOMBRE_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" value="<?php echo controlesTexto($parametro["NOMBRE_PARAMETRO"]); ?>">
+                                                                    <input type="hidden" name="GRUPO_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" value="<?php echo controlesTexto($codigoGrupo); ?>">
                                                                 </div>
                                                             <?php } ?>
                                                         </div>
@@ -540,7 +524,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-rounded btn-secondary" data-dismiss="modal">Cerrar</button>
                                             <button type="submit" class="btn btn-rounded btn-primary" id="modalBotonGuardarControl" name="GUARDARCONTROL" value="1">
-                                                <i class="fa fa-save"></i> Guardar Control
+                                                <i class="fa fa-save"></i> Actualizar Control
                                             </button>
                                         </div>
                                     </form>
@@ -548,6 +532,38 @@ foreach ($ARRAYCONTROLES as $control) {
                             </div>
                         </div>
 
+                        <div class="modal fade" id="modalCerrarControl" tabindex="-1" role="dialog" aria-labelledby="modalCerrarControlLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <form method="POST">
+                                        <input type="hidden" name="ID_ESPECIES" value="<?php echo controlesTexto($ID_ESPECIES); ?>">
+                                        <input type="hidden" name="ID_RECEPCION" value="<?php echo controlesTexto($ID_RECEPCION); ?>">
+                                        <input type="hidden" name="ID_CALIDAD_CONTROL" id="cerrarIdControl" value="">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="modalCerrarControlLabel">Cerrar control calidad</h5>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="alert alert-success">
+                                                Resolucion: <strong id="cerrarResolucion"></strong> / Exportacion: <strong id="cerrarExportacion"></strong>%
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Observacion cierre</label>
+                                                <textarea class="form-control" name="OBSERVACION_CIERRE" rows="3" maxlength="500"></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-rounded btn-secondary" data-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-rounded btn-success" name="CERRARCONTROL" value="1">
+                                                <i class="fa fa-check"></i> Confirmar cierre
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
                     <?php } ?>
                 </section>
             </div>
@@ -566,12 +582,13 @@ foreach ($ARRAYCONTROLES as $control) {
                 width: '100%'
             });
 
-            if ($.fn.DataTable && $('#tablaFoliosRecepcion').length) {
-                $('#tablaFoliosRecepcion').DataTable({
+            if ($.fn.DataTable && $('#tablaControlesCalidad').length) {
+                $('#tablaControlesCalidad').DataTable({
                     pageLength: 25,
-                    order: [[1, 'asc']]
+                    order: [[0, 'asc']]
                 });
             }
+
             $('#modalControlCalidad').on('show.bs.modal', function(event) {
                 var button = $(event.relatedTarget);
                 var modal = $(this);
@@ -599,25 +616,21 @@ foreach ($ARRAYCONTROLES as $control) {
                     });
                     modal.find('#modalControlCalidadLabel').text('Editar control calidad');
                     modal.find('#modalBotonGuardarControl').html('<i class="fa fa-save"></i> Actualizar Control');
-                    return;
                 }
+            });
 
-                var modo = button.data('modo') || 'AGRUPADO';
-                var folio = button.data('folio') || '';
-                var folioTexto = button.data('folio-texto') || 'Recepcion completa';
-
-                modal.find('#modalModoIngreso').val(modo);
-                modal.find('#modalIdFolio').val(folio);
-                modal.find('#modalModoTexto').text(modo === 'FOLIO' ? 'Control por folio' : 'Control agrupado');
-                modal.find('#modalFolioTexto').text(folioTexto);
-                modal.find('#modalControlCalidadLabel').text('Ingreso control calidad');
-                modal.find('#modalBotonGuardarControl').html('<i class="fa fa-save"></i> Guardar Control');
+            $('#modalCerrarControl').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var modal = $(this);
+                modal.find('#cerrarIdControl').val(button.data('id') || '');
+                modal.find('#cerrarResolucion').text(button.data('resolucion') || '');
+                modal.find('#cerrarExportacion').text(button.data('exportacion') || '');
             });
 
             <?php if ($MENSAJE !== "") { ?>
                 $.toast({
                     heading: '<?php echo $TIPOMENSAJE === "success" ? "Correcto" : "Aviso"; ?>',
-                    text: '<?php echo recepcionTexto($MENSAJE); ?>',
+                    text: '<?php echo controlesTexto($MENSAJE); ?>',
                     position: 'bottom-left',
                     loaderBg: '#ff6849',
                     icon: '<?php echo $TIPOMENSAJE; ?>',

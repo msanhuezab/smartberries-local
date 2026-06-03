@@ -322,6 +322,16 @@ $eventos = [];
 $mensajeEvento = '';
 $mensajeLogin = '';
 $token = ($p !== '' && $v !== '' && $f !== '') ? tokenPallet($p, $v, $f) : '';
+$controlesCalidad   = [];
+$idExistenciaQC     = null;
+$idRecepcionQC      = null;
+$idEspeciesCalidad  = null;
+$idEmpresaQC        = null;
+$idPlantaQC         = null;
+$idTemporadaQC      = null;
+$inspectoresQC      = [];
+$parametrosQC       = [];
+$mensajeControl     = '';
 
 try {
     $conexion = BDCONFIG::conectar();
@@ -479,6 +489,149 @@ try {
 
         $eventos = obtenerEventosPallet($conexion, $pallet['ID_PALLET'] ?? null);
     }
+
+    // Controles de calidad ligados a este folio/recepcion
+    $controlesCalidad = [];
+    $idExistenciaQC  = $existencia['ID_EXIMATERIAPRIMA'] ?? null;
+    $idRecepcionQC   = $existencia['ID_RECEPCION'] ?? ($detalle['ID_RECEPCION'] ?? null);
+
+    if ($idExistenciaQC || $idRecepcionQC) {
+        $condQC  = [];
+        $paramsQC = [];
+        if ($idExistenciaQC) {
+            $condQC[]   = 'C.ID_CALIDAD_CONTROL IN (SELECT ID_CALIDAD_CONTROL FROM fruta_calidad_control_folio WHERE ID_EXISTENCIA = ? AND ESTADO_REGISTRO = 1)';
+            $paramsQC[] = $idExistenciaQC;
+        }
+        if ($idRecepcionQC) {
+            $condQC[]   = "(C.MODO_INGRESO = 'AGRUPADO' AND C.ID_OPERACION = ?)";
+            $paramsQC[] = $idRecepcionQC;
+        }
+        $whereQC = 'C.ESTADO_REGISTRO = 1 AND (' . implode(' OR ', $condQC) . ')';
+        $qcStmt = $conexion->prepare("
+            SELECT C.*, I.NOMBRE_INSPECTOR, ESP.NOMBRE_ESPECIES
+            FROM fruta_calidad_control C
+            LEFT JOIN fruta_calidad_inspector I  ON I.ID_CALIDAD_INSPECTOR = C.ID_CALIDAD_INSPECTOR
+            LEFT JOIN fruta_especies          ESP ON ESP.ID_ESPECIES = C.ID_ESPECIES
+            WHERE {$whereQC}
+            ORDER BY C.ESTADO_CONTROL ASC, C.ID_CALIDAD_CONTROL DESC
+        ");
+        $qcStmt->execute($paramsQC);
+        $controlesCalidad = $qcStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($controlesCalidad as &$ctrl) {
+            $dStmt = $conexion->prepare('SELECT * FROM fruta_calidad_control_detalle WHERE ID_CALIDAD_CONTROL = ? AND ESTADO_REGISTRO = 1 ORDER BY TIPO_PARAMETRO ASC, ID_CALIDAD_CONTROL_DETALLE ASC');
+            $dStmt->execute([$ctrl['ID_CALIDAD_CONTROL']]);
+            $ctrl['_detalles'] = $dStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        unset($ctrl);
+    }
+
+    // ID_ESPECIES para módulo calidad
+    if ($detalle && isset($detalle['ID_VESPECIES'])) {
+        $espStmt = $conexion->prepare('SELECT ID_ESPECIES FROM fruta_vespecies WHERE ID_VESPECIES = ? LIMIT 1');
+        $espStmt->execute([$detalle['ID_VESPECIES']]);
+        $espRow = $espStmt->fetch(PDO::FETCH_ASSOC);
+        if ($espRow) $idEspeciesCalidad = $espRow['ID_ESPECIES'];
+    }
+
+    // Contexto de empresa/planta/temporada para calidad
+    $idEmpresaQC   = $existencia['ID_EMPRESA']   ?? ($detalle['ID_EMPRESA']   ?? null);
+    $idPlantaQC    = $existencia['ID_PLANTA']     ?? ($detalle['ID_PLANTA']    ?? null);
+    $idTemporadaQC = $existencia['ID_TEMPORADA']  ?? ($detalle['ID_TEMPORADA'] ?? null);
+
+    // Fallback: obtener ID_ESPECIES desde un control existente de esta recepción
+    if (!$idEspeciesCalidad && $idRecepcionQC) {
+        $fbStmt = $conexion->prepare('SELECT ID_ESPECIES FROM fruta_calidad_control WHERE ID_OPERACION = ? AND ESTADO_REGISTRO = 1 LIMIT 1');
+        $fbStmt->execute([$idRecepcionQC]);
+        $fbRow = $fbStmt->fetch(PDO::FETCH_ASSOC);
+        if ($fbRow) $idEspeciesCalidad = $fbRow['ID_ESPECIES'];
+    }
+    // Segundo fallback: buscar en fruta_calidad_parametro por empresa/temporada (tomar cualquier especie configurada)
+    if (!$idEspeciesCalidad && $idEmpresaQC && $idTemporadaQC) {
+        $fb2Stmt = $conexion->prepare("SELECT DISTINCT ID_ESPECIES FROM fruta_calidad_parametro WHERE ID_EMPRESA = ? AND ID_TEMPORADA = ? AND ETAPA = 'RECEPCION' AND ESTADO_REGISTRO = 1 LIMIT 1");
+        $fb2Stmt->execute([$idEmpresaQC, $idTemporadaQC]);
+        $fb2Row = $fb2Stmt->fetch(PDO::FETCH_ASSOC);
+        if ($fb2Row) $idEspeciesCalidad = $fb2Row['ID_ESPECIES'];
+    }
+
+    // Cargar inspectores (solo necesitan empresa + temporada)
+    if (usuarioLogueado() && $idEmpresaQC && $idTemporadaQC) {
+        $iStmt = $conexion->prepare('SELECT ID_CALIDAD_INSPECTOR, NOMBRE_INSPECTOR FROM fruta_calidad_inspector WHERE ID_EMPRESA = ? AND ID_TEMPORADA = ? AND ESTADO_REGISTRO = 1 ORDER BY NOMBRE_INSPECTOR ASC');
+        $iStmt->execute([$idEmpresaQC, $idTemporadaQC]);
+        $inspectoresQC = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Cargar parámetros (necesitan también ID_ESPECIES)
+    if (usuarioLogueado() && $idEmpresaQC && $idTemporadaQC && $idEspeciesCalidad) {
+        foreach (['CALIBRES','PRESIONES','PARAMETROS','DEFECTOS_CONDICION','DEFECTOS_CALIDAD'] as $grp) {
+            $pStmt = $conexion->prepare("SELECT ID_CALIDAD_PARAMETRO, NOMBRE_PARAMETRO, ES_REQUERIDO FROM fruta_calidad_parametro WHERE ID_EMPRESA = ? AND ID_TEMPORADA = ? AND ID_ESPECIES = ? AND ETAPA = 'RECEPCION' AND TIPO_PARAMETRO = ? AND ESTADO_REGISTRO = 1 ORDER BY ID_CALIDAD_PARAMETRO ASC");
+            $pStmt->execute([$idEmpresaQC, $idTemporadaQC, $idEspeciesCalidad, $grp]);
+            $parametrosQC[$grp] = $pStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+    }
+
+    // Guardar control de calidad desde popup
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && isset($_POST['GUARDARCONTROL_PALLET']) && usuarioLogueado()) {
+        $idInsp   = (int) ($_POST['ID_CALIDAD_INSPECTOR'] ?? 0);
+        $muestra  = max(1, (float) ($_POST['MUESTRA_GRAMOS'] ?? 1000));
+        $observ   = trim((string) ($_POST['OBSERVACION'] ?? ''));
+        $valores  = $_POST['VALOR_PARAMETRO'] ?? [];
+        $nomParams = $_POST['NOMBRE_PARAMETRO'] ?? [];
+        $grpParams = $_POST['GRUPO_PARAMETRO']  ?? [];
+
+        $totalCond  = 0; $totalCal = 0; $totalFirme = 0;
+        foreach ($valores as $idP => $val) {
+            $gv  = (float) str_replace(',', '.', (string) $val);
+            $grp = $grpParams[$idP] ?? '';
+            $nom = strtoupper((string) ($nomParams[$idP] ?? ''));
+            if ($grp === 'DEFECTOS_CONDICION') $totalCond  += $gv;
+            if ($grp === 'DEFECTOS_CALIDAD')   $totalCal   += $gv;
+            if ($grp === 'PRESIONES' && strpos($nom, 'FIRME') !== false) $totalFirme += $gv;
+        }
+        $pCond   = $muestra > 0 ? round($totalCond  / $muestra * 100, 4) : 0;
+        $pCal    = $muestra > 0 ? round($totalCal   / $muestra * 100, 4) : 0;
+        $pFirme  = $muestra > 0 ? round($totalFirme / $muestra * 100, 4) : 0;
+        $pExport = max(0, round(100 - $pCond, 4));
+
+        // Resolución
+        $resStmt = $conexion->prepare("SELECT RESULTADO FROM fruta_calidad_regla_resolucion WHERE ID_EMPRESA = ? AND ID_TEMPORADA = ? AND ID_ESPECIES = ? AND ? BETWEEN VALOR_MINIMO AND VALOR_MAXIMO AND ESTADO_REGISTRO = 1 ORDER BY VALOR_MINIMO DESC LIMIT 1");
+        $resStmt->execute([$idEmpresaQC, $idTemporadaQC, $idEspeciesCalidad, $pExport]);
+        $resRow   = $resStmt->fetch(PDO::FETCH_ASSOC);
+        $resultado = $resRow ? $resRow['RESULTADO'] : 'SIN_REGLA';
+
+        // Número de operación
+        $numOpRow = null;
+        if ($idRecepcionQC) {
+            $noStmt = $conexion->prepare('SELECT NUMERO_RECEPCION FROM fruta_recepcionmp WHERE ID_RECEPCION = ? LIMIT 1');
+            $noStmt->execute([$idRecepcionQC]);
+            $numOpRow = $noStmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        // Insertar control
+        $insCtrl = $conexion->prepare("INSERT INTO fruta_calidad_control (ETAPA,MODO_INGRESO,TIPO_PRODUCTO,ID_OPERACION,NUMERO_OPERACION,FECHA,HORA,ID_EMPRESA,ID_PLANTA,ID_TEMPORADA,ID_ESPECIES,ID_USUARIO,ID_CALIDAD_INSPECTOR,MUESTRA_GRAMOS,RESULTADO_GENERAL,ESTADO_CONTROL,PORC_DEFECTO_CONDICION,PORC_DEFECTO_CALIDAD,PORC_FIRMEZA,PORC_ESTIMADO_EXPORTACION,OBSERVACION,ESTADO_REGISTRO) VALUES ('RECEPCION','AGRUPADO','MP',?,?,?,?,?,?,?,?,?,?,?,?,'ABIERTO',?,?,?,?,?,1)");
+        $insCtrl->execute([$idRecepcionQC, $numOpRow['NUMERO_RECEPCION'] ?? '', date('Y-m-d'), date('H:i:s'), $idEmpresaQC, $idPlantaQC, $idTemporadaQC, $idEspeciesCalidad, $_SESSION['ID_USUARIO'], $idInsp, $muestra, $resultado, $pCond, $pCal, $pFirme, $pExport, $observ]);
+        $newCtrlId = $conexion->lastInsertId();
+
+        // Insertar detalles
+        foreach ($valores as $idP => $val) {
+            if ($val === '' || $val === null) continue;
+            $gv = (float) str_replace(',', '.', (string) $val);
+            $insDet = $conexion->prepare("INSERT INTO fruta_calidad_control_detalle (ID_CALIDAD_CONTROL,ID_CALIDAD_PARAMETRO,TIPO_PARAMETRO,NOMBRE_PARAMETRO,UNIDAD_MEDIDA,VALOR_NUMERICO,ESTADO_REGISTRO) VALUES (?,?,?,?,'g',?,1)");
+            $insDet->execute([$newCtrlId, $idP, $grpParams[$idP] ?? '', $nomParams[$idP] ?? '', $gv]);
+        }
+
+        // Vincular todos los folios de la recepción
+        if ($idRecepcionQC) {
+            $folStmt = $conexion->prepare('SELECT ID_EXIMATERIAPRIMA, FOLIO_EXIMATERIAPRIMA, FOLIO_AUXILIAR_EXIMATERIAPRIMA FROM fruta_eximateriaprima WHERE ID_RECEPCION = ? AND ESTADO_REGISTRO = 1');
+            $folStmt->execute([$idRecepcionQC]);
+            foreach ($folStmt->fetchAll(PDO::FETCH_ASSOC) as $fol) {
+                $insF = $conexion->prepare("INSERT INTO fruta_calidad_control_folio (ID_CALIDAD_CONTROL,ID_EXISTENCIA,FOLIO_ORIGINAL,FOLIO_AUXILIAR,TIPO_PRODUCTO,ESTADO_REGISTRO) VALUES (?,?,?,?,'MP',1)");
+                $insF->execute([$newCtrlId, $fol['ID_EXIMATERIAPRIMA'], $fol['FOLIO_EXIMATERIAPRIMA'], $fol['FOLIO_AUXILIAR_EXIMATERIAPRIMA']]);
+            }
+        }
+
+        redirigirMismaPagina('control', 'ok');
+    }
 } catch (Exception $e) {
     $error = $e->getMessage();
 }
@@ -606,6 +759,40 @@ if ($fechaDespacho !== '') {
         .login-form { display:grid; gap:10px; }
         .login-form input { width:100%; border:1px solid var(--line); border-radius:6px; padding:11px 12px; font-size:15px; }
         @media (max-width: 720px) { .grid { grid-template-columns:1fr; } .title { font-size:21px; } }
+        /* modal ingreso control */
+        .qc-modal-overlay { position:fixed; inset:0; background:rgba(17,24,39,.6); display:none; align-items:flex-start; justify-content:center; padding:18px; z-index:20; overflow-y:auto; }
+        .qc-modal-overlay.open { display:flex; }
+        .qc-modal { width:min(700px,100%); background:#fff; border-radius:8px; border:1px solid var(--line); box-shadow:0 20px 45px rgba(16,24,40,.22); margin:auto; }
+        .qc-modal-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px; border-bottom:1px solid var(--line); }
+        .qc-modal-head h3 { margin:0; font-size:17px; }
+        .qc-modal-body { padding:16px 18px; max-height:72vh; overflow-y:auto; background:#f6f8fb; }
+        .qc-modal-foot { padding:12px 18px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end; }
+        .qc-grupo { background:#fff; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; }
+        .qc-grupo-titulo { font-weight:700; font-size:13px; color:#344054; padding:9px 14px; border-bottom:1px solid var(--line); text-transform:uppercase; letter-spacing:.03em; }
+        .qc-campos { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+        .qc-campo { padding:10px 12px; border-bottom:1px solid #edf0f5; border-right:1px solid #edf0f5; }
+        .qc-campo label { display:block; font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:5px; letter-spacing:.03em; }
+        .qc-campo input, .qc-campo select { width:100%; border:1px solid var(--line); border-radius:5px; padding:7px 10px; font-size:13px; box-sizing:border-box; }
+        .qc-campos-gen { grid-template-columns: 2fr 1fr 2fr; }
+        @media(max-width:600px){ .qc-campos,.qc-campos-gen{ grid-template-columns:1fr; } }
+        /* calidad */
+        .qc-resumen { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+        .qc-dato { background:#f6f8fb; border:1px solid var(--line); border-radius:6px; padding:10px 12px; }
+        .qc-dato .label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+        .qc-dato .value { font-size:16px; font-weight:700; margin-top:4px; }
+        .qc-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+        .qc-meta { font-size:13px; color:var(--muted); margin-top:8px; }
+        .qc-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:12px; }
+        .qc-bar-label { width:110px; text-align:right; flex-shrink:0; }
+        .qc-bar-track { flex:1; background:#e0e0ea; border-radius:3px; height:12px; overflow:hidden; }
+        .qc-bar-fill  { height:12px; background:#393764; border-radius:3px; }
+        .qc-bar-val   { width:44px; text-align:left; font-weight:700; flex-shrink:0; }
+        .qc-separator { border:0; border-top:1px dashed var(--line); margin:12px 0; }
+        .qc-actions   { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+        .badge-cerrado  { background:#16803c; }
+        .badge-abierto  { background:#b7791f; }
+        .badge-resultado{ background:#1167b1; }
+        @media (max-width:600px){ .qc-resumen{ grid-template-columns:repeat(2,1fr); } }
     </style>
 </head>
 <body>
@@ -628,6 +815,9 @@ if ($fechaDespacho !== '') {
                 <div class="notice"><?php echo h($mensajeEvento); ?></div>
             <?php } elseif (isset($_GET['evento']) && $_GET['evento'] === 'ok') { ?>
                 <div class="notice ok">Evento registrado correctamente.</div>
+            <?php } ?>
+            <?php if (isset($_GET['control']) && $_GET['control'] === 'ok') { ?>
+                <div class="notice ok">Control de calidad guardado correctamente.</div>
             <?php } ?>
             <?php if ($mensajeLogin !== '') { ?>
                 <div class="notice"><?php echo h($mensajeLogin); ?></div>
@@ -700,10 +890,154 @@ if ($fechaDespacho !== '') {
 
             <section class="section">
                 <h2>Control de calidad</h2>
-                <p class="sub">Modulo pendiente. Aqui se mostraran defectos, condicion, temperatura, calibre, color, brix y firmeza.</p>
-                <div class="actions">
-                    <a class="btn" href="#">Ver control de calidad</a>
-                </div>
+
+                <?php
+                    $urlRegistro = '../../calidad/vista/registroRecepcion.php'
+                        . ($idRecepcionQC  ? '?ID_RECEPCION='  . urlencode((string) $idRecepcionQC)  : '?')
+                        . ($idEspeciesCalidad ? '&ID_ESPECIES=' . urlencode((string) $idEspeciesCalidad) : '');
+                ?>
+                <?php if (empty($controlesCalidad)): ?>
+                    <p class="sub">Sin control de calidad registrado para este folio.</p>
+                    <?php if (usuarioLogueado() && !empty($inspectoresQC)): ?>
+                        <div class="qc-actions">
+                            <button class="btn primary-btn" type="button" id="abrirModalControl">Ingresar control de calidad</button>
+                        </div>
+                    <?php elseif (usuarioLogueado() && empty($inspectoresQC)): ?>
+                        <p class="sub" style="color:#9a3412;">No hay inspectores configurados para esta empresa/temporada. Configure inspectores en el modulo de Calidad.</p>
+                    <?php else: ?>
+                        <div class="qc-actions">
+                            <button class="btn primary-btn" type="button" id="abrirLoginQC">Iniciar sesion para ingresar control</button>
+                        </div>
+                        <script>document.getElementById('abrirLoginQC').addEventListener('click',function(){document.getElementById('abrirLogin').click();});</script>
+                    <?php endif; ?>
+
+                <?php else: ?>
+                    <?php foreach ($controlesCalidad as $ctrl):
+                        $muestra  = max(1, (float) ($ctrl['MUESTRA_GRAMOS'] ?? 1000));
+                        $detalles = $ctrl['_detalles'] ?? [];
+
+                        // extraer temperatura y brix de PARAMETROS
+                        $tempVal = null; $brixVal = null;
+                        $calibres = [];
+                        foreach ($detalles as $d) {
+                            $tp = $d['TIPO_PARAMETRO'];
+                            $nm = strtoupper(trim($d['NOMBRE_PARAMETRO']));
+                            if ($tp === 'CALIBRES') { $calibres[] = $d; }
+                            if ($tp === 'PARAMETROS') {
+                                if ($tempVal === null && strpos($nm, 'TEMP') !== false) $tempVal = $d['VALOR_NUMERICO'];
+                                if ($brixVal === null && strpos($nm, 'BRIX') !== false) $brixVal = $d['VALOR_NUMERICO'];
+                            }
+                        }
+
+                        $esCerrado  = $ctrl['ESTADO_CONTROL'] === 'CERRADO';
+                        $resultado  = $ctrl['RESULTADO_GENERAL'] ?? '—';
+                        $pExport    = number_format((float)($ctrl['PORC_ESTIMADO_EXPORTACION'] ?? 0), 2, ',', '.');
+                        $pCondicion = number_format((float)($ctrl['PORC_DEFECTO_CONDICION']    ?? 0), 2, ',', '.');
+                        $pCalidad   = number_format((float)($ctrl['PORC_DEFECTO_CALIDAD']      ?? 0), 2, ',', '.');
+                        $pFirmeza   = number_format((float)($ctrl['PORC_FIRMEZA']              ?? 0), 2, ',', '.');
+                    ?>
+                    <div style="margin-bottom:18px;">
+                        <!-- encabezado del control -->
+                        <div class="qc-head">
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <span class="badge <?php echo $esCerrado ? 'badge-cerrado' : 'badge-abierto'; ?>">
+                                    <?php echo $esCerrado ? 'CERRADO' : 'ABIERTO'; ?>
+                                </span>
+                                <span class="badge badge-resultado"><?php echo h($resultado); ?></span>
+                                <span style="font-size:13px;color:var(--muted);">
+                                    <?php echo h($ctrl['NOMBRE_ESPECIES'] ?? ''); ?>
+                                    &nbsp;&bull;&nbsp; Inspector: <?php echo h($ctrl['NOMBRE_INSPECTOR'] ?? '—'); ?>
+                                </span>
+                            </div>
+                            <?php if ($esCerrado): ?>
+                                <a class="btn" style="font-size:12px;padding:6px 10px;"
+                                   href="../../assest/documento/informeCalidadRecepcion.php?parametro=<?php echo h($ctrl['ID_CALIDAD_CONTROL']); ?>&usuario=<?php echo h($_SESSION['ID_USUARIO'] ?? ''); ?>"
+                                   target="_blank">&#128196; PDF</a>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- resumen numérico -->
+                        <div class="qc-resumen">
+                            <div class="qc-dato">
+                                <div class="label">% Est. Exportacion</div>
+                                <div class="value" style="color:#16803c;"><?php echo h($pExport); ?> %</div>
+                            </div>
+                            <div class="qc-dato">
+                                <div class="label">% Def. Condicion</div>
+                                <div class="value"><?php echo h($pCondicion); ?> %</div>
+                            </div>
+                            <div class="qc-dato">
+                                <div class="label">% Def. Calidad</div>
+                                <div class="value"><?php echo h($pCalidad); ?> %</div>
+                            </div>
+                            <div class="qc-dato">
+                                <div class="label">% Firmeza</div>
+                                <div class="value"><?php echo h($pFirmeza); ?> %</div>
+                            </div>
+                            <?php if ($tempVal !== null): ?>
+                            <div class="qc-dato">
+                                <div class="label">Temperatura</div>
+                                <div class="value"><?php echo h(number_format((float)$tempVal, 1, ',', '.')); ?> °C</div>
+                            </div>
+                            <?php endif; ?>
+                            <?php if ($brixVal !== null): ?>
+                            <div class="qc-dato">
+                                <div class="label">Solidos Solubles</div>
+                                <div class="value"><?php echo h(number_format((float)$brixVal, 2, ',', '.')); ?> °Brix</div>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- calibres -->
+                        <?php if (!empty($calibres)): ?>
+                        <hr class="qc-separator">
+                        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Distribucion de calibres</div>
+                        <?php
+                            $colores = ['#393764','#4a4a80','#5c5c9c','#6e6eb8','#8484cc'];
+                            $ci = 0;
+                        ?>
+                        <?php foreach ($calibres as $cal):
+                            $g    = max(0, (float) $cal['VALOR_NUMERICO']);
+                            $porc = $muestra > 0 ? ($g / $muestra) * 100 : 0;
+                            $w    = min(100, round($porc, 1));
+                            $col  = $colores[$ci % count($colores)];
+                            $ci++;
+                        ?>
+                        <div class="qc-bar-row">
+                            <span class="qc-bar-label"><?php echo h($cal['NOMBRE_PARAMETRO']); ?></span>
+                            <div class="qc-bar-track">
+                                <div class="qc-bar-fill" style="width:<?php echo $w; ?>%;background:<?php echo $col; ?>;"></div>
+                            </div>
+                            <span class="qc-bar-val" style="color:<?php echo $col; ?>;"><?php echo number_format($porc, 1, ',', '.'); ?> %</span>
+                        </div>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+
+                        <!-- meta -->
+                        <div class="qc-meta">
+                            <?php if ($esCerrado): ?>
+                                Cerrado: <?php echo h($ctrl['FECHA_CIERRE'] . ' ' . $ctrl['HORA_CIERRE']); ?>
+                                <?php if ($ctrl['OBSERVACION_CIERRE']): ?> &mdash; <?php echo h($ctrl['OBSERVACION_CIERRE']); ?><?php endif; ?>
+                            <?php else: ?>
+                                Ingresado: <?php echo h($ctrl['FECHA'] . ' ' . $ctrl['HORA']); ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+
+                    <?php if (usuarioLogueado()): ?>
+                    <hr class="qc-separator">
+                    <div class="qc-actions">
+                        <?php
+                            $urlRegistro = '../../calidad/vista/registroRecepcion.php'
+                                . '?ID_RECEPCION=' . urlencode((string) ($idRecepcionQC ?? ''))
+                                . ($idEspeciesCalidad ? '&ID_ESPECIES=' . urlencode((string) $idEspeciesCalidad) : '');
+                        ?>
+                        <a class="btn" href="<?php echo h($urlRegistro); ?>">+ Agregar otro control</a>
+                        <a class="btn" href="../../calidad/vista/controlesCalidad.php?ID_RECEPCION=<?php echo h((string)($idRecepcionQC ?? '')); ?><?php echo $idEspeciesCalidad ? '&ID_ESPECIES=' . h((string)$idEspeciesCalidad) : ''; ?>">Ver todos los controles</a>
+                    </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </section>
         </div>
     </main>
@@ -757,6 +1091,107 @@ if ($fechaDespacho !== '') {
                 }
             });
         })();
+
     </script>
+
+    <?php if (usuarioLogueado() && !empty($inspectoresQC)): ?>
+    <div class="qc-modal-overlay" id="modalControlCalidad">
+        <div class="qc-modal">
+            <div class="qc-modal-head">
+                <h3>Ingreso control de calidad</h3>
+                <button class="close" type="button" id="cerrarModalControl" aria-label="Cerrar">&times;</button>
+            </div>
+            <form method="post">
+                <input type="hidden" name="ID_RECEPCION" value="<?php echo h((string) ($idRecepcionQC ?? '')); ?>">
+                <input type="hidden" name="ID_ESPECIES"  value="<?php echo h((string) ($idEspeciesCalidad ?? '')); ?>">
+
+                <div class="qc-modal-body">
+                    <!-- datos generales -->
+                    <div class="qc-grupo">
+                        <div class="qc-grupo-titulo">Datos generales</div>
+                        <div class="qc-campos qc-campos-gen">
+                            <div class="qc-campo">
+                                <label>Inspector</label>
+                                <select name="ID_CALIDAD_INSPECTOR" required>
+                                    <option value="">Seleccionar...</option>
+                                    <?php foreach ($inspectoresQC as $ins): ?>
+                                        <option value="<?php echo h($ins['ID_CALIDAD_INSPECTOR']); ?>"><?php echo h($ins['NOMBRE_INSPECTOR']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="qc-campo">
+                                <label>Muestra (g)</label>
+                                <input type="number" step="0.01" name="MUESTRA_GRAMOS" value="1000" required>
+                            </div>
+                            <div class="qc-campo">
+                                <label>Observacion</label>
+                                <input type="text" name="OBSERVACION" maxlength="500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php
+                    $grupoNombres = [
+                        'CALIBRES'          => 'Distribucion de Calibres',
+                        'PRESIONES'         => 'Presiones',
+                        'PARAMETROS'        => 'Parametros Generales',
+                        'DEFECTOS_CONDICION'=> 'Defectos de Condicion',
+                        'DEFECTOS_CALIDAD'  => 'Defectos de Calidad',
+                    ];
+                    foreach ($grupoNombres as $grpKey => $grpNombre):
+                        if (empty($parametrosQC[$grpKey])) continue;
+                    ?>
+                    <div class="qc-grupo">
+                        <div class="qc-grupo-titulo"><?php echo h($grpNombre); ?></div>
+                        <div class="qc-campos">
+                            <?php foreach ($parametrosQC[$grpKey] as $param): ?>
+                            <div class="qc-campo">
+                                <label><?php echo h($param['NOMBRE_PARAMETRO']); ?></label>
+                                <input type="number" step="0.01"
+                                    name="VALOR_PARAMETRO[<?php echo h($param['ID_CALIDAD_PARAMETRO']); ?>]"
+                                    <?php echo ((int)$param['ES_REQUERIDO'] === 1) ? 'required' : ''; ?>>
+                                <input type="hidden" name="NOMBRE_PARAMETRO[<?php echo h($param['ID_CALIDAD_PARAMETRO']); ?>]" value="<?php echo h($param['NOMBRE_PARAMETRO']); ?>">
+                                <input type="hidden" name="GRUPO_PARAMETRO[<?php echo h($param['ID_CALIDAD_PARAMETRO']); ?>]"  value="<?php echo h($grpKey); ?>">
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="qc-modal-foot">
+                    <button class="btn" type="button" id="cerrarModalControl2">Cancelar</button>
+                    <button class="btn primary-btn" type="submit" name="GUARDARCONTROL_PALLET" value="1">Guardar control</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        (function(){
+            var overlay  = document.getElementById('modalControlCalidad');
+            if (!overlay) return;
+            var btnAbrir  = document.getElementById('abrirModalControl');
+            var btnCerrar = document.getElementById('cerrarModalControl');
+            var btnCerrar2= document.getElementById('cerrarModalControl2');
+
+            function abrir() {
+                overlay.classList.add('open');
+                var primer = overlay.querySelector('select,input');
+                if (primer) primer.focus();
+            }
+            function cerrar() { overlay.classList.remove('open'); }
+
+            if (btnAbrir)   btnAbrir.addEventListener('click', abrir);
+            if (btnCerrar)  btnCerrar.addEventListener('click', cerrar);
+            if (btnCerrar2) btnCerrar2.addEventListener('click', cerrar);
+            overlay.addEventListener('click', function(e){ if (e.target === overlay) cerrar(); });
+            document.addEventListener('keydown', function(e){ if (e.key === 'Escape') cerrar(); });
+
+            <?php if (usuarioLogueado() && empty($controlesCalidad) && !empty($inspectoresQC) && isset($_GET['login']) && $_GET['login'] === 'ok'): ?>
+            abrir();
+            <?php endif; ?>
+        })();
+    </script>
+    <?php endif; ?>
 </body>
 </html>

@@ -146,6 +146,7 @@
         </a>
         <ul class="treeview-menu">
           <li><a href="registroRecepcion.php">Recepcion<i class="ti-more"></i></a></li>
+          <li><a href="controlesCalidad.php">Controles<i class="ti-more"></i></a></li>
           <li><a href="index.php">Proceso<i class="ti-more"></i></a></li>
           <li><a href="index.php">Despacho<i class="ti-more"></i></a></li>
           <li><a href="index.php">Destino<i class="ti-more"></i></a></li>
