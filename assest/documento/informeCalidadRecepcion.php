@@ -19,6 +19,14 @@ function pdfPorc($gramos, $muestra, $dec = 2) {
     if ($m <= 0) return '0,00 %';
     return number_format(((float) $gramos / $m) * 100, $dec, ',', '.') . ' %';
 }
+function pdfColorResolucion($resultado) {
+    switch (strtoupper((string) $resultado)) {
+        case 'APROBADO': return '#2e7d32';
+        case 'OBJETADO': return '#f9a825';
+        case 'RECHAZADO': return '#c62828';
+        default: return '#607d8b';
+    }
+}
 
 date_default_timezone_set('America/Santiago');
 $fechaDoc = date('d/m/Y');
@@ -105,7 +113,7 @@ foreach ($detParams as $d) {
 /* ── constantes de estilo ─────────────────────────────────── */
 $COL1   = '#393764'; // azul oscuro
 $COL2   = '#555580'; // azul medio
-$COLFIL = '#2e7d32'; // verde resolucion
+$COLFIL = pdfColorResolucion($c['RESULTADO_GENERAL']); // color resolucion
 
 $S_TH1 = "background:{$COL1};color:#fff;padding:4px 6px;text-align:left;font-size:10px;font-weight:bold;";
 $S_TH2 = "background:{$COL2};color:#fff;padding:3px 5px;text-align:left;font-size:9px;font-weight:bold;";
@@ -276,10 +284,11 @@ $html = '<!DOCTYPE html>
       <td style="vertical-align:top;padding:0;">
         <table style="width:100%;border-collapse:collapse;">
           <tr>
-            <td colspan="2" style="background:#2e7d32;color:#fff;font-weight:bold;font-size:14px;padding:7px 6px;text-align:center;border-bottom:2px solid #fff;">
+            <td colspan="2" style="background:' . $COLFIL . ';color:#fff;font-weight:bold;font-size:14px;padding:7px 6px;text-align:center;border-bottom:2px solid #fff;">
               ' . pdfT($c['RESULTADO_GENERAL']) . '
             </td>
           </tr>
+          ' . filaKV('Score',              pdfN($c['SCORE_GENERAL'] ?? '', 0)) . '
           ' . filaKV('% Est. Exportacion', pdfN($c['PORC_ESTIMADO_EXPORTACION'], 2) . ' %') . '
           ' . filaKV('% Def. Condicion',   pdfN($c['PORC_DEFECTO_CONDICION'],    2) . ' %') . '
           ' . filaKV('% Def. Calidad',     pdfN($c['PORC_DEFECTO_CALIDAD'],      2) . ' %') . '

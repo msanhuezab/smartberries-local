@@ -100,35 +100,22 @@ if (isset($_POST["GUARDARCONTROL"])) {
         $nombres = $_POST["NOMBRE_PARAMETRO"] ?? array();
         $grupos = $_POST["GRUPO_PARAMETRO"] ?? array();
 
-        $totalDefectoCondicion = 0;
-        $totalDefectoCalidad = 0;
-        $valorFirme = 0;
+        $valoresScore = array();
 
         foreach ($valores as $idParametro => $valorIngresado) {
             $valor = controlesNumero($valorIngresado);
             $grupo = $grupos[$idParametro] ?? "";
             $nombre = $nombres[$idParametro] ?? "";
-            if ($grupo === "DEFECTOS_CONDICION") {
-                $totalDefectoCondicion += $valor;
-            }
-            if ($grupo === "DEFECTOS_CALIDAD") {
-                $totalDefectoCalidad += $valor;
-            }
-            if ($grupo === "PRESIONES" && controlesEsFirme($nombre)) {
-                $valorFirme += $valor;
-            }
+            $valoresScore[] = array("grupo" => $grupo, "nombre" => $nombre, "valor" => $valor);
         }
 
-        $porcDefectoCondicion = controlesPorcentaje($totalDefectoCondicion, $muestra);
-        $porcDefectoCalidad = controlesPorcentaje($totalDefectoCalidad, $muestra);
-        $porcFirmeza = controlesPorcentaje($valorFirme, $muestra);
-        $porcEstimadoExportacion = round(100 - $porcDefectoCondicion, 4);
-        if ($porcEstimadoExportacion < 0) {
-            $porcEstimadoExportacion = 0;
-        }
-
-        $ARRAYRESOLUCION = $CALIDADCONTROL_ADO->resolverResultado($EMPRESAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $porcEstimadoExportacion);
-        $resultadoGeneral = $ARRAYRESOLUCION ? $ARRAYRESOLUCION[0]["RESULTADO"] : "SIN_REGLA";
+        $CALCULO_SCORE = $CALIDADCONTROL_ADO->calcularResolucionScore($valoresScore, $muestra);
+        $porcDefectoCondicion = $CALCULO_SCORE["PORC_DEFECTO_CONDICION"];
+        $porcDefectoCalidad = $CALCULO_SCORE["PORC_DEFECTO_CALIDAD"];
+        $porcFirmeza = $CALCULO_SCORE["PORC_FIRMEZA"];
+        $porcEstimadoExportacion = $CALCULO_SCORE["PORC_ESTIMADO_EXPORTACION"];
+        $scoreGeneral = $CALCULO_SCORE["SCORE_GENERAL"];
+        $resultadoGeneral = $CALCULO_SCORE["RESULTADO_GENERAL"];
 
         $numeroOperacion = "";
         foreach ($ARRAYRECEPCIONES as $recepcion) {
@@ -159,6 +146,7 @@ if (isset($_POST["GUARDARCONTROL"])) {
         $CONTROL->__SET("PORC_DEFECTO_CALIDAD", $porcDefectoCalidad);
         $CONTROL->__SET("PORC_FIRMEZA", $porcFirmeza);
         $CONTROL->__SET("PORC_ESTIMADO_EXPORTACION", $porcEstimadoExportacion);
+        $CONTROL->__SET("SCORE_GENERAL", $scoreGeneral);
         $CONTROL->__SET("OBSERVACION", $_POST["OBSERVACION"]);
 
         if ($IDCONTROL_EDITAR !== "") {
@@ -187,7 +175,7 @@ if (isset($_POST["GUARDARCONTROL"])) {
             $CALIDADCONTROL_ADO->agregarDetalle($DETALLE);
         }
 
-        $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Estimado exportacion: " . $porcEstimadoExportacion . "% - " . $resultadoGeneral;
+        $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Score: " . $scoreGeneral . " - " . $resultadoGeneral;
         $TIPOMENSAJE = "success";
         $ARRAYCONTROLES = $CALIDADCONTROL_ADO->listarControlRecepcionCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $_POST["ID_RECEPCION"]);
         $ARRAYDETALLESCONTROL = controlesDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
@@ -391,6 +379,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                                 <th>Folios</th>
                                                 <th>Inspector</th>
                                                 <th class="text-center">Resolucion</th>
+                                                <th class="text-center">Score</th>
                                                 <th class="text-right">% Condicion</th>
                                                 <th class="text-right">% Calidad</th>
                                                 <th class="text-right">% Firmeza</th>
@@ -412,7 +401,12 @@ foreach ($ARRAYCONTROLES as $control) {
                                                     <td><?php echo controlesTexto($control["MODO_INGRESO"]); ?></td>
                                                     <td><?php echo controlesTexto($control["MODO_INGRESO"] === "AGRUPADO" ? "Recepcion completa" : $control["FOLIOS"]); ?></td>
                                                     <td><?php echo controlesTexto($control["NOMBRE_INSPECTOR"]); ?></td>
-                                                    <td class="text-center"><strong><?php echo controlesTexto($control["RESULTADO_GENERAL"]); ?></strong></td>
+                                                    <td class="text-center">
+                                                        <span class="badge" style="background: <?php echo controlesTexto($CALIDADCONTROL_ADO->colorResolucion($control["RESULTADO_GENERAL"])); ?>; color: #fff;">
+                                                            <?php echo controlesTexto($control["RESULTADO_GENERAL"]); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center"><?php echo controlesTexto($control["SCORE_GENERAL"] ?? ""); ?></td>
                                                     <td class="text-right"><?php echo controlesTexto($control["PORC_DEFECTO_CONDICION"]); ?></td>
                                                     <td class="text-right"><?php echo controlesTexto($control["PORC_DEFECTO_CALIDAD"]); ?></td>
                                                     <td class="text-right"><?php echo controlesTexto($control["PORC_FIRMEZA"]); ?></td>
@@ -432,6 +426,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                                                 data-target="#modalCerrarControl"
                                                                 data-id="<?php echo controlesTexto($control["ID_CALIDAD_CONTROL"]); ?>"
                                                                 data-resolucion="<?php echo controlesTexto($control["RESULTADO_GENERAL"]); ?>"
+                                                                data-score="<?php echo controlesTexto($control["SCORE_GENERAL"] ?? ""); ?>"
                                                                 data-exportacion="<?php echo controlesTexto($control["PORC_ESTIMADO_EXPORTACION"]); ?>">
                                                                 <i class="fa fa-check"></i> Cerrar
                                                             </button>
@@ -451,7 +446,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                             <?php } ?>
                                             <?php if (empty($ARRAYCONTROLES)) { ?>
                                                 <tr>
-                                                    <td colspan="11" class="text-center text-muted">No hay controles ingresados para esta recepcion.</td>
+                                                    <td colspan="12" class="text-center text-muted">No hay controles ingresados para esta recepcion.</td>
                                                 </tr>
                                             <?php } ?>
                                         </tbody>
@@ -547,7 +542,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                         </div>
                                         <div class="modal-body">
                                             <div class="alert alert-success">
-                                                Resolucion: <strong id="cerrarResolucion"></strong> / Exportacion: <strong id="cerrarExportacion"></strong>%
+                                                Resolucion: <strong id="cerrarResolucion"></strong> / Score: <strong id="cerrarScore"></strong> / Exportacion: <strong id="cerrarExportacion"></strong>%
                                             </div>
                                             <div class="form-group">
                                                 <label>Observacion cierre</label>
@@ -624,6 +619,7 @@ foreach ($ARRAYCONTROLES as $control) {
                 var modal = $(this);
                 modal.find('#cerrarIdControl').val(button.data('id') || '');
                 modal.find('#cerrarResolucion').text(button.data('resolucion') || '');
+                modal.find('#cerrarScore').text(button.data('score') || '');
                 modal.find('#cerrarExportacion').text(button.data('exportacion') || '');
             });
 

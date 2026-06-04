@@ -127,35 +127,22 @@ if (isset($_POST["GUARDARCONTROL"])) {
     $nombres = $_POST["NOMBRE_PARAMETRO"] ?? array();
     $grupos = $_POST["GRUPO_PARAMETRO"] ?? array();
 
-    $totalDefectoCondicion = 0;
-    $totalDefectoCalidad = 0;
-    $valorFirme = 0;
+    $valoresScore = array();
 
     foreach ($valores as $idParametro => $valorIngresado) {
         $valor = recepcionNumero($valorIngresado);
         $grupo = $grupos[$idParametro] ?? "";
         $nombre = $nombres[$idParametro] ?? "";
-        if ($grupo === "DEFECTOS_CONDICION") {
-            $totalDefectoCondicion += $valor;
-        }
-        if ($grupo === "DEFECTOS_CALIDAD") {
-            $totalDefectoCalidad += $valor;
-        }
-        if ($grupo === "PRESIONES" && recepcionEsFirme($nombre)) {
-            $valorFirme += $valor;
-        }
+        $valoresScore[] = array("grupo" => $grupo, "nombre" => $nombre, "valor" => $valor);
     }
 
-    $porcDefectoCondicion = recepcionPorcentaje($totalDefectoCondicion, $muestra);
-    $porcDefectoCalidad = recepcionPorcentaje($totalDefectoCalidad, $muestra);
-    $porcFirmeza = recepcionPorcentaje($valorFirme, $muestra);
-    $porcEstimadoExportacion = round(100 - $porcDefectoCondicion, 4);
-    if ($porcEstimadoExportacion < 0) {
-        $porcEstimadoExportacion = 0;
-    }
-
-    $ARRAYRESOLUCION = $CALIDADCONTROL_ADO->resolverResultado($EMPRESAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $porcEstimadoExportacion);
-    $resultadoGeneral = $ARRAYRESOLUCION ? $ARRAYRESOLUCION[0]["RESULTADO"] : "SIN_REGLA";
+    $CALCULO_SCORE = $CALIDADCONTROL_ADO->calcularResolucionScore($valoresScore, $muestra);
+    $porcDefectoCondicion = $CALCULO_SCORE["PORC_DEFECTO_CONDICION"];
+    $porcDefectoCalidad = $CALCULO_SCORE["PORC_DEFECTO_CALIDAD"];
+    $porcFirmeza = $CALCULO_SCORE["PORC_FIRMEZA"];
+    $porcEstimadoExportacion = $CALCULO_SCORE["PORC_ESTIMADO_EXPORTACION"];
+    $scoreGeneral = $CALCULO_SCORE["SCORE_GENERAL"];
+    $resultadoGeneral = $CALCULO_SCORE["RESULTADO_GENERAL"];
 
     $numeroOperacion = "";
     foreach ($ARRAYRECEPCIONES as $recepcion) {
@@ -186,6 +173,7 @@ if (isset($_POST["GUARDARCONTROL"])) {
     $CONTROL->__SET("PORC_DEFECTO_CALIDAD", $porcDefectoCalidad);
     $CONTROL->__SET("PORC_FIRMEZA", $porcFirmeza);
     $CONTROL->__SET("PORC_ESTIMADO_EXPORTACION", $porcEstimadoExportacion);
+    $CONTROL->__SET("SCORE_GENERAL", $scoreGeneral);
     $CONTROL->__SET("OBSERVACION", $_POST["OBSERVACION"]);
     if ($IDCONTROL_EDITAR !== "") {
         $CONTROL->__SET("ID_CALIDAD_CONTROL", $IDCONTROL_EDITAR);
@@ -229,7 +217,7 @@ if (isset($_POST["GUARDARCONTROL"])) {
         }
     }
 
-    $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Estimado exportacion: " . $porcEstimadoExportacion . "% - " . $resultadoGeneral;
+    $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Score: " . $scoreGeneral . " - " . $resultadoGeneral;
     $TIPOMENSAJE = "success";
     $ARRAYCONTROLES = $CALIDADCONTROL_ADO->listarControlRecepcionCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $_POST["ID_RECEPCION"]);
     $ARRAYDETALLESCONTROL = recepcionDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);

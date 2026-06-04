@@ -22,6 +22,7 @@ class CALIDADCONTROL {
     private $PORC_DEFECTO_CALIDAD;
     private $PORC_FIRMEZA;
     private $PORC_ESTIMADO_EXPORTACION;
+    private $SCORE_GENERAL;
     private $OBSERVACION;
     private $FECHA_CIERRE;
     private $HORA_CIERRE;

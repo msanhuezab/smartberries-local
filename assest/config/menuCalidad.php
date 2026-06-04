@@ -96,17 +96,44 @@
   </nav>
 </header>
 
+<?php
+$calidadPaginaActual = basename($_SERVER["PHP_SELF"] ?? "");
+$calidadGrupoActual = $_GET["GRUPO_REPORTE"] ?? ($_POST["GRUPO_REPORTE"] ?? "");
+$calidadEtapaActual = strtoupper($_GET["ETAPA"] ?? ($_POST["ETAPA"] ?? ""));
+$calidadEstadoRevision = strtoupper($_GET["ESTADO"] ?? ($_POST["ESTADO"] ?? ""));
+
+$calidadEsDashboard = $calidadPaginaActual === "index.php";
+$calidadEsRevision = $calidadPaginaActual === "revisionCalidad.php" && $calidadEstadoRevision === "";
+$calidadEsReporte = $calidadPaginaActual === "revisionCalidad.php" && $calidadEstadoRevision !== "";
+$calidadEsDefecto = $calidadPaginaActual === "registroParametro.php" && in_array($calidadGrupoActual, array("DEFECTOS_CALIDAD", "DEFECTOS_CONDICION"), true);
+$calidadEsParametro = $calidadPaginaActual === "registroParametro.php" && in_array($calidadGrupoActual, array("CALIBRES", "PRESIONES", "PARAMETROS"), true);
+$calidadEsConfiguracion = $calidadEsDefecto || $calidadEsParametro || in_array($calidadPaginaActual, array("registroReglaResolucion.php", "registroInspector.php"), true);
+$calidadEsRegistro = in_array($calidadPaginaActual, array("registroRecepcion.php", "registroOperacion.php", "controlesCalidad.php"), true);
+
+function calidadMenuClase($activo) {
+  return $activo ? ' class="active"' : '';
+}
+
+function calidadTreeClase($activo) {
+  return $activo ? ' class="treeview active menu-open"' : ' class="treeview"';
+}
+
+function calidadTreeStyle($activo) {
+  return $activo ? ' style="display: block;"' : '';
+}
+?>
+
 <aside class="main-sidebar">
   <section class="sidebar">
     <ul class="sidebar-menu" data-widget="tree">
-      <li>
+      <li<?php echo $calidadEsDashboard ? ' class="active"' : ''; ?>>
         <a href="index.php">
           <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/dashboard.svg" class="svg-icon" alt="">
           <span>Inicio</span>
         </a>
       </li>
       <li class="header">Modulo</li>
-      <li class="treeview">
+      <li<?php echo calidadTreeClase($calidadEsDashboard || $calidadEsRevision); ?>>
         <a href="#">
           <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/reports.svg" class="svg-icon" alt="">
           <span>Calidad</span>
@@ -114,11 +141,12 @@
             <i class="fa fa-angle-right pull-right"></i>
           </span>
         </a>
-        <ul class="treeview-menu">
-          <li><a href="index.php">Resumen<i class="ti-more"></i></a></li>
+        <ul class="treeview-menu"<?php echo calidadTreeStyle($calidadEsDashboard || $calidadEsRevision); ?>>
+          <li<?php echo calidadMenuClase($calidadEsDashboard); ?>><a href="index.php">Dashboard<i class="ti-more"></i></a></li>
+          <li<?php echo calidadMenuClase($calidadEsRevision); ?>><a href="revisionCalidad.php">Revision pendientes<i class="ti-more"></i></a></li>
         </ul>
       </li>
-      <li class="treeview">
+      <li<?php echo calidadTreeClase($calidadEsConfiguracion); ?>>
         <a href="#">
           <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/apps.svg" class="svg-icon" alt="">
           <span>Configuracion</span>
@@ -126,17 +154,31 @@
             <i class="fa fa-angle-right pull-right"></i>
           </span>
         </a>
-        <ul class="treeview-menu">
-          <li><a href="registroParametro.php?GRUPO_REPORTE=DEFECTOS_CALIDAD">Items Calidad<i class="ti-more"></i></a></li>
-          <li><a href="registroParametro.php?GRUPO_REPORTE=DEFECTOS_CONDICION">Items Condicion<i class="ti-more"></i></a></li>
-          <li><a href="registroParametro.php?GRUPO_REPORTE=CALIBRES">Calibres<i class="ti-more"></i></a></li>
-          <li><a href="registroParametro.php?GRUPO_REPORTE=PRESIONES">Presiones<i class="ti-more"></i></a></li>
-          <li><a href="registroParametro.php?GRUPO_REPORTE=PARAMETROS">Parametros Generales<i class="ti-more"></i></a></li>
-          <li><a href="registroReglaResolucion.php">Reglas Resolucion<i class="ti-more"></i></a></li>
-          <li><a href="registroInspector.php">Inspectores<i class="ti-more"></i></a></li>
+        <ul class="treeview-menu"<?php echo calidadTreeStyle($calidadEsConfiguracion); ?>>
+          <li<?php echo calidadTreeClase($calidadEsDefecto); ?>>
+            <a href="#">Defectos
+              <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+            </a>
+            <ul class="treeview-menu"<?php echo calidadTreeStyle($calidadEsDefecto); ?>>
+              <li<?php echo calidadMenuClase($calidadGrupoActual === "DEFECTOS_CALIDAD"); ?>><a href="registroParametro.php?GRUPO_REPORTE=DEFECTOS_CALIDAD">Calidad<i class="ti-more"></i></a></li>
+              <li<?php echo calidadMenuClase($calidadGrupoActual === "DEFECTOS_CONDICION"); ?>><a href="registroParametro.php?GRUPO_REPORTE=DEFECTOS_CONDICION">Condicion<i class="ti-more"></i></a></li>
+            </ul>
+          </li>
+          <li<?php echo calidadTreeClase($calidadEsParametro); ?>>
+            <a href="#">Parametros
+              <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+            </a>
+            <ul class="treeview-menu"<?php echo calidadTreeStyle($calidadEsParametro); ?>>
+              <li<?php echo calidadMenuClase($calidadGrupoActual === "CALIBRES"); ?>><a href="registroParametro.php?GRUPO_REPORTE=CALIBRES">Calibres<i class="ti-more"></i></a></li>
+              <li<?php echo calidadMenuClase($calidadGrupoActual === "PRESIONES"); ?>><a href="registroParametro.php?GRUPO_REPORTE=PRESIONES">Presiones<i class="ti-more"></i></a></li>
+              <li<?php echo calidadMenuClase($calidadGrupoActual === "PARAMETROS"); ?>><a href="registroParametro.php?GRUPO_REPORTE=PARAMETROS">Generales<i class="ti-more"></i></a></li>
+            </ul>
+          </li>
+          <li<?php echo calidadMenuClase($calidadPaginaActual === "registroReglaResolucion.php"); ?>><a href="registroReglaResolucion.php">Resolucion<i class="ti-more"></i></a></li>
+          <li<?php echo calidadMenuClase($calidadPaginaActual === "registroInspector.php"); ?>><a href="registroInspector.php">Inspectores<i class="ti-more"></i></a></li>
         </ul>
       </li>
-      <li class="treeview">
+      <li<?php echo calidadTreeClase($calidadEsRegistro); ?>>
         <a href="#">
           <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/layout.svg" class="svg-icon" alt="">
           <span>Registro</span>
@@ -144,15 +186,14 @@
             <i class="fa fa-angle-right pull-right"></i>
           </span>
         </a>
-        <ul class="treeview-menu">
-          <li><a href="registroRecepcion.php">Recepcion<i class="ti-more"></i></a></li>
-          <li><a href="controlesCalidad.php">Controles<i class="ti-more"></i></a></li>
-          <li><a href="index.php">Proceso<i class="ti-more"></i></a></li>
-          <li><a href="index.php">Despacho<i class="ti-more"></i></a></li>
-          <li><a href="index.php">Destino<i class="ti-more"></i></a></li>
+        <ul class="treeview-menu"<?php echo calidadTreeStyle($calidadEsRegistro); ?>>
+          <li<?php echo calidadMenuClase($calidadPaginaActual === "registroRecepcion.php"); ?>><a href="registroRecepcion.php">Recepcion<i class="ti-more"></i></a></li>
+          <li<?php echo calidadMenuClase($calidadPaginaActual === "registroOperacion.php" && $calidadEtapaActual === "PROCESO"); ?>><a href="registroOperacion.php?ETAPA=PROCESO">Proceso<i class="ti-more"></i></a></li>
+          <li<?php echo calidadMenuClase($calidadPaginaActual === "registroOperacion.php" && $calidadEtapaActual === "EXPORTACION"); ?>><a href="registroOperacion.php?ETAPA=EXPORTACION">Exportacion<i class="ti-more"></i></a></li>
+          <li<?php echo calidadMenuClase($calidadPaginaActual === "controlesCalidad.php"); ?>><a href="controlesCalidad.php">Cerrar / PDF recepcion<i class="ti-more"></i></a></li>
         </ul>
       </li>
-      <li class="treeview">
+      <li<?php echo calidadTreeClase($calidadEsReporte); ?>>
         <a href="#">
           <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/charts.svg" class="svg-icon" alt="">
           <span>Reportes</span>
@@ -160,10 +201,10 @@
             <i class="fa fa-angle-right pull-right"></i>
           </span>
         </a>
-        <ul class="treeview-menu">
-          <li><a href="index.php">Por Folio<i class="ti-more"></i></a></li>
-          <li><a href="index.php">Por Operacion<i class="ti-more"></i></a></li>
-          <li><a href="index.php">Por Etapa<i class="ti-more"></i></a></li>
+        <ul class="treeview-menu"<?php echo calidadTreeStyle($calidadEsReporte); ?>>
+          <li<?php echo calidadMenuClase($calidadEstadoRevision === "SIN_CONTROL"); ?>><a href="revisionCalidad.php?ESTADO=SIN_CONTROL">Pendientes<i class="ti-more"></i></a></li>
+          <li<?php echo calidadMenuClase($calidadEstadoRevision === "ABIERTO"); ?>><a href="revisionCalidad.php?ESTADO=ABIERTO">Abiertos<i class="ti-more"></i></a></li>
+          <li<?php echo calidadMenuClase($calidadEstadoRevision === "CERRADO"); ?>><a href="revisionCalidad.php?ESTADO=CERRADO">Cerrados<i class="ti-more"></i></a></li>
         </ul>
       </li>
     </ul>
