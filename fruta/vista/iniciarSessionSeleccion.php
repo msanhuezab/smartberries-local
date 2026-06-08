@@ -3,6 +3,13 @@ require_once '../../api/vendor/autoload.php';
 $detect = new Mobile_Detect;
 
 session_start();
+function destinoPostLoginInterno() {
+    if (($_SESSION["MODULO_POST_LOGIN"] ?? "") === "calidad") {
+        return "../../calidad/vista/index.php";
+    }
+    return "index.php";
+}
+
 include_once '../../assest/controlador/USUARIO_ADO.php';
 $USUARIO_ADO = new USUARIO_ADO();
 if (isset($_SESSION["ID_USUARIO"]) && !$USUARIO_ADO->usuarioActivo($_SESSION["ID_USUARIO"])) {
@@ -12,7 +19,9 @@ if (isset($_SESSION["ID_USUARIO"]) && !$USUARIO_ADO->usuarioActivo($_SESSION["ID
 }
 if (isset($_SESSION["ID_USUARIO"], $_SESSION["NOMBRE_USUARIO"], $_SESSION["ID_EMPRESA"], $_SESSION["ID_PLANTA"], $_SESSION["ID_TEMPORADA"])) {
     if ($_SESSION["ID_EMPRESA"] && $_SESSION["ID_PLANTA"] && $_SESSION["ID_TEMPORADA"]) {
-        header('Location: index.php');
+        $destinoPostLogin = destinoPostLoginInterno();
+        unset($_SESSION["MODULO_POST_LOGIN"]);
+        header('Location: ' . $destinoPostLogin);
         exit;
     }
 }
@@ -189,6 +198,8 @@ if (isset($_POST['ENTRAR'])) {
 
     // Regenerar ID de sesión para mayor seguridad
     session_regenerate_id(true);
+    $destinoPostLogin = destinoPostLoginInterno();
+    unset($_SESSION["MODULO_POST_LOGIN"]);
 
     echo '<script>
       Swal.fire({
@@ -197,7 +208,7 @@ if (isset($_POST['ENTRAR'])) {
         text:"Parámetros seleccionados correctamente",
         timer:2000,
         showConfirmButton:false
-      }).then(()=>{location.href="index.php";});
+      }).then(()=>{location.href="' . $destinoPostLogin . '";});
     </script>';
 }
 ?>

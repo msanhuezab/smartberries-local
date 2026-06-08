@@ -109,12 +109,22 @@ if (isset($_POST["GUARDARCONTROL"])) {
             $valoresScore[] = array("grupo" => $grupo, "nombre" => $nombre, "valor" => $valor);
         }
 
-        $CALCULO_SCORE = $CALIDADCONTROL_ADO->calcularResolucionScore($valoresScore, $muestra);
+        $CALCULO_SCORE = $CALIDADCONTROL_ADO->calcularResolucionScore(
+            $valoresScore,
+            $muestra,
+            $EMPRESAS,
+            $TEMPORADAS,
+            $_POST["ID_ESPECIES"],
+            $_POST["ID_RECEPCION"],
+            $_POST["MODO_INGRESO"],
+            $_POST["ID_FOLIO"] ?? null
+        );
         $porcDefectoCondicion = $CALCULO_SCORE["PORC_DEFECTO_CONDICION"];
         $porcDefectoCalidad = $CALCULO_SCORE["PORC_DEFECTO_CALIDAD"];
         $porcFirmeza = $CALCULO_SCORE["PORC_FIRMEZA"];
         $porcEstimadoExportacion = $CALCULO_SCORE["PORC_ESTIMADO_EXPORTACION"];
         $scoreGeneral = $CALCULO_SCORE["SCORE_GENERAL"];
+        $grupoScore = $CALCULO_SCORE["GRUPO_SCORE"];
         $resultadoGeneral = $CALCULO_SCORE["RESULTADO_GENERAL"];
 
         $numeroOperacion = "";
@@ -147,6 +157,7 @@ if (isset($_POST["GUARDARCONTROL"])) {
         $CONTROL->__SET("PORC_FIRMEZA", $porcFirmeza);
         $CONTROL->__SET("PORC_ESTIMADO_EXPORTACION", $porcEstimadoExportacion);
         $CONTROL->__SET("SCORE_GENERAL", $scoreGeneral);
+        $CONTROL->__SET("GRUPO_SCORE", $grupoScore);
         $CONTROL->__SET("OBSERVACION", $_POST["OBSERVACION"]);
 
         if ($IDCONTROL_EDITAR !== "") {
@@ -175,7 +186,7 @@ if (isset($_POST["GUARDARCONTROL"])) {
             $CALIDADCONTROL_ADO->agregarDetalle($DETALLE);
         }
 
-        $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Score: " . $scoreGeneral . " - " . $resultadoGeneral;
+        $MENSAJE = ($IDCONTROL_EDITAR !== "" ? "Control actualizado. " : "Control guardado. ") . "Score: " . $scoreGeneral . " (" . $grupoScore . ") - " . $resultadoGeneral;
         $TIPOMENSAJE = "success";
         $ARRAYCONTROLES = $CALIDADCONTROL_ADO->listarControlRecepcionCalidad($EMPRESAS, $PLANTAS, $TEMPORADAS, $_POST["ID_ESPECIES"], $_POST["ID_RECEPCION"]);
         $ARRAYDETALLESCONTROL = controlesDetalleControles($CALIDADCONTROL_ADO, $ARRAYCONTROLES);
@@ -277,6 +288,29 @@ foreach ($ARRAYCONTROLES as $control) {
         }
         .calidad-campo .select2-selection {
             min-height: 38px;
+        }
+        .calidad-input-porcentaje {
+            align-items: stretch;
+            display: flex;
+            gap: 6px;
+        }
+        .calidad-input-porcentaje .form-control {
+            min-width: 0;
+        }
+        .calidad-porcentaje {
+            align-items: center;
+            background: #eef3f8;
+            border: 1px solid #d9e2ec;
+            border-radius: 4px;
+            color: #17324d;
+            display: flex;
+            flex: 0 0 70px;
+            font-size: 12px;
+            font-weight: 700;
+            justify-content: center;
+            min-height: 38px;
+            padding: 0 8px;
+            white-space: nowrap;
         }
         @media (max-width: 991px) {
             .calidad-matriz,
@@ -380,6 +414,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                                 <th>Inspector</th>
                                                 <th class="text-center">Resolucion</th>
                                                 <th class="text-center">Score</th>
+                                                <th class="text-center">Grupo</th>
                                                 <th class="text-right">% Condicion</th>
                                                 <th class="text-right">% Calidad</th>
                                                 <th class="text-right">% Firmeza</th>
@@ -407,6 +442,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                                         </span>
                                                     </td>
                                                     <td class="text-center"><?php echo controlesTexto($control["SCORE_GENERAL"] ?? ""); ?></td>
+                                                    <td class="text-center"><?php echo controlesTexto($control["GRUPO_SCORE"] ?? ""); ?></td>
                                                     <td class="text-right"><?php echo controlesTexto($control["PORC_DEFECTO_CONDICION"]); ?></td>
                                                     <td class="text-right"><?php echo controlesTexto($control["PORC_DEFECTO_CALIDAD"]); ?></td>
                                                     <td class="text-right"><?php echo controlesTexto($control["PORC_FIRMEZA"]); ?></td>
@@ -446,7 +482,7 @@ foreach ($ARRAYCONTROLES as $control) {
                                             <?php } ?>
                                             <?php if (empty($ARRAYCONTROLES)) { ?>
                                                 <tr>
-                                                    <td colspan="12" class="text-center text-muted">No hay controles ingresados para esta recepcion.</td>
+                                                    <td colspan="13" class="text-center text-muted">No hay controles ingresados para esta recepcion.</td>
                                                 </tr>
                                             <?php } ?>
                                         </tbody>
@@ -506,7 +542,13 @@ foreach ($ARRAYCONTROLES as $control) {
                                                             <?php foreach ($PARAMETROS_GRUPO[$codigoGrupo] as $parametro) { ?>
                                                                 <div class="calidad-campo">
                                                                     <label><?php echo controlesTexto($parametro["NOMBRE_PARAMETRO"]); ?></label>
-                                                                    <input type="number" step="0.01" class="form-control" name="VALOR_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" <?php echo ((int) $parametro["ES_REQUERIDO"] === 1) ? "required" : ""; ?>>
+                                                                    <?php $mostrarPorcentaje = $codigoGrupo !== "PARAMETROS"; ?>
+                                                                    <div class="<?php echo $mostrarPorcentaje ? "calidad-input-porcentaje" : ""; ?>">
+                                                                        <input type="number" step="0.01" class="form-control valor-parametro-calidad" data-calcula-porcentaje="<?php echo $mostrarPorcentaje ? "1" : "0"; ?>" name="VALOR_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" <?php echo ((int) $parametro["ES_REQUERIDO"] === 1) ? "required" : ""; ?>>
+                                                                        <?php if ($mostrarPorcentaje) { ?>
+                                                                            <span class="calidad-porcentaje">0,00%</span>
+                                                                        <?php } ?>
+                                                                    </div>
                                                                     <input type="hidden" name="NOMBRE_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" value="<?php echo controlesTexto($parametro["NOMBRE_PARAMETRO"]); ?>">
                                                                     <input type="hidden" name="GRUPO_PARAMETRO[<?php echo $parametro["ID_CALIDAD_PARAMETRO"]; ?>]" value="<?php echo controlesTexto($codigoGrupo); ?>">
                                                                 </div>
@@ -584,6 +626,33 @@ foreach ($ARRAYCONTROLES as $control) {
                 });
             }
 
+            function numeroCalidad(valor) {
+                valor = (valor || '').toString().replace(',', '.');
+                var numero = parseFloat(valor);
+                return isNaN(numero) ? 0 : numero;
+            }
+
+            function formatoPorcentajeCalidad(valor) {
+                return valor.toLocaleString('es-CL', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }) + '%';
+            }
+
+            function actualizarPorcentajesCalidad(modal) {
+                var muestra = numeroCalidad(modal.find('input[name="MUESTRA_GRAMOS"]').val());
+                modal.find('.valor-parametro-calidad[data-calcula-porcentaje="1"]').each(function() {
+                    var input = $(this);
+                    var gramos = numeroCalidad(input.val());
+                    var porcentaje = muestra > 0 ? (gramos / muestra) * 100 : 0;
+                    input.closest('.calidad-input-porcentaje').find('.calidad-porcentaje').text(formatoPorcentajeCalidad(porcentaje));
+                });
+            }
+
+            $('#modalControlCalidad').on('input change', 'input[name="MUESTRA_GRAMOS"], .valor-parametro-calidad', function() {
+                actualizarPorcentajesCalidad($('#modalControlCalidad'));
+            });
+
             $('#modalControlCalidad').on('show.bs.modal', function(event) {
                 var button = $(event.relatedTarget);
                 var modal = $(this);
@@ -595,6 +664,7 @@ foreach ($ARRAYCONTROLES as $control) {
                 modal.find('#modalModoIngreso').val('AGRUPADO');
                 modal.find('input[name^="VALOR_PARAMETRO"]').val('');
                 modal.find('.select2-modal').val('').trigger('change');
+                actualizarPorcentajesCalidad(modal);
 
                 if (idControl !== '' && controlesCalidadEdicion[idControl]) {
                     var control = controlesCalidadEdicion[idControl];
@@ -609,6 +679,7 @@ foreach ($ARRAYCONTROLES as $control) {
                     $.each(control.detalles || {}, function(idParametro, valor) {
                         modal.find('input[name="VALOR_PARAMETRO[' + idParametro + ']"]').val(valor);
                     });
+                    actualizarPorcentajesCalidad(modal);
                     modal.find('#modalControlCalidadLabel').text('Editar control calidad');
                     modal.find('#modalBotonGuardarControl').html('<i class="fa fa-save"></i> Actualizar Control');
                 }

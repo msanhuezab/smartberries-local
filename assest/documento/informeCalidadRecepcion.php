@@ -289,6 +289,7 @@ $html = '<!DOCTYPE html>
             </td>
           </tr>
           ' . filaKV('Score',              pdfN($c['SCORE_GENERAL'] ?? '', 0)) . '
+          ' . filaKV('Grupo score',        $c['GRUPO_SCORE'] ?? '') . '
           ' . filaKV('% Est. Exportacion', pdfN($c['PORC_ESTIMADO_EXPORTACION'], 2) . ' %') . '
           ' . filaKV('% Def. Condicion',   pdfN($c['PORC_DEFECTO_CONDICION'],    2) . ' %') . '
           ' . filaKV('% Def. Calidad',     pdfN($c['PORC_DEFECTO_CALIDAD'],      2) . ' %') . '

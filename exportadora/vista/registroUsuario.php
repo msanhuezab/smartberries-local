@@ -1,6 +1,6 @@
 <?php
 
-include_once "../../assest/config/validarUsuarioExpo.php";
+include_once "../../assest/config/validarUsuarioConfiguracion.php";
 
 //LLAMADA ARCHIVOS NECESARIOS PARA LAS OPERACIONES
 include_once '../../assest/modelo/USUARIO.php';
@@ -339,7 +339,7 @@ if ($_POST) {
 
 <body class="hold-transition light-skin fixed sidebar-mini theme-primary" >
     <div class="wrapper">
-        <?php include_once "../../assest/config/menuExpo.php"; ?>
+        <?php include_once "../../assest/config/menuConfiguracion.php"; ?>
         <div class="content-wrapper">
             <div class="container-full">
 

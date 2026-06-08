@@ -1,6 +1,6 @@
 <?php
 
-include_once "../../assest/config/validarUsuarioExpo.php";
+include_once "../../assest/config/validarUsuarioConfiguracion.php";
 
 //LLAMADA ARCHIVOS NECESARIOS PARA LAS OPERACIONES
 include_once '../../assest/controlador/ESPECIES_ADO.php';
@@ -399,7 +399,7 @@ if (isset($_POST)) {
 <body class="hold-transition light-skin  sidebar-mini theme-primary" >
     <div class="wrapper">
         <!- LLAMADA AL MENU PRINCIPAL DE LA PAGINA-!>
-            <?php include_once "../../assest/config/menuExpo.php"; ?>
+            <?php include_once "../../assest/config/menuConfiguracion.php"; ?>
 
             <!-- Content Wrapper. Contains page content -->
             <div class="content-wrapper">

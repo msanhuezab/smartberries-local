@@ -118,9 +118,10 @@ class CALIDADCONTROL_ADO {
                         PORC_FIRMEZA,
                         PORC_ESTIMADO_EXPORTACION,
                         SCORE_GENERAL,
+                        GRUPO_SCORE,
                         OBSERVACION,
                         ESTADO_REGISTRO
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1);";
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1);";
 
             $this->conexion->prepare($query)->execute([
                 $CALIDADCONTROL->__GET('ETAPA'),
@@ -144,6 +145,7 @@ class CALIDADCONTROL_ADO {
                 $CALIDADCONTROL->__GET('PORC_FIRMEZA'),
                 $CALIDADCONTROL->__GET('PORC_ESTIMADO_EXPORTACION'),
                 $CALIDADCONTROL->__GET('SCORE_GENERAL'),
+                $CALIDADCONTROL->__GET('GRUPO_SCORE'),
                 $CALIDADCONTROL->__GET('OBSERVACION')
             ]);
 
@@ -209,6 +211,7 @@ class CALIDADCONTROL_ADO {
                         PORC_FIRMEZA = ?,
                         PORC_ESTIMADO_EXPORTACION = ?,
                         SCORE_GENERAL = ?,
+                        GRUPO_SCORE = ?,
                         OBSERVACION = ?
                     WHERE ID_CALIDAD_CONTROL = ?
                     AND ID_EMPRESA = ?
@@ -225,6 +228,7 @@ class CALIDADCONTROL_ADO {
                 $CALIDADCONTROL->__GET('PORC_FIRMEZA'),
                 $CALIDADCONTROL->__GET('PORC_ESTIMADO_EXPORTACION'),
                 $CALIDADCONTROL->__GET('SCORE_GENERAL'),
+                $CALIDADCONTROL->__GET('GRUPO_SCORE'),
                 $CALIDADCONTROL->__GET('OBSERVACION'),
                 $CALIDADCONTROL->__GET('ID_CALIDAD_CONTROL'),
                 $CALIDADCONTROL->__GET('ID_EMPRESA'),
@@ -497,9 +501,125 @@ class CALIDADCONTROL_ADO {
         return null;
     }
 
-    public function calcularResolucionScore($valores, $muestra)
+    private function gruposScoreRecepcion($EMPRESA, $TEMPORADA, $ESPECIES, $RECEPCION, $MODO, $FOLIO = null)
     {
-        $reglas = $this->reglasScoreEstandar();
+        try {
+            $datosVariedad = $this->conexion->prepare("SELECT DISTINCT E.ID_EXIMATERIAPRIMA, V.NOMBRE_VESPECIES
+                                                        FROM fruta_eximateriaprima E
+                                                        INNER JOIN fruta_vespecies V ON V.ID_VESPECIES = E.ID_VESPECIES
+                                                        WHERE E.ID_RECEPCION = ?
+                                                        AND V.ID_ESPECIES = ?
+                                                        AND E.ESTADO_REGISTRO = 1" . ($MODO === 'FOLIO' ? " AND E.ID_EXIMATERIAPRIMA = ?" : "") . ";");
+            $paramsVariedad = [$RECEPCION, $ESPECIES];
+            if ($MODO === 'FOLIO') {
+                $paramsVariedad[] = $FOLIO;
+            }
+            $datosVariedad->execute($paramsVariedad);
+            $variedades = $datosVariedad->fetchAll(PDO::FETCH_ASSOC);
+            $grupos = array();
+            $datosGrupo = $this->conexion->prepare("SELECT GRUPO_SCORE
+                                                    FROM fruta_calidad_score_grupo_variedad
+                                                    WHERE ID_EMPRESA = ?
+                                                    AND ID_TEMPORADA = ?
+                                                    AND ID_ESPECIES = ?
+                                                    AND NOMBRE_NORMALIZADO = ?
+                                                    AND ESTADO_REGISTRO = 1
+                                                    LIMIT 1;");
+            foreach ($variedades as $variedad) {
+                $datosGrupo->execute([$EMPRESA, $TEMPORADA, $ESPECIES, $this->normalizarParametroScore($variedad['NOMBRE_VESPECIES'])]);
+                $grupo = $datosGrupo->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($grupo)) {
+                    $grupos[$grupo[0]['GRUPO_SCORE']] = $grupo[0]['GRUPO_SCORE'];
+                }
+            }
+            return array_values($grupos);
+        } catch(Exception $e) {
+            die($e->getMessage());
+        }
+    }
+
+    private function reglasScoreDesdeBase($EMPRESA, $TEMPORADA, $ESPECIES, $GRUPO_SCORE)
+    {
+        try {
+            $datos = $this->conexion->prepare("SELECT *
+                                               FROM fruta_calidad_score_regla
+                                               WHERE ID_EMPRESA = ?
+                                               AND ID_TEMPORADA = ?
+                                               AND ID_ESPECIES = ?
+                                               AND GRUPO_SCORE = ?
+                                               AND ESTADO_REGISTRO = 1
+                                               ORDER BY NOMBRE_NORMALIZADO ASC, SCORE ASC;");
+            $datos->execute([$EMPRESA, $TEMPORADA, $ESPECIES, $GRUPO_SCORE]);
+            $rows = $datos->fetchAll(PDO::FETCH_ASSOC);
+            $reglas = array('calidad' => array(), 'condicion' => array(), 'otros' => array(), 'totales' => array());
+            foreach ($rows as $row) {
+                $tipo = 'otros';
+                if ($row['GRUPO_PARAMETRO'] === 'DEFECTOS_CONDICION') {
+                    $tipo = 'condicion';
+                } elseif ($row['GRUPO_PARAMETRO'] === 'DEFECTOS_CALIDAD') {
+                    $tipo = 'calidad';
+                }
+                $nombre = $row['NOMBRE_NORMALIZADO'];
+                if (!isset($reglas[$tipo][$nombre])) {
+                    $reglas[$tipo][$nombre] = array(
+                        'tipo' => ((int) $row['ES_PORCENTAJE'] === 1 ? 'porcentaje' : 'directo'),
+                        'suma' => ($tipo === 'condicion' || $tipo === 'calidad'),
+                        'rangos' => array(),
+                        'comparadores' => array()
+                    );
+                }
+                $reglas[$tipo][$nombre]['comparadores'][] = array(
+                    'score' => (int) $row['SCORE'],
+                    'operador' => $row['OPERADOR'],
+                    'valor' => (float) $row['VALOR'],
+                    'incluye' => (int) $row['INCLUYE_IGUAL']
+                );
+            }
+            return $reglas;
+        } catch(Exception $e) {
+            die($e->getMessage());
+        }
+    }
+
+    private function scorePorComparadores($valor, $comparadores)
+    {
+        foreach ($comparadores as $comparador) {
+            $limite = (float) $comparador['valor'];
+            $incluye = (int) $comparador['incluye'] === 1;
+            $cumple = false;
+            if ($comparador['operador'] === '>') {
+                $cumple = $incluye ? ((float) $valor >= $limite) : ((float) $valor > $limite);
+            } elseif ($comparador['operador'] === '<') {
+                $cumple = $incluye ? ((float) $valor <= $limite) : ((float) $valor < $limite);
+            } else {
+                $cumple = ((float) $valor == $limite);
+            }
+            if ($cumple) {
+                return (int) $comparador['score'];
+            }
+        }
+        return null;
+    }
+
+    private function buscarReglaScore($reglas, $tipoRegla, $normalizado)
+    {
+        $orden = array();
+        if ($tipoRegla !== null) {
+            $orden[] = $tipoRegla;
+        }
+        $orden[] = 'otros';
+        $orden[] = 'condicion';
+        $orden[] = 'calidad';
+        foreach ($orden as $tipo) {
+            if (isset($reglas[$tipo][$normalizado])) {
+                return array($reglas[$tipo][$normalizado], $tipo);
+            }
+        }
+        return array(null, null);
+    }
+
+    private function calcularResolucionScoreConReglas($valores, $muestra, $reglas, $grupoScore)
+    {
         $muestra = (float) $muestra;
         $totalCondicion = 0;
         $totalCalidad = 0;
@@ -524,29 +644,33 @@ class CALIDADCONTROL_ADO {
                 $tipoRegla = 'calidad';
             }
 
-            if ($tipoRegla === null || !isset($reglas[$tipoRegla][$normalizado])) {
+            if ($tipoRegla === 'condicion') {
+                $totalCondicion += $valor;
+            } elseif ($tipoRegla === 'calidad') {
+                $totalCalidad += $valor;
+            }
+
+            list($regla, $tipoReglaUsado) = $this->buscarReglaScore($reglas, $tipoRegla, $normalizado);
+            if ($regla === null) {
                 continue;
             }
 
-            $regla = $reglas[$tipoRegla][$normalizado];
             $valorEvaluado = $regla['tipo'] === 'porcentaje' ? $this->porcentajeCalidad($valor, $muestra) : $valor;
-            $scoreItem = $this->scorePorRango($valorEvaluado, $regla['rangos']);
+            $scoreItem = null;
+            if (!empty($regla['comparadores'])) {
+                $scoreItem = $this->scorePorComparadores($valorEvaluado, $regla['comparadores']);
+            } elseif (!empty($regla['rangos'])) {
+                $scoreItem = $this->scorePorRango($valorEvaluado, $regla['rangos']);
+            }
             if ($scoreItem !== null) {
                 $score = max($score, $scoreItem);
                 $evaluados[] = array(
                     'grupo' => $grupo,
                     'nombre' => $nombre,
                     'valor' => $valorEvaluado,
+                    'grupo_score' => $grupoScore,
                     'score' => $scoreItem
                 );
-            }
-
-            if (!empty($regla['suma'])) {
-                if ($tipoRegla === 'condicion') {
-                    $totalCondicion += $valor;
-                } else {
-                    $totalCalidad += $valor;
-                }
             }
         }
 
@@ -556,17 +680,20 @@ class CALIDADCONTROL_ADO {
         $porcFirmeza = $this->porcentajeCalidad($valorFirme, $muestra);
         $porcEstimadoExportacion = max(0, round(100 - $porcTotalDefectos, 4));
 
-        $scoreCondicion = $this->scorePorRango($porcDefectoCondicion, $reglas['totales']['condicion']);
-        $scoreCalidad = $this->scorePorRango($porcDefectoCalidad, $reglas['totales']['calidad']);
-        $scoreTotal = $this->scorePorRango($porcTotalDefectos, $reglas['totales']['total']);
-        foreach (array($scoreCondicion, $scoreCalidad, $scoreTotal) as $scoreResumen) {
-            if ($scoreResumen !== null) {
-                $score = max($score, $scoreResumen);
+        if (!empty($reglas['totales'])) {
+            $scoreCondicion = isset($reglas['totales']['condicion']) ? $this->scorePorRango($porcDefectoCondicion, $reglas['totales']['condicion']) : null;
+            $scoreCalidad = isset($reglas['totales']['calidad']) ? $this->scorePorRango($porcDefectoCalidad, $reglas['totales']['calidad']) : null;
+            $scoreTotal = isset($reglas['totales']['total']) ? $this->scorePorRango($porcTotalDefectos, $reglas['totales']['total']) : null;
+            foreach (array($scoreCondicion, $scoreCalidad, $scoreTotal) as $scoreResumen) {
+                if ($scoreResumen !== null) {
+                    $score = max($score, $scoreResumen);
+                }
             }
         }
 
         return array(
             'SCORE_GENERAL' => $score,
+            'GRUPO_SCORE' => $grupoScore,
             'RESULTADO_GENERAL' => $this->resolverResultadoPorScore($score),
             'COLOR_RESOLUCION' => $this->colorResolucion($this->resolverResultadoPorScore($score)),
             'PORC_DEFECTO_CONDICION' => $porcDefectoCondicion,
@@ -576,6 +703,39 @@ class CALIDADCONTROL_ADO {
             'PORC_TOTAL_DEFECTOS' => $porcTotalDefectos,
             'DETALLE_SCORE' => $evaluados
         );
+    }
+
+    public function calcularResolucionScore($valores, $muestra, $EMPRESA = null, $TEMPORADA = null, $ESPECIES = null, $RECEPCION = null, $MODO = null, $FOLIO = null)
+    {
+        $grupos = array();
+        if ($EMPRESA !== null && $TEMPORADA !== null && $ESPECIES !== null && $RECEPCION !== null) {
+            $grupos = $this->gruposScoreRecepcion($EMPRESA, $TEMPORADA, $ESPECIES, $RECEPCION, $MODO, $FOLIO);
+        }
+
+        if (empty($grupos)) {
+            return $this->calcularResolucionScoreConReglas($valores, $muestra, $this->reglasScoreEstandar(), 'ESTANDAR');
+        }
+
+        $peor = null;
+        $gruposEvaluados = array();
+        foreach ($grupos as $grupoScore) {
+            $reglas = $this->reglasScoreDesdeBase($EMPRESA, $TEMPORADA, $ESPECIES, $grupoScore);
+            if (empty($reglas['condicion']) && empty($reglas['calidad']) && empty($reglas['otros'])) {
+                continue;
+            }
+            $resultado = $this->calcularResolucionScoreConReglas($valores, $muestra, $reglas, $grupoScore);
+            $gruposEvaluados[] = $grupoScore;
+            if ($peor === null || (float) $resultado['SCORE_GENERAL'] > (float) $peor['SCORE_GENERAL']) {
+                $peor = $resultado;
+            }
+        }
+
+        if ($peor === null) {
+            return $this->calcularResolucionScoreConReglas($valores, $muestra, $this->reglasScoreEstandar(), 'ESTANDAR');
+        }
+
+        $peor['GRUPO_SCORE'] = implode(',', $gruposEvaluados);
+        return $peor;
     }
 
     private function porcentajeCalidad($valor, $muestra)

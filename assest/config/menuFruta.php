@@ -28,6 +28,12 @@
           </a>
         </li>
         <li class="btn-group nav-item">
+          <a href="../../interno.php" class="waves-effect waves-light nav-link rounded d-flex align-items-center" title="Módulos">
+            <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/apps.svg" class="img-fluid svg-icon" alt="Módulos">
+            <span class="ml-5 d-none d-lg-inline-block">Módulos</span>
+          </a>
+        </li>
+        <li class="btn-group nav-item">
           <div class="search-bx ml-10">
             <div class="input-group" style="font-size: 12px;">
               <?php

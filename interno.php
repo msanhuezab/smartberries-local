@@ -120,6 +120,15 @@
                         </span>
                     </button>
                 </a>
+                <a href="configuracion/" style="text-decoration:none">
+                    <button type="button" class="modern-btn-card">
+                        <span class="material-icons">settings</span>
+                        <span class="btn-content">
+                            <span class="btn-title">Configuración</span>
+                            <span class="btn-desc">Parámetros, usuarios y tareas del sistema</span>
+                        </span>
+                    </button>
+                </a>
                 <a href="calidad/" style="text-decoration:none">
                     <button type="button" class="modern-btn-card">
                         <span class="material-icons">fact_check</span>

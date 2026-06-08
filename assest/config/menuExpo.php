@@ -1,3 +1,6 @@
+<?php
+$MENU_CONFIGURACION = isset($MENU_CONFIGURACION) && $MENU_CONFIGURACION === true;
+?>
 <header class="main-header">
   <div class="d-flex align-items-center logo-box pl-20">
     <a href="#" class="waves-effect waves-light nav-link rounded d-none d-md-inline-block push-btn" data-toggle="push-menu" role="button">
@@ -25,6 +28,12 @@
         <li class="btn-group nav-item">
           <a href="#" data-provide="fullscreen" class="waves-effect waves-light nav-link rounded full-screen" title="Full Screen">
             <img src="../../api/cryptioadmin10/html/images/svg-icon/fullscreen.svg" class="img-fluid svg-icon" alt="">
+          </a>
+        </li>
+        <li class="btn-group nav-item">
+          <a href="../../interno.php" class="waves-effect waves-light nav-link rounded d-flex align-items-center" title="Módulos">
+            <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/apps.svg" class="img-fluid svg-icon" alt="Módulos">
+            <span class="ml-5 d-none d-lg-inline-block">Módulos</span>
           </a>
         </li>
         <li class="btn-group nav-item">
@@ -184,7 +193,7 @@
                   <form method="post">
                     <button type="submit" class="btn btn-rounded btn-danger " name="CERRARS" value="CERRARS">
                       <i class="ion-log-out"></i>
-                      Cerrar Sesion
+                      Cerrar Sesión
                     </button>
                   </form>
                 </center>
@@ -257,13 +266,13 @@ $ARRAYPLANTACAMBIAR = $PLANTA_ADO->listarPlantaPropiaCBX();
     <!-- sidebar menu-->
     <ul class="sidebar-menu" data-widget="tree">
       <li>
-        <a href="index.php">
+        <a href="<?php echo $MENU_CONFIGURACION ? '../../configuracion/' : 'index.php'; ?>">
           <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/dashboard.svg" class="svg-icon" alt="">
           <span>Inicio</span>
         </a>
       </li>     
-      <?php if($PEXPORTADORA=="1"){ ?>
-        <li class="header">Modulo</li>    
+      <?php if(!$MENU_CONFIGURACION && $PEXPORTADORA=="1"){ ?>
+        <li class="header">Módulo</li>    
         <?php if($PEMATERIALES=="1"){ ?>
           <!--<li class="treeview">
             <a href="#">
@@ -526,12 +535,12 @@ $ARRAYPLANTACAMBIAR = $PLANTA_ADO->listarPlantaPropiaCBX();
           <?php  } ?>  
         <?php  } ?> 
       <?php  } ?>
-      <?php if($PMANTENEDORES=="1"){ ?>
+      <?php if($MENU_CONFIGURACION && $PMANTENEDORES=="1"){ ?>
         <li class="header">Configuraciones</li>
         <li class="treeview">
           <a href="#">
             <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/miscellaneous.svg" class="svg-icon" alt="">
-            <span>Mantenedores</span>
+            <span>Configuración App</span>
             <span class="pull-right-container">
               <i class="fa fa-angle-right pull-right"></i>
             </span>
@@ -608,75 +617,6 @@ $ARRAYPLANTACAMBIAR = $PLANTA_ADO->listarPlantaPropiaCBX();
                 <li><a href="registroConductor.php"></i>Conductor</a></li>
               </ul>
             </li>
-            <?php if($PEEXPORTACION=="1"){ ?>
-              <li class="treeview">
-                <a href="#">Instructivo
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">              
-                  <li class="treeview">
-                    <a href="#">Destino
-                      <span class="pull-left-container">
-                        <i class=" fa fa-angle-right pull-right"></i>
-                      </span>
-                    </a>
-                    <ul class="treeview-menu">
-                      <li><a href="registroLdestino.php"></i>Lugar Destino</a></li>
-                      <li><a href="registroPdestino.php"></i>Puerto Destino </a></li>
-                      <li><a href="registroAdestino.php"></i>Aeropuerto Destino </a></li>
-                    </ul>
-                  </li>
-                  <li class="treeview">
-                    <a href="#">Carga
-                      <span class="pull-left-container">
-                        <i class=" fa fa-angle-right pull-right"></i>
-                      </span>
-                    </a>
-                    <ul class="treeview-menu">
-                      <li><a href="registroLcarga.php"></i>Lugar Carga</a></li>
-                      <li><a href="registroPcarga.php"></i>Puerto Carga </a></li>
-                      <li><a href="registroAcarga.php"></i>Aeropuerto Carga </a></li>
-                    </ul>
-                  </li>
-                  <li class="treeview">
-                    <a href="#">Pago
-                      <span class="pull-left-container">
-                        <i class=" fa fa-angle-right pull-right"></i>
-                      </span>
-                    </a>
-                    <ul class="treeview-menu">
-                      <li><a href="registroFpago.php"></i>Formato Pago</a></li>
-                      <li><a href="registroCventa.php"></i>Clausaula Venta </a></li>
-                      <li><a href="registroMventa.php"></i>Modalidad Venta </a></li>
-                    </ul>
-                  </li>
-                  <li class="treeview">
-                    <a href="#">Mercado
-                      <span class="pull-left-container">
-                        <i class=" fa fa-angle-right pull-right"></i>
-                      </span>
-                    </a>
-                    <ul class="treeview-menu">
-                      <li><a href="registroMercado.php"></i>Mercado</a></li>
-                      <li><a href="registroRmercado.php"></i>Restrinccion Mercado</a></li>
-                    </ul>
-                  </li>
-                  <li><a href="registroExportadora.php"></i>Exportadora</a></li>
-                  <li><a href="registroAtmosfera.php"></i>Atmosfera</a></li>
-                  <li><a href="registroEmisionbl.php"></i>Emision BL</a></li>
-                  <li><a href="registroConsignatorio.php"></i>Consignatorio</a></li>
-                  <li><a href="registroNotificador.php"></i>Notificador </a></li>
-                  <li><a href="registroBroker.php"></i>Cliente </a></li>
-                  <li><a href="registroRfinal.php"></i>Recibidor Final </a></li>
-                  <li><a href="registroAaduana.php"></i>Agente Aduana </a></li>
-                  <li><a href="registroAgcarga.php"></i>Agente Carga </a></li>
-                  <li><a href="registroDfinal.php"></i>Destino Final </a></li>
-                  <li><a href="registroSeguro.php"></i>Seguro </a></li>
-                </ul>
-              </li>  
-            <?php  } ?>     
             <li class="treeview">
               <a href="#">Tipo
                 <span class="pull-left-container">
@@ -715,7 +655,78 @@ $ARRAYPLANTACAMBIAR = $PLANTA_ADO->listarPlantaPropiaCBX();
           </ul>
         </li>     
       <?php  } ?>
-      <?php if($PADMINISTRADOR=="1"){ ?>
+        <?php if(!$MENU_CONFIGURACION && $PMANTENEDORES=="1" && $PEEXPORTACION=="1"){ ?>
+          <li class="treeview">
+            <a href="#">
+              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/exchange.svg" class="svg-icon" alt="">
+              <span>Configuración Exportadora</span>
+              <span class="pull-right-container">
+                <i class="fa fa-angle-right pull-right"></i>
+              </span>
+            </a>
+            <ul class="treeview-menu">
+              <li class="treeview">
+                <a href="#">Destino
+                  <span class="pull-left-container">
+                    <i class=" fa fa-angle-right pull-right"></i>
+                  </span>
+                </a>
+                <ul class="treeview-menu">
+                  <li><a href="registroLdestino.php"></i>Lugar Destino</a></li>
+                  <li><a href="registroPdestino.php"></i>Puerto Destino </a></li>
+                  <li><a href="registroAdestino.php"></i>Aeropuerto Destino </a></li>
+                </ul>
+              </li>
+              <li class="treeview">
+                <a href="#">Carga
+                  <span class="pull-left-container">
+                    <i class=" fa fa-angle-right pull-right"></i>
+                  </span>
+                </a>
+                <ul class="treeview-menu">
+                  <li><a href="registroLcarga.php"></i>Lugar Carga</a></li>
+                  <li><a href="registroPcarga.php"></i>Puerto Carga </a></li>
+                  <li><a href="registroAcarga.php"></i>Aeropuerto Carga </a></li>
+                </ul>
+              </li>
+              <li class="treeview">
+                <a href="#">Pago
+                  <span class="pull-left-container">
+                    <i class=" fa fa-angle-right pull-right"></i>
+                  </span>
+                </a>
+                <ul class="treeview-menu">
+                  <li><a href="registroFpago.php"></i>Formato Pago</a></li>
+                  <li><a href="registroCventa.php"></i>Clausaula Venta </a></li>
+                  <li><a href="registroMventa.php"></i>Modalidad Venta </a></li>
+                </ul>
+              </li>
+              <li class="treeview">
+                <a href="#">Mercado
+                  <span class="pull-left-container">
+                    <i class=" fa fa-angle-right pull-right"></i>
+                  </span>
+                </a>
+                <ul class="treeview-menu">
+                  <li><a href="registroMercado.php"></i>Mercado</a></li>
+                  <li><a href="registroRmercado.php"></i>Restrinccion Mercado</a></li>
+                </ul>
+              </li>
+              <li><a href="registroExportadora.php"></i>Exportadora</a></li>
+              <li><a href="registroAtmosfera.php"></i>Atmosfera</a></li>
+              <li><a href="registroEmisionbl.php"></i>Emision BL</a></li>
+              <li><a href="registroConsignatorio.php"></i>Consignatorio</a></li>
+              <li><a href="registroNotificador.php"></i>Notificador </a></li>
+              <li><a href="registroBroker.php"></i>Cliente </a></li>
+              <li><a href="registroRfinal.php"></i>Recibidor Final </a></li>
+              <li><a href="registroAaduana.php"></i>Agente Aduana </a></li>
+              <li><a href="registroAgcarga.php"></i>Agente Carga </a></li>
+              <li><a href="registroDfinal.php"></i>Destino Final </a></li>
+              <li><a href="registroSeguro.php"></i>Seguro </a></li>
+            </ul>
+          </li>
+        <?php  } ?>
+      <?php if($MENU_CONFIGURACION && $PADMINISTRADOR=="1"){ ?>
         <?php if($PADUSUARIO=="1"){ ?>
           <li class="treeview">
             <a href="#">

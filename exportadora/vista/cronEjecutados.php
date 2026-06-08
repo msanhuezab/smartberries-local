@@ -1,6 +1,6 @@
 <?php
 
-include_once "../../assest/config/validarUsuarioExpo.php";
+include_once "../../assest/config/validarUsuarioConfiguracion.php";
 include_once '../../assest/controlador/EMPRESA_ADO.php';
 include_once '../../assest/controlador/PLANTA_ADO.php';
 include_once '../../assest/controlador/USUARIO_ADO.php';
@@ -316,7 +316,7 @@ if (isset($_GET['auto_run_cron_pt'])) {
 
 <body class="hold-transition light-skin fixed sidebar-mini theme-primary">
     <div class="wrapper">
-        <?php include_once "../../assest/config/menuExpo.php"; ?>
+        <?php include_once "../../assest/config/menuConfiguracion.php"; ?>
         <div class="content-wrapper">
             <div class="container-full">
                 <div class="content-header">
