@@ -19,6 +19,7 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
     if ($ARRAYPLANTASMENU) {
       $CONFIG_PLANTA_MENU = $ARRAYPLANTASMENU[0]['NOMBRE_PLANTA'];
     }
+    $ARRAYPLANTACAMBIAR = $PLANTA_ADO->listarPlantaPropiaCBX();
   }
 
   if (isset($TEMPORADA_ADO, $TEMPORADAS)) {
@@ -466,6 +467,104 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
       height: calc(100vh - 218px);
     }
   }
+  /* ── plant switcher ──────────────────────────── */
+  .vf-icon-building {
+    color: #0a3a6a;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 21v-2h2v-8H3V9l9-6 9 6v2h-2v8h2v2H3zm4-2h4v-4H7v4zm6 0h4v-4h-4v4zm4-6V9h-4v4h4zm-6 0V9H7v4h4z'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 21v-2h2v-8H3V9l9-6 9 6v2h-2v8h2v2H3zm4-2h4v-4H7v4zm6 0h4v-4h-4v4zm4-6V9h-4v4h4zm-6 0V9H7v4h4z'/%3E%3C/svg%3E");
+  }
+  .plant-switcher {
+    position: relative;
+  }
+  .plant-panel {
+    background: #fff;
+    border: 1px solid #dce4ef;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(16,35,63,.14);
+    display: none;
+    min-width: 200px;
+    padding: 6px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 2100;
+  }
+  .plant-panel.open { display: block; }
+  .plant-panel-form { margin: 0; }
+  .plant-panel-btn {
+    align-items: center;
+    background: none;
+    border: none;
+    border-radius: 7px;
+    color: #0a3a6a;
+    cursor: pointer;
+    display: flex;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    gap: 10px;
+    padding: 9px 12px;
+    text-align: left;
+    width: 100%;
+  }
+  .plant-panel-btn:hover { background: #f0f6ff; }
+  .plant-panel-btn.current {
+    background: #e8f0fe;
+    color: #1a56db;
+    font-weight: 800;
+  }
+  .plant-panel-dot {
+    background: transparent;
+    border-radius: 50%;
+    flex: 0 0 8px;
+    height: 8px;
+    width: 8px;
+  }
+  .plant-panel-btn.current .plant-panel-dot { background: #1a56db; }
+  /* ── module switcher ──────────────────────────── */
+  .module-switcher { position: relative; }
+  .module-panel {
+    background: #fff;
+    border: 1px solid #dce4ef;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(16,35,63,.14);
+    display: none;
+    min-width: 180px;
+    padding: 6px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 2100;
+  }
+  .module-panel.open { display: block; }
+  .module-panel-btn {
+    align-items: center;
+    background: none;
+    border: none;
+    border-radius: 7px;
+    color: #0a3a6a;
+    cursor: pointer;
+    display: flex;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    gap: 10px;
+    padding: 9px 12px;
+    text-align: left;
+    text-decoration: none;
+    width: 100%;
+  }
+  .module-panel-btn:hover { background: #f0f6ff; color: #0a3a6a; text-decoration: none; }
+  .module-panel-btn.current { background: #e8f0fe; color: #1a56db; font-weight: 800; }
+  .module-panel-dot {
+    background: transparent;
+    border: 2px solid #c8d4e3;
+    border-radius: 50%;
+    flex: 0 0 8px;
+    height: 8px;
+    width: 8px;
+  }
+  .module-panel-btn.current .module-panel-dot { background: #1a56db; border-color: #1a56db; }
 </style>
 <header class="commandbar">
   <div class="brand">
@@ -495,10 +594,52 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
       <span class="vf-icon vf-icon-menu" aria-hidden="true"></span>
       <span>Menú</span>
     </a>
-    <a class="action" href="../../interno.php" title="Módulos">
-      <span class="vf-icon vf-icon-apps" aria-hidden="true"></span>
-      <span>Módulos</span>
-    </a>
+    <?php if (!empty($ARRAYPLANTACAMBIAR) && count($ARRAYPLANTACAMBIAR) > 1) { ?>
+    <div class="plant-switcher">
+      <button type="button" class="action plant-switcher-btn" title="Cambiar planta">
+        <span class="vf-icon vf-icon-building" aria-hidden="true"></span>
+        <span><?php echo htmlspecialchars($CONFIG_PLANTA_MENU, ENT_QUOTES, 'UTF-8'); ?></span>
+      </button>
+      <div class="plant-panel" id="plantPanel">
+        <?php foreach ($ARRAYPLANTACAMBIAR as $r) { ?>
+          <form class="plant-panel-form" method="POST">
+            <input type="hidden" name="PLANTACAMBIAR" value="<?php echo htmlspecialchars($r['ID_PLANTA'], ENT_QUOTES, 'UTF-8'); ?>">
+            <button type="submit" name="CAMBIARP" value="CAMBIARP"
+              class="plant-panel-btn <?php echo ((string)$PLANTAS === (string)$r['ID_PLANTA']) ? 'current' : ''; ?>">
+              <span class="plant-panel-dot"></span>
+              <?php echo htmlspecialchars($r['NOMBRE_PLANTA'], ENT_QUOTES, 'UTF-8'); ?>
+            </button>
+          </form>
+        <?php } ?>
+      </div>
+    </div>
+    <?php } ?>
+    <div class="module-switcher">
+      <button type="button" class="action module-switcher-btn" title="Cambiar módulo">
+        <span class="vf-icon vf-icon-apps" aria-hidden="true"></span>
+        <span>Módulos</span>
+      </button>
+      <div class="module-panel" id="modulePanel">
+        <?php
+        $SB_MODULOS = [
+          ['titulo' => 'Fruta',         'url' => '../../fruta/'],
+          ['titulo' => 'Material',      'url' => '../../material/'],
+          ['titulo' => 'Exportadora',   'url' => '../../exportadora/'],
+          ['titulo' => 'Calidad',       'url' => '../../calidad/'],
+          ['titulo' => 'Estadística',   'url' => '../../estadistica/'],
+          ['titulo' => 'Configuración', 'url' => '../../configuracion/'],
+        ];
+        foreach ($SB_MODULOS as $mod) {
+          $isMod = (stripos($HEADER_MODULO_TITULO, $mod['titulo']) !== false || stripos($mod['titulo'], $HEADER_MODULO_TITULO) !== false);
+        ?>
+          <a href="<?php echo htmlspecialchars($mod['url'], ENT_QUOTES, 'UTF-8'); ?>"
+             class="module-panel-btn<?php echo $isMod ? ' current' : ''; ?>">
+            <span class="module-panel-dot"></span>
+            <?php echo htmlspecialchars($mod['titulo'], ENT_QUOTES, 'UTF-8'); ?>
+          </a>
+        <?php } ?>
+      </div>
+    </div>
     <form method="post" class="m-0">
       <button class="action action-danger" type="submit" name="CERRARS" value="CERRARS">
         <span class="vf-icon vf-icon-logout" aria-hidden="true"></span>
@@ -508,6 +649,24 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
   </div>
 </header>
 <div class="commandbar-spacer" aria-hidden="true"></div>
+<script>
+(function(){
+  var btn    = document.querySelector('.plant-switcher-btn');
+  var panel  = document.getElementById('plantPanel');
+  var modBtn = document.querySelector('.module-switcher-btn');
+  var modPanel = document.getElementById('modulePanel');
+  if (btn && panel) {
+    btn.addEventListener('click', function(e){ e.stopPropagation(); panel.classList.toggle('open'); });
+  }
+  if (modBtn && modPanel) {
+    modBtn.addEventListener('click', function(e){ e.stopPropagation(); modPanel.classList.toggle('open'); });
+  }
+  document.addEventListener('click', function(){
+    if (panel) panel.classList.remove('open');
+    if (modPanel) modPanel.classList.remove('open');
+  });
+})();
+</script>
 <?php
 $ARRAYEMPRESACAMBIAR = $EMPRESA_ADO->listarEmpresaCBX();
 $ARRAYPLANTACAMBIAR = $PLANTA_ADO->listarPlantaPropiaCBX();

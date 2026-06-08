@@ -174,9 +174,10 @@ function excelCeldaNumero($valor, $decimales = 2) {
     return '<Cell><Data ss:Type="Number">' . excelNumero($valor, $decimales) . '</Data></Cell>';
 }
 
-function escribirExcel($lineas, $items, $gastos, $totales) {
+function escribirExcel($lineas, $items, $gastos, $totales, $filename = 'liquidaciones_exportacion') {
+    $safeFilename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $filename);
     header('Content-Type: application/vnd.ms-excel; charset=utf-8');
-    header('Content-Disposition: attachment; filename="liquidaciones_exportacion.xls"');
+    header('Content-Disposition: attachment; filename="' . $safeFilename . '.xls"');
     $salida = fopen('php://output', 'w');
     fprintf($salida, chr(0xEF) . chr(0xBB) . chr(0xBF));
     fwrite($salida, '<?xml version="1.0" encoding="UTF-8"?>' . "\r\n");
@@ -306,9 +307,18 @@ if (isset($_GET['EXPORTAR'])) {
     $idsValor = array_values(array_filter($idsValor, function ($idValor) {
         return $idValor > 0;
     }));
-    $GASTOS = obtenerGastosPorValor($db, $idsValor);
+    $GASTOS  = obtenerGastosPorValor($db, $idsValor);
     $TOTALES = calcularTotalesLineas($LINEAS);
-    escribirExcel($LINEAS, $ITEMS, $GASTOS, $TOTALES);
+    // Build filename: referencia + temporada
+    $arrTemp   = $TEMPORADA_ADO->verTemporada($TEMPORADAS);
+    $tempNombre = $arrTemp ? $arrTemp[0]['NOMBRE_TEMPORADA'] : $TEMPORADAS;
+    if ($IDICARGA > 0 && count($LINEAS) > 0) {
+        $refNombre = $LINEAS[0]['NREFERENCIA_ICARGA'] ?? 'ref';
+        $excelName = $refNombre . '_' . $tempNombre;
+    } else {
+        $excelName = 'Liquidaciones_' . $tempNombre;
+    }
+    escribirExcel($LINEAS, $ITEMS, $GASTOS, $TOTALES, $excelName);
 }
 ?>
 <!DOCTYPE html>

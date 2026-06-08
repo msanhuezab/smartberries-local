@@ -298,11 +298,38 @@ foreach ($ARRAYCONTROLES as $control) {
             margin-bottom: 14px;
         }
         .calidad-bloque-titulo {
+            align-items: center;
             border-bottom: 1px solid #e6e9f0;
             color: #172b4d;
+            display: flex;
             font-weight: 700;
+            justify-content: space-between;
             padding: 10px 14px;
         }
+        .calidad-grupo-pill {
+            align-items: center;
+            display: flex;
+            font-size: 11px;
+            font-weight: 400;
+            gap: 8px;
+        }
+        .calidad-grupo-usado {
+            background: #e8f0fe;
+            border-radius: 10px;
+            color: #1a56db;
+            font-weight: 700;
+            padding: 2px 9px;
+            white-space: nowrap;
+        }
+        .calidad-grupo-restante {
+            border-radius: 10px;
+            font-weight: 700;
+            padding: 2px 9px;
+            white-space: nowrap;
+        }
+        .calidad-grupo-restante.ok    { background:#d1fae5; color:#065f46; }
+        .calidad-grupo-restante.bajo  { background:#fef3c7; color:#92400e; }
+        .calidad-grupo-restante.exceso{ background:#fee2e2; color:#991b1b; }
         .calidad-matriz {
             display: grid;
             gap: 0;
@@ -338,8 +365,11 @@ foreach ($ARRAYCONTROLES as $control) {
             display: flex;
             gap: 6px;
         }
-        .calidad-input-porcentaje .form-control {
+        /* especificidad 0,3,0 — gana sobre .calidad-campo .form-control (0,2,0) */
+        .calidad-campo .calidad-input-porcentaje .form-control {
+            flex: 1 1 auto;
             min-width: 0;
+            width: auto !important;
         }
         .calidad-porcentaje {
             align-items: center;
@@ -366,6 +396,27 @@ foreach ($ARRAYCONTROLES as $control) {
             .calidad-matriz,
             .calidad-matriz.datos-generales {
                 grid-template-columns: 1fr;
+            }
+            .calidad-input-porcentaje {
+                flex-direction: column;
+                gap: 4px;
+            }
+            .calidad-input-porcentaje .form-control {
+                width: 100% !important;
+            }
+            .calidad-porcentaje {
+                flex: none;
+                font-size: 11px;
+                font-weight: 700;
+                min-height: 28px;
+                padding: 4px 10px;
+                text-align: center;
+                width: 100%;
+            }
+            .calidad-grupo-pill {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 3px;
             }
         }
     </style>
@@ -543,8 +594,17 @@ foreach ($ARRAYCONTROLES as $control) {
 
                                             <?php foreach ($GRUPOS as $codigoGrupo => $nombreGrupo) { ?>
                                                 <?php if (!empty($PARAMETROS_GRUPO[$codigoGrupo])) { ?>
-                                                    <div class="calidad-bloque">
-                                                        <div class="calidad-bloque-titulo"><?php echo recepcionTexto($nombreGrupo); ?></div>
+                                                    <?php $tienePorc = in_array($codigoGrupo, ['CALIBRES', 'PRESIONES']); ?>
+                                                    <div class="calidad-bloque"<?php if ($tienePorc) echo ' data-grupo="' . htmlspecialchars($codigoGrupo, ENT_QUOTES) . '"'; ?>>
+                                                        <div class="calidad-bloque-titulo">
+                                                            <span><?php echo recepcionTexto($nombreGrupo); ?></span>
+                                                            <?php if ($tienePorc) { ?>
+                                                            <span class="calidad-grupo-pill">
+                                                                <span class="calidad-grupo-usado">0,00% usado</span>
+                                                                <span class="calidad-grupo-restante ok">quedan 100,00%</span>
+                                                            </span>
+                                                            <?php } ?>
+                                                        </div>
                                                         <div class="calidad-matriz">
                                                             <?php foreach ($PARAMETROS_GRUPO[$codigoGrupo] as $parametro) { ?>
                                                                 <div class="calidad-campo">
@@ -616,11 +676,37 @@ foreach ($ARRAYCONTROLES as $control) {
 
             function actualizarPorcentajesCalidad(modal) {
                 var muestra = numeroCalidad(modal.find('input[name="MUESTRA_GRAMOS"]').val());
+
+                // porcentaje individual por campo
                 modal.find('.valor-parametro-calidad[data-calcula-porcentaje="1"]').each(function() {
                     var input = $(this);
                     var gramos = numeroCalidad(input.val());
                     var porcentaje = muestra > 0 ? (gramos / muestra) * 100 : 0;
                     input.closest('.calidad-input-porcentaje').find('.calidad-porcentaje').text(formatoPorcentajeCalidad(porcentaje));
+                });
+
+                // total y restante por grupo
+                modal.find('.calidad-bloque[data-grupo]').each(function() {
+                    var bloque = $(this);
+                    var totalGramos = 0;
+                    bloque.find('.valor-parametro-calidad[data-calcula-porcentaje="1"]').each(function() {
+                        totalGramos += numeroCalidad($(this).val());
+                    });
+                    var totalPorc = muestra > 0 ? (totalGramos / muestra) * 100 : 0;
+                    var restante  = 100 - totalPorc;
+
+                    bloque.find('.calidad-grupo-usado').text(formatoPorcentajeCalidad(totalPorc) + ' usado');
+
+                    var elRest = bloque.find('.calidad-grupo-restante');
+                    elRest.text('quedan ' + formatoPorcentajeCalidad(Math.max(0, restante)));
+                    elRest.removeClass('ok bajo exceso');
+                    if (restante < 0) {
+                        elRest.addClass('exceso');
+                    } else if (restante <= 15) {
+                        elRest.addClass('bajo');
+                    } else {
+                        elRest.addClass('ok');
+                    }
                 });
             }
 

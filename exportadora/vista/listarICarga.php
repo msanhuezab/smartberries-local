@@ -214,8 +214,7 @@ include_once "../../assest/config/datosUrLP.php";
                                                                             <button class="btn btn-secondary" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                                                 <i class="glyphicon glyphicon-cog"></i>
                                                                             </button>
-                                                                            <div class="dropdown-menu dropdown-menu-right">
-                                                                                <button class="dropdown-menu" aria-labelledby="dropdownMenuButton"></button>
+                                                                            <div class="dropdown-menu dropdown-menu-right" style="min-width:210px;padding:8px 10px;">
                                                                                 <input type="hidden" class="form-control" placeholder="ID" id="ID" name="ID" value="<?php echo $r['ID_ICARGA']; ?>" />
                                                                                 <input type="hidden" class="form-control" placeholder="URL" id="URL" name="URL" value="registroICarga" />
                                                                                 <input type="hidden" class="form-control" placeholder="URL" id="URLO" name="URLO" value="listarICarga" />

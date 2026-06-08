@@ -418,6 +418,220 @@ if ($INVOICE) {
     $stmtDet->execute([(int)$INVOICE['ID_INVOICE']]);
     $DETALLE = $stmtDet->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// ── Grouping toggle URL builder ────────────────────────────────────────────
+$grpOptsInv = ['AGRUPAR_ESTANDAR' => 'Estándar', 'AGRUPAR_VARIEDAD' => 'Variedad', 'AGRUPAR_CALIBRE' => 'Calibre'];
+$grpActiveInv = [];
+if ($AGRUPAR_ESTANDAR) $grpActiveInv[] = 'AGRUPAR_ESTANDAR';
+if ($AGRUPAR_VARIEDAD) $grpActiveInv[] = 'AGRUPAR_VARIEDAD';
+if ($AGRUPAR_CALIBRE)  $grpActiveInv[] = 'AGRUPAR_CALIBRE';
+$grpToggleUrlsInv = [];
+foreach ($grpOptsInv as $gk => $glbl) {
+    $next = [];
+    if (in_array($gk, $grpActiveInv)) {
+        foreach ($grpActiveInv as $g) { if ($g !== $gk) $next[] = $g; }
+    } else {
+        $next = array_merge($grpActiveInv, [$gk]);
+    }
+    if (empty($next)) $next = ['AGRUPAR_ESTANDAR'];
+    $qs = 'ICARGA=' . (int)$IDICARGA;
+    foreach ($next as $g) $qs .= '&' . $g . '=1';
+    $grpToggleUrlsInv[$gk] = 'registroInvoiceExp.php?' . $qs;
+}
+
+// ── Excel export ────────────────────────────────────────────────────────────
+if (isset($_GET['EXPORTAR']) && $IDICARGA > 0 && $INVOICE && count($DETALLE) > 0) {
+    $arrTemp   = $TEMPORADA_ADO->verTemporada($TEMPORADAS);
+    $tempNombre = $arrTemp ? $arrTemp[0]['NOMBRE_TEMPORADA'] : $TEMPORADAS;
+    $refNombre  = $CABECERA['NREFERENCIA_ICARGA'] ?? 'invoice';
+    $safeFile   = preg_replace('/[^A-Za-z0-9_\-]/', '_', $refNombre . '_' . $tempNombre);
+    header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $safeFile . '.xls"');
+    $out = fopen('php://output', 'w');
+    fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+    fwrite($out, '<?xml version="1.0" encoding="UTF-8"?>'."\r\n");
+    fwrite($out, '<?mso-application progid="Excel.Sheet"?>'."\r\n");
+    fwrite($out, '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'."\r\n");
+    fwrite($out, '<Worksheet ss:Name="Invoice"><Table>'."\r\n");
+    $cols = [];
+    if ($AGRUPAR_ESTANDAR) $cols[] = 'Estandar';
+    if ($AGRUPAR_VARIEDAD) $cols[] = 'Variedad';
+    if ($AGRUPAR_CALIBRE)  $cols[] = 'Calibre';
+    array_push($cols, 'Cajas', 'Kg Neto', 'Kg Bruto', 'Precio Caja', 'Total', 'Moneda', 'Origen', 'Observacion');
+    fwrite($out, '<Row>');
+    foreach ($cols as $c) fwrite($out, '<Cell><Data ss:Type="String">'.htmlspecialchars($c, ENT_XML1).'</Data></Cell>');
+    fwrite($out, "</Row>\r\n");
+    foreach ($DETALLE as $d) {
+        fwrite($out, '<Row>');
+        if ($AGRUPAR_ESTANDAR) fwrite($out, '<Cell><Data ss:Type="String">'.htmlspecialchars($d['NOMBRE_ESTANDAR'], ENT_XML1).'</Data></Cell>');
+        if ($AGRUPAR_VARIEDAD) fwrite($out, '<Cell><Data ss:Type="String">'.htmlspecialchars($d['NOMBRE_VESPECIES'], ENT_XML1).'</Data></Cell>');
+        if ($AGRUPAR_CALIBRE)  fwrite($out, '<Cell><Data ss:Type="String">'.htmlspecialchars($d['NOMBRE_TCALIBRE'], ENT_XML1).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="Number">'.number_format((float)$d['CANTIDAD_ENVASE'],2,'.','' ).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="Number">'.number_format((float)$d['KILOS_NETO'],2,'.',''      ).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="Number">'.number_format((float)$d['KILOS_BRUTO'],2,'.',''    ).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="Number">'.number_format((float)$d['PRECIO_CAJA'],4,'.',''    ).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="Number">'.number_format((float)$d['TOTAL_LINEA'],2,'.',''    ).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="String">'.htmlspecialchars($INVOICE['MONEDA_INVOICE'], ENT_XML1).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="String">'.htmlspecialchars($d['ORIGEN'], ENT_XML1).'</Data></Cell>');
+        fwrite($out, '<Cell><Data ss:Type="String">'.htmlspecialchars($d['OBSERVACION'], ENT_XML1).'</Data></Cell>');
+        fwrite($out, "</Row>\r\n");
+    }
+    fwrite($out, '</Table></Worksheet></Workbook>');
+    fclose($out);
+    exit;
+}
+
+// ── Print / PDF view ────────────────────────────────────────────────────────
+if (isset($_GET['IMPRIMIR']) && $IDICARGA > 0 && $INVOICE && $CABECERA) {
+    $arrEmp   = $EMPRESA_ADO->verEmpresa($EMPRESAS);
+    $arrTemp  = $TEMPORADA_ADO->verTemporada($TEMPORADAS);
+    $nomEmp   = $arrEmp  ? $arrEmp[0]['NOMBRE_EMPRESA']   : '';
+    $nomTemp  = $arrTemp ? $arrTemp[0]['NOMBRE_TEMPORADA'] : $TEMPORADAS;
+    $refDoc   = $CABECERA['NREFERENCIA_ICARGA'];
+    $totalInv = array_sum(array_column($DETALLE, 'TOTAL_LINEA'));
+?><!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title><?php echo h('Invoice ' . $INVOICE['NUMERO_INVOICE'] . ' - ' . $refDoc . ' - ' . $nomTemp); ?></title>
+<style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size:11px; color:#1a1a2e; background:#fff; }
+    .print-page { max-width:1000px; margin:0 auto; padding:20px 24px 40px; }
+    .doc-header { display:flex; justify-content:space-between; align-items:flex-end;
+                  border-bottom:3px solid #0a3a6a; padding-bottom:12px; margin-bottom:16px; }
+    .doc-header-left h1 { font-size:18px; font-weight:900; color:#0a3a6a; text-transform:uppercase; letter-spacing:.04em; }
+    .doc-header-left p  { font-size:11px; color:#555; margin-top:2px; }
+    .doc-header-right   { text-align:right; font-size:10px; color:#666; line-height:1.7; }
+    .doc-header-right strong { font-size:13px; color:#0a3a6a; display:block; }
+    .info-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px; }
+    .info-cell { background:#f4f7fb; border-left:3px solid #0a3a6a; padding:7px 10px; border-radius:0 4px 4px 0; }
+    .info-cell .lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#667085; margin-bottom:2px; }
+    .info-cell .val { font-size:12px; font-weight:700; color:#10233f; }
+    .summary-bar { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px; }
+    .sum-cell { border:1px solid #e2e8f0; border-radius:6px; padding:10px 12px; text-align:center; }
+    .sum-cell .sum-lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#667085; margin-bottom:4px; }
+    .sum-cell .sum-val { font-size:15px; font-weight:900; color:#10233f; }
+    .sum-cell.highlight { background:#0a3a6a; border-color:#0a3a6a; }
+    .sum-cell.highlight .sum-lbl { color:rgba(255,255,255,.7); }
+    .sum-cell.highlight .sum-val { color:#fff; }
+    .section-title { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em;
+                     color:#0a3a6a; border-bottom:1px solid #c9d5e0; padding-bottom:5px; margin-bottom:8px; margin-top:16px; }
+    table { width:100%; border-collapse:collapse; font-size:10px; }
+    th { background:#0a3a6a; color:#fff; font-size:9px; font-weight:700; text-transform:uppercase;
+         letter-spacing:.04em; padding:6px 7px; text-align:center; border:1px solid #08305a; }
+    td { padding:5px 7px; border:1px solid #dde3ec; vertical-align:middle; }
+    tr:nth-child(even) td { background:#f9fbfd; }
+    .text-right { text-align:right; }
+    .text-center { text-align:center; }
+    .total-row td { background:#e8f1fb !important; font-weight:800; color:#0a3a6a; border-top:2px solid #0a3a6a; }
+    .obs-cell { font-size:9px; color:#555; max-width:160px; }
+    .doc-footer { margin-top:30px; border-top:1px solid #c9d5e0; padding-top:10px;
+                  display:flex; justify-content:space-between; color:#999; font-size:9px; }
+    @media print {
+        body { font-size:10px; }
+        .no-print { display:none !important; }
+        .print-page { padding:0; }
+        @page { size:A4 landscape; margin:15mm 12mm; }
+    }
+</style>
+</head>
+<body onload="window.print()">
+<div class="print-page">
+
+    <div class="doc-header">
+        <div class="doc-header-left">
+            <h1>Invoice de Exportación</h1>
+            <p><?php echo h($nomEmp); ?> &nbsp;·&nbsp; Temporada <?php echo h($nomTemp); ?></p>
+        </div>
+        <div class="doc-header-right">
+            <strong>Invoice N° <?php echo h($INVOICE['NUMERO_INVOICE']); ?></strong>
+            <?php echo h($refDoc); ?><br>
+            <?php echo h($CABECERA['NCONTENEDOR_ICARGA']); ?><br>
+            Fecha <?php echo h($INVOICE['FECHA_INVOICE']); ?> &nbsp;·&nbsp; <?php echo h($INVOICE['ESTADO_INVOICE']); ?>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-cell"><div class="lbl">Referencia</div><div class="val"><?php echo h($CABECERA['NREFERENCIA_ICARGA']); ?></div></div>
+        <div class="info-cell"><div class="lbl">Contenedor</div><div class="val"><?php echo h($CABECERA['NCONTENEDOR_ICARGA']); ?></div></div>
+        <div class="info-cell"><div class="lbl">Moneda</div><div class="val"><?php echo h($INVOICE['MONEDA_INVOICE']); ?><?php if ($INVOICE['MONEDA_INVOICE'] === 'EUR') echo ' (TC: ' . h($INVOICE['TIPO_CAMBIO_USD']) . ')'; ?></div></div>
+        <div class="info-cell"><div class="lbl">Estado</div><div class="val"><?php echo h($INVOICE['ESTADO_INVOICE']); ?></div></div>
+    </div>
+
+    <?php if (trim((string)$INVOICE['OBSERVACION_INVOICE']) !== ''): ?>
+    <div style="background:#fffbea;border-left:3px solid #f5a623;padding:8px 12px;margin-bottom:14px;font-size:10px;color:#555;border-radius:0 4px 4px 0;">
+        <?php echo h($INVOICE['OBSERVACION_INVOICE']); ?>
+    </div>
+    <?php endif; ?>
+
+    <?php $totalCajas = array_sum(array_column($DETALLE,'CANTIDAD_ENVASE'));
+          $totalNeto  = array_sum(array_column($DETALLE,'KILOS_NETO')); ?>
+    <div class="summary-bar">
+        <div class="sum-cell">
+            <div class="sum-lbl">Total cajas</div>
+            <div class="sum-val"><?php echo number_format((float)$totalCajas, 0, ',', '.'); ?></div>
+        </div>
+        <div class="sum-cell">
+            <div class="sum-lbl">Total kg neto</div>
+            <div class="sum-val"><?php echo numero($totalNeto); ?></div>
+        </div>
+        <div class="sum-cell highlight">
+            <div class="sum-lbl">Total invoice <?php echo h($INVOICE['MONEDA_INVOICE']); ?></div>
+            <div class="sum-val"><?php echo numero($totalInv); ?></div>
+        </div>
+    </div>
+
+    <div class="section-title">Detalle de líneas</div>
+    <table>
+        <thead><tr>
+            <?php if ($AGRUPAR_ESTANDAR) echo '<th>Estándar</th>'; ?>
+            <?php if ($AGRUPAR_VARIEDAD) echo '<th>Variedad</th>'; ?>
+            <?php if ($AGRUPAR_CALIBRE)  echo '<th>Calibre</th>'; ?>
+            <th>Cajas</th><th>Kg Neto</th><th>Kg Bruto</th>
+            <th>Precio Caja</th><th>Total <?php echo h($INVOICE['MONEDA_INVOICE']); ?></th>
+            <th>Origen</th><th>Obs.</th>
+        </tr></thead>
+        <tbody>
+        <?php foreach ($DETALLE as $d): ?>
+        <tr>
+            <?php if ($AGRUPAR_ESTANDAR) echo '<td>'.h($d['NOMBRE_ESTANDAR']).'</td>'; ?>
+            <?php if ($AGRUPAR_VARIEDAD) echo '<td>'.h($d['NOMBRE_VESPECIES']).'</td>'; ?>
+            <?php if ($AGRUPAR_CALIBRE)  echo '<td class="text-center">'.h($d['NOMBRE_TCALIBRE']).'</td>'; ?>
+            <td class="text-right"><?php echo numero($d['CANTIDAD_ENVASE']); ?></td>
+            <td class="text-right"><?php echo numero($d['KILOS_NETO']); ?></td>
+            <td class="text-right"><?php echo numero($d['KILOS_BRUTO']); ?></td>
+            <td class="text-right"><?php echo numero($d['PRECIO_CAJA'], 4); ?></td>
+            <td class="text-right"><?php echo numero($d['TOTAL_LINEA']); ?></td>
+            <td class="text-center"><?php echo h($d['ORIGEN']); ?></td>
+            <td class="obs-cell"><?php echo h($d['OBSERVACION']); ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+        <tfoot><tr class="total-row">
+            <?php $colsGrp = (int)$AGRUPAR_ESTANDAR + (int)$AGRUPAR_VARIEDAD + (int)$AGRUPAR_CALIBRE;
+                  echo '<td colspan="'.$colsGrp.'" class="text-right">TOTALES</td>'; ?>
+            <td class="text-right"><?php echo numero($totalCajas); ?></td>
+            <td class="text-right"><?php echo numero($totalNeto); ?></td>
+            <td class="text-right"><?php echo numero(array_sum(array_column($DETALLE,'KILOS_BRUTO'))); ?></td>
+            <td class="text-right">—</td>
+            <td class="text-right"><?php echo numero($totalInv); ?></td>
+            <td colspan="2"></td>
+        </tr></tfoot>
+    </table>
+
+    <div class="doc-footer">
+        <span>Generado: <?php echo date('d/m/Y H:i'); ?></span>
+        <span><?php echo h($nomEmp); ?> · Temporada <?php echo h($nomTemp); ?></span>
+        <span class="no-print">
+            <button onclick="window.print()" style="cursor:pointer;padding:4px 12px;background:#0a3a6a;color:#fff;border:none;border-radius:4px;">Imprimir</button>
+            <button onclick="window.close()" style="cursor:pointer;padding:4px 12px;background:#e2e8f0;color:#333;border:none;border-radius:4px;margin-left:6px;">Cerrar</button>
+        </span>
+    </div>
+</div>
+</body>
+</html>
+<?php exit; }
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -426,6 +640,15 @@ if ($INVOICE) {
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?php include_once "../../assest/config/urlHead.php"; ?>
+    <style>
+        @media print {
+            .main-sidebar, .left-side, .main-header, .content-header,
+            .box-footer, .no-print, .breadcrumb, .alert { display:none !important; }
+            .content-wrapper, .wrapper { margin:0 !important; padding:0 !important; background:#fff !important; }
+            .box { border:none !important; box-shadow:none !important; }
+            @page { size:A4 landscape; margin:12mm 10mm; }
+        }
+    </style>
 </head>
 <body class="hold-transition light-skin fixed sidebar-mini theme-primary">
 <div class="wrapper">
@@ -452,64 +675,121 @@ if ($INVOICE) {
             <section class="content">
                 <?php if ($mensaje) { ?><div class="alert alert-success"><?php echo h($mensaje); ?></div><?php } ?>
                 <?php if ($INVOICE_CONFIRMADA) { ?><div class="alert alert-info">Invoice confirmada. La informacion queda bloqueada para edicion.</div><?php } ?>
+
+                <?php if ($IDICARGA === 0) { ?>
                 <div class="box">
-                    <div class="box-header with-border bg-primary"><h4 class="box-title">Seleccion de instructivo</h4></div>
-                    <form method="get">
-                        <div class="box-body">
-                            <div class="row">
-                                <div class="col-md-9">
-                                    <label>Instructivo / Referencia</label>
-                                    <select class="form-control select2" name="ICARGA" style="width:100%">
-                                        <option></option>
-                                        <?php foreach ($INSTRUCTIVOS as $i) { ?>
-                                            <option value="<?php echo (int)$i['ID_ICARGA']; ?>" <?php echo $IDICARGA === (int)$i['ID_ICARGA'] ? 'selected' : ''; ?>>
-                                                <?php echo h($i['NUMERO_ICARGA'] . ' - ' . $i['NREFERENCIA_ICARGA'] . ' - ' . $i['NCONTENEDOR_ICARGA'] . ' - ' . $i['ESTADO_INVOICE'] . ' - US$ ' . numero($i['TOTAL_INVOICE'])); ?>
-                                            </option>
-                                        <?php } ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-3 pt-30">
-                                    <button class="btn btn-primary" type="submit">Cargar</button>
-                                </div>
-                            </div>
-                            <div class="row mt-10">
-                                <div class="col-md-12">
-                                    <div class="checkbox">
-                                        <input type="checkbox" id="AGRUPAR_ESTANDAR" name="AGRUPAR_ESTANDAR" value="1" <?php echo $AGRUPAR_ESTANDAR ? 'checked' : ''; ?>>
-                                        <label for="AGRUPAR_ESTANDAR">Estandar</label>
-                                    </div>
-                                    <div class="checkbox">
-                                        <input type="checkbox" id="AGRUPAR_VARIEDAD" name="AGRUPAR_VARIEDAD" value="1" <?php echo $AGRUPAR_VARIEDAD ? 'checked' : ''; ?>>
-                                        <label for="AGRUPAR_VARIEDAD">Variedad</label>
-                                    </div>
-                                    <div class="checkbox">
-                                        <input type="checkbox" id="AGRUPAR_CALIBRE" name="AGRUPAR_CALIBRE" value="1" <?php echo $AGRUPAR_CALIBRE ? 'checked' : ''; ?>>
-                                        <label for="AGRUPAR_CALIBRE">Calibre</label>
-                                    </div>
-                                </div>
+                    <div class="box-header with-border">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                            <h4 class="box-title">Invoices de exportación</h4>
+                            <div class="d-flex align-items-center" style="gap:6px;flex-wrap:wrap;">
+                                <span class="text-muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Filtrar:</span>
+                                <button class="btn btn-xs btn-default inv-filter active" data-estado="">Todos</button>
+                                <button class="btn btn-xs btn-success inv-filter" data-estado="CONFIRMADA">Confirmada</button>
+                                <button class="btn btn-xs btn-warning inv-filter" data-estado="BORRADOR">Borrador</button>
+                                <button class="btn btn-xs btn-default inv-filter" data-estado="SIN INVOICE">Sin invoice</button>
                             </div>
                         </div>
-                    </form>
+                    </div>
+                    <div class="box-body">
+                        <table class="table table-bordered table-hover" id="invTable" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Referencia</th>
+                                    <th>Contenedor</th>
+                                    <th>Estado</th>
+                                    <th>Total US$</th>
+                                    <th class="no-export">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php $invIdx = 0; foreach ($INSTRUCTIVOS as $i) {
+                                $invIdx++;
+                                $est = $i['ESTADO_INVOICE'];
+                                $badgeEst = $est === 'CONFIRMADA' ? 'badge-success' : ($est === 'BORRADOR' ? 'badge-warning' : 'badge-secondary');
+                                $urlAbrir = 'registroInvoiceExp.php?ICARGA=' . (int)$i['ID_ICARGA'] . '&AGRUPAR_ESTANDAR=1';
+                            ?>
+                                <tr>
+                                    <td class="text-center text-muted" style="font-size:12px;"><?php echo $invIdx; ?></td>
+                                    <td><strong><?php echo h($i['NREFERENCIA_ICARGA']); ?></strong></td>
+                                    <td><?php echo h($i['NCONTENEDOR_ICARGA']); ?></td>
+                                    <td class="text-center"><?php echo $est; ?></td>
+                                    <td class="text-right"><?php echo (float)$i['TOTAL_INVOICE'] > 0 ? numero($i['TOTAL_INVOICE']) : '—'; ?></td>
+                                    <td class="text-center no-export">
+                                        <a href="<?php echo $urlAbrir; ?>" class="btn btn-sm btn-outline-primary">
+                                            Abrir <i class="ti-angle-right"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php } ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+                <?php } ?>
 
                 <?php if ($IDICARGA > 0 && !$INVOICE) { ?>
                     <div class="box">
+                        <div class="box-header with-border">
+                            <div class="d-flex align-items-center" style="gap:10px;">
+                                <a href="registroInvoiceExp.php" class="btn btn-sm btn-default" style="color:#333;">
+                                    <i class="ti-angle-left"></i> Listado
+                                </a>
+                                <h4 class="box-title" style="margin:0;"><?php echo h($CABECERA['NREFERENCIA_ICARGA'] ?? ''); ?> — Sin invoice</h4>
+                            </div>
+                        </div>
                         <div class="box-body">
                             <form method="post">
+                                <input type="hidden" name="ICARGA" value="<?php echo (int)$IDICARGA; ?>">
                                 <button class="btn btn-success" name="GENERAR" value="1">Generar invoice desde despacho</button>
                             </form>
                         </div>
                     </div>
                 <?php } ?>
 
-                <?php if ($INVOICE) { ?>
+                <?php if ($INVOICE) {
+                    $pdfUrlInv = 'registroInvoiceExp.php?ICARGA=' . (int)$IDICARGA . '&IMPRIMIR=1';
+                    foreach ($grpActiveInv as $gk) $pdfUrlInv .= '&' . $gk . '=1';
+                    $xlsUrlInv = 'registroInvoiceExp.php?ICARGA=' . (int)$IDICARGA . '&EXPORTAR=1';
+                    foreach ($grpActiveInv as $gk) $xlsUrlInv .= '&' . $gk . '=1';
+                ?>
                     <form method="post">
                         <?php if ($AGRUPAR_ESTANDAR) { ?><input type="hidden" name="AGRUPAR_ESTANDAR" value="1"><?php } ?>
                         <?php if ($AGRUPAR_VARIEDAD) { ?><input type="hidden" name="AGRUPAR_VARIEDAD" value="1"><?php } ?>
                         <?php if ($AGRUPAR_CALIBRE) { ?><input type="hidden" name="AGRUPAR_CALIBRE" value="1"><?php } ?>
+                        <input type="hidden" name="ICARGA" value="<?php echo (int)$IDICARGA; ?>">
                         <div class="box">
                             <div class="box-header with-border bg-info">
-                                <h4 class="box-title">Invoice <?php echo h($INVOICE['NUMERO_INVOICE']); ?> - <?php echo h($INVOICE['ESTADO_INVOICE']); ?></h4>
+                                <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                                    <div class="d-flex align-items-center" style="gap:10px;">
+                                        <a href="registroInvoiceExp.php" class="btn btn-sm btn-default" style="color:#333;">
+                                            <i class="ti-angle-left"></i> Listado
+                                        </a>
+                                        <h4 class="box-title" style="margin:0;">
+                                            Invoice <?php echo h($INVOICE['NUMERO_INVOICE']); ?> — <?php echo h($INVOICE['ESTADO_INVOICE']); ?>
+                                        </h4>
+                                    </div>
+                                    <div class="d-flex align-items-center" style="gap:6px;flex-wrap:wrap;">
+                                        <a href="<?php echo htmlspecialchars($xlsUrlInv, ENT_QUOTES, 'UTF-8'); ?>"
+                                           class="btn btn-xs btn-success" title="Exportar Excel">
+                                            <i class="ti-export"></i> Excel
+                                        </a>
+                                        <a href="<?php echo htmlspecialchars($pdfUrlInv, ENT_QUOTES, 'UTF-8'); ?>" target="_blank"
+                                           class="btn btn-xs btn-warning" title="Ver e imprimir PDF">
+                                            <i class="ti-printer"></i> PDF
+                                        </a>
+                                        <span style="width:1px;height:18px;background:rgba(255,255,255,.3);display:inline-block;margin:0 4px;"></span>
+                                        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.04em;">Agrupar:</span>
+                                        <?php foreach ($grpOptsInv as $gk => $glbl):
+                                            $isOn = in_array($gk, $grpActiveInv); ?>
+                                        <a href="<?php echo htmlspecialchars($grpToggleUrlsInv[$gk], ENT_QUOTES, 'UTF-8'); ?>"
+                                           class="btn btn-xs <?php echo $isOn ? 'btn-primary' : 'btn-default'; ?>"
+                                           style="font-weight:<?php echo $isOn ? '700' : '400'; ?>;<?php echo $isOn ? '' : 'opacity:.7;'; ?>">
+                                            <?php echo $glbl; ?>
+                                        </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             </div>
                             <div class="box-body">
                                 <div class="row">
@@ -616,6 +896,36 @@ if ($INVOICE) {
 </div>
 <?php include_once "../../assest/config/urlBase.php"; ?>
 <script>
+// DataTables listing
+<?php if ($IDICARGA === 0): ?>
+(function () {
+    var invDT = $('#invTable').DataTable({
+        pageLength: 25,
+        order: [[1, 'asc']],
+        columnDefs: [
+            { orderable: false, targets: [0, 5] },
+            { searchable: false, targets: [0, 5] },
+            { targets: 3, render: function (data, type) {
+                if (type !== 'display') return data;
+                var map = { 'CONFIRMADA':'badge-success', 'BORRADOR':'badge-warning', 'SIN INVOICE':'badge-secondary' };
+                return '<span class="badge ' + (map[data] || 'badge-default') + '">' + data + '</span>';
+            }}
+        ],
+        language: {
+            search: 'Buscar:', lengthMenu: 'Mostrar _MENU_ registros',
+            info: '_START_–_END_ de _TOTAL_', infoEmpty: 'Sin registros',
+            paginate: { previous: '‹', next: '›' }, zeroRecords: 'Sin resultados'
+        }
+    });
+    $('.inv-filter').on('click', function () {
+        $('.inv-filter').removeClass('active');
+        $(this).addClass('active');
+        invDT.column(3).search($(this).data('estado')).draw();
+    });
+})();
+<?php endif; ?>
+
+// Cálculo en vivo de totales
 document.querySelectorAll('.js-envases, .js-precio').forEach(function (input) {
     input.addEventListener('input', function () {
         var totalGeneral = 0;

@@ -253,27 +253,48 @@ if($ARRAYREGISTROSABIERTOS){
                 padding-top: 10px;
             }
             .ops-card {
-                border-left: 4px solid #1d8cf8;
-                min-height: 118px;
+                border-left: 6px solid #1d8cf8;
+                border-radius: 0 10px 10px 0;
+                min-height: 120px;
+                font-family: 'Inter', Arial, sans-serif;
+                transition: transform .18s, box-shadow .18s;
+            }
+            .ops-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(16,35,63,.13);
             }
             .ops-card .metric {
-                font-size: 26px;
-                font-weight: 700;
+                font-size: 30px;
+                font-weight: 800;
                 line-height: 1.1;
             }
             .ops-card .label {
-                color: #6c757d;
-                font-size: 12px;
+                font-size: 10px;
+                font-weight: 800;
                 text-transform: uppercase;
+                letter-spacing: .05em;
+                color: #667085;
+                margin-bottom: 5px;
             }
             .ops-card .shortcut {
                 font-size: 12px;
-                font-weight: 600;
+                font-weight: 700;
+                margin-top: 10px;
+                display: inline-block;
+                text-decoration: none;
             }
-            .ops-card.danger { border-left-color: #ff4d4f; }
-            .ops-card.success { border-left-color: #2ecc71; }
-            .ops-card.warning { border-left-color: #f5a623; }
-            .ops-card.teal { border-left-color: #00a6a4; }
+            .ops-card.danger  { border-left-color: #e53e3e; background: linear-gradient(135deg,#fff5f5 0%,#fff 55%); }
+            .ops-card.success { border-left-color: #2ecc71; background: linear-gradient(135deg,#f0fff4 0%,#fff 55%); }
+            .ops-card.warning { border-left-color: #f5a623; background: linear-gradient(135deg,#fffbf0 0%,#fff 55%); }
+            .ops-card.teal    { border-left-color: #00a6a4; background: linear-gradient(135deg,#e6fffd 0%,#fff 55%); }
+            .ops-card.danger  .metric { color: #c53030; }
+            .ops-card.success .metric { color: #276749; }
+            .ops-card.warning .metric { color: #9a6700; }
+            .ops-card.teal    .metric { color: #00726e; }
+            .ops-card.danger  .shortcut { color: #c53030; }
+            .ops-card.success .shortcut { color: #276749; }
+            .ops-card.warning .shortcut { color: #9a6700; }
+            .ops-card.teal    .shortcut { color: #00726e; }
             .action-list .action-item {
                 align-items: center;
                 border-bottom: 1px solid #edf1f5;

@@ -13,7 +13,10 @@ $ID = isset($_REQUEST['ID']) ? (int)$_REQUEST['ID'] : 0;
 $NUMERO = $_REQUEST['NUMERO'] ?? '';
 $ICARGA = isset($_REQUEST['ICARGA']) ? (int)$_REQUEST['ICARGA'] : 0;
 $RETORNO = $_REQUEST['RETORNO'] ?? 'index';
-$TITULO = $MODULO === 'INVOICE' ? 'Invoice Exportadora' : 'Liquidacion Exportadora';
+$TITULO = $MODULO === 'INVOICE'    ? 'Invoice Exportadora'
+        : ($MODULO === 'ICARGA'    ? 'Instructivo Carga'
+        : ($MODULO === 'NOTADC'   ? 'Nota D/C'
+        : 'Liquidacion Exportadora'));
 $mensaje = '';
 $mensajeOk = '';
 $motivoActual = trim($_POST['MOTIVO'] ?? '');
@@ -195,7 +198,7 @@ if (isset($_POST['SOLICITAR_CODIGO'])) {
     $motivo = $motivoActual;
     if ($motivo === '') {
         $mensaje = 'Debe ingresar un motivo de apertura.';
-    } elseif (!in_array($MODULO, ['INVOICE', 'LIQUIDACION'], true) || $ID <= 0) {
+    } elseif (!in_array($MODULO, ['INVOICE', 'LIQUIDACION', 'ICARGA', 'NOTADC'], true) || $ID <= 0) {
         $mensaje = 'No fue posible identificar el registro a reabrir.';
     } else {
         $codigoAutorizacion = generarCodigoAutorizacionExportadora();
@@ -245,7 +248,7 @@ if (isset($_POST['CONFIRMAR_REAPERTURA'])) {
 
     if ($motivo === '') {
         $mensaje = 'Debe ingresar un motivo de apertura.';
-    } elseif (!in_array($MODULO, ['INVOICE', 'LIQUIDACION'], true) || $ID <= 0) {
+    } elseif (!in_array($MODULO, ['INVOICE', 'LIQUIDACION', 'ICARGA', 'NOTADC'], true) || $ID <= 0) {
         $mensaje = 'No fue posible identificar el registro a reabrir.';
     } elseif (!$codigoSesion || !$idSesion || !$moduloSesion || (int)$idSesion !== $ID || $moduloSesion !== $MODULO) {
         $mensaje = 'No hay una solicitud de reapertura vigente para este registro.';
@@ -319,6 +322,72 @@ if (isset($_POST['CONFIRMAR_REAPERTURA'])) {
         }
         limpiarSesionReaperturaExportadora();
         echo "<script>location.href='" . volverUrl($RETORNO, $ICARGA) . "';</script>";
+        exit;
+    } elseif ($MODULO === 'ICARGA') {
+        $MAPERTURA->__SET('MOTIVO_MAPERTURA', $motivo);
+        $MAPERTURA->__SET('TABLA', 'fruta_icarga');
+        $MAPERTURA->__SET('ID_REGISTRO', $ID);
+        $MAPERTURA->__SET('ID_USUARIO', $IDUSUARIOS);
+        $MAPERTURA_ADO->agregarMapertura($MAPERTURA);
+
+        $stmt = $db->prepare("
+            UPDATE fruta_icarga
+            SET ESTADO = 1,
+                ID_USUARIOM = ?,
+                MODIFICACION = SYSDATE()
+            WHERE ID_ICARGA = ?
+            AND ESTADO_REGISTRO = 1
+        ");
+        $stmt->execute([$IDUSUARIOS, $ID]);
+
+        $destinatarios = obtenerDestinatariosAutorizacionExportadora($correoUsuario);
+        $asunto = 'Confirmacion reapertura ' . $TITULO . ' ' . $NUMERO;
+        $mensajeCorreo = "Se confirmo la reapertura de un registro de exportadora." . "\r\n\r\n" .
+            "Modulo: " . $TITULO . "\r\n" .
+            "Registro: " . $NUMERO . "\r\n" .
+            "ID interno: " . $ID . "\r\n" .
+            "Motivo: " . $motivo . "\r\n" .
+            "Confirmado por: " . $nombreUsuario . "\r\n\r\n" .
+            "El registro quedo en estado abierto.";
+        enviarCorreoSMTPExportadora($destinatarios, $asunto, $mensajeCorreo, 'informes@volcanfoods.cl', 'informes@volcanfoods.cl', '1z=EWfu0026k', 'mail.volcanfoods.cl', 465);
+        if ($correoUsuario !== '') {
+            enviarCorreoSMTPExportadora($correoUsuario, $asunto, $mensajeCorreo, 'informes@volcanfoods.cl', 'informes@volcanfoods.cl', '1z=EWfu0026k', 'mail.volcanfoods.cl', 465);
+        }
+        limpiarSesionReaperturaExportadora();
+        echo "<script>location.href='" . volverUrl($RETORNO, 0) . "';</script>";
+        exit;
+    } elseif ($MODULO === 'NOTADC') {
+        $MAPERTURA->__SET('MOTIVO_MAPERTURA', $motivo);
+        $MAPERTURA->__SET('TABLA', 'fruta_notadc');
+        $MAPERTURA->__SET('ID_REGISTRO', $ID);
+        $MAPERTURA->__SET('ID_USUARIO', $IDUSUARIOS);
+        $MAPERTURA_ADO->agregarMapertura($MAPERTURA);
+
+        $stmt = $db->prepare("
+            UPDATE fruta_notadc
+            SET ESTADO = 1,
+                ID_USUARIOM = ?,
+                MODIFICACION = SYSDATE()
+            WHERE ID_NOTA = ?
+            AND ESTADO_REGISTRO = 1
+        ");
+        $stmt->execute([$IDUSUARIOS, $ID]);
+
+        $destinatarios = obtenerDestinatariosAutorizacionExportadora($correoUsuario);
+        $asunto = 'Confirmacion reapertura ' . $TITULO . ' ' . $NUMERO;
+        $mensajeCorreo = "Se confirmo la reapertura de un registro de exportadora." . "\r\n\r\n" .
+            "Modulo: " . $TITULO . "\r\n" .
+            "Registro: " . $NUMERO . "\r\n" .
+            "ID interno: " . $ID . "\r\n" .
+            "Motivo: " . $motivo . "\r\n" .
+            "Confirmado por: " . $nombreUsuario . "\r\n\r\n" .
+            "El registro quedo en estado abierto.";
+        enviarCorreoSMTPExportadora($destinatarios, $asunto, $mensajeCorreo, 'informes@volcanfoods.cl', 'informes@volcanfoods.cl', '1z=EWfu0026k', 'mail.volcanfoods.cl', 465);
+        if ($correoUsuario !== '') {
+            enviarCorreoSMTPExportadora($correoUsuario, $asunto, $mensajeCorreo, 'informes@volcanfoods.cl', 'informes@volcanfoods.cl', '1z=EWfu0026k', 'mail.volcanfoods.cl', 465);
+        }
+        limpiarSesionReaperturaExportadora();
+        echo "<script>location.href='" . volverUrl($RETORNO, 0) . "';</script>";
         exit;
     }
 }

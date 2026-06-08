@@ -2,6 +2,13 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* AdminLTE fixed mode agrega padding-top al content-wrapper;
+   el commandbar-spacer ya maneja el offset, así que lo anulamos. */
+.fixed .content-wrapper,
+.fixed .right-side {
+  padding-top: 0 !important;
+}
+
 body {
   overflow-x: hidden;
 }
@@ -209,4 +216,127 @@ button,
   .modal-footer > * {
     margin: 4px;
   }
+}
+
+/* ── Sidebar modernization ─────────────────────────────────────── */
+.main-sidebar,
+.main-sidebar .sidebar-menu li a,
+.main-sidebar .sidebar-menu li .treeview-menu a {
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+/* Section headers (e.g. "Modulo") */
+.sidebar-menu > li.header {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: .06em !important;
+  color: #4caf50 !important;
+  padding: 14px 18px 6px !important;
+  text-transform: uppercase;
+  background: transparent !important;
+}
+
+/* All sidebar links: font + smooth transition */
+.sidebar-menu > li > a,
+.sidebar-menu li .treeview-menu > li > a {
+  font-weight: 600;
+  font-size: 13px;
+  transition: background .14s, color .14s, padding-left .14s;
+}
+
+/* Hover state */
+.sidebar-menu > li > a:hover {
+  background: rgba(10, 58, 106, .06) !important;
+  color: #0a3a6a !important;
+  border-radius: 0 8px 8px 0 !important;
+  margin-right: 10px;
+}
+.sidebar-menu li .treeview-menu > li > a:hover {
+  background: rgba(10, 58, 106, .05) !important;
+  color: #0a3a6a !important;
+  border-radius: 6px !important;
+  margin: 0 8px !important;
+  padding-left: 10px !important;
+}
+
+/* Active top-level item — fondo sutil azul claro, texto navy */
+.sidebar-menu > li.active > a,
+.sidebar-menu > li.active > a:hover {
+  background: #e8f1fb !important;
+  color: #0a3a6a !important;
+  border-left: 3px solid #0a3a6a;
+  padding-left: 12px !important;
+  border-radius: 0 8px 8px 0 !important;
+  margin-right: 10px;
+  font-weight: 800 !important;
+}
+.sidebar-menu > li.active > a span,
+.sidebar-menu > li.active > a i {
+  color: #0a3a6a !important;
+}
+
+/* Active sub-item */
+.sidebar-menu .treeview-menu > li.active > a,
+.sidebar-menu .treeview-menu > li > a.active {
+  color: #0a3a6a !important;
+  font-weight: 800 !important;
+}
+
+/* Open-records badges */
+.sidebar-menu .badge.badge-danger.pull-right {
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  line-height: 1.4;
+}
+
+/* ── Breadcrumb modernization ─────────────────────────────────── */
+.content-header .page-title {
+  font-family: 'Inter', Arial, sans-serif !important;
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: #10233f !important;
+  margin-bottom: 3px !important;
+  line-height: 1.2 !important;
+}
+
+.content-header .breadcrumb {
+  font-family: 'Inter', Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin-bottom: 0 !important;
+  align-items: center;
+}
+
+/* Separador: › en lugar de - */
+.content-header .breadcrumb-item + .breadcrumb-item::before,
+.content-header > .breadcrumb > li + li:before {
+  content: "›" !important;
+  color: #c9d5e0 !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  padding: 0 4px !important;
+  line-height: 1;
+}
+
+/* Items no activos */
+.content-header .breadcrumb .breadcrumb-item,
+.content-header .breadcrumb .breadcrumb-item a {
+  color: #94a3b8 !important;
+  text-decoration: none !important;
+  transition: color .14s;
+}
+.content-header .breadcrumb .breadcrumb-item a:hover {
+  color: #0a3a6a !important;
+}
+
+/* Último ítem activo */
+.content-header .breadcrumb .breadcrumb-item.active,
+.content-header .breadcrumb .breadcrumb-item.active a {
+  color: #334155 !important;
+  font-weight: 700 !important;
 }

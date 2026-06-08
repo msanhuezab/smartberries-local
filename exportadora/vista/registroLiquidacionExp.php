@@ -730,7 +730,242 @@ $URL_NOTADC_SUGERIDA = $TNOTA_SUGERIDA > 0
         . '&TNOTA=' . urlencode((string)$TNOTA_SUGERIDA)
         . '&OBSERVACIONINOTA=' . urlencode($OBS_NOTADC_SUGERIDA)
     : '#';
-?>
+
+// ── Modo impresión / PDF ───────────────────────────────────────────────────
+if (isset($_GET['IMPRIMIR']) && $IDICARGA > 0 && $CABECERA) {
+    $arrEmp  = $EMPRESA_ADO->verEmpresa($EMPRESAS);
+    $arrTemp = $TEMPORADA_ADO->verTemporada($TEMPORADAS);
+    $nombreEmpresa   = $arrEmp  ? $arrEmp[0]['NOMBRE_EMPRESA']   : '';
+    $nombreTemporada = $arrTemp ? $arrTemp[0]['NOMBRE_TEMPORADA'] : $TEMPORADAS;
+    $refDoc    = $CABECERA['NREFERENCIA_ICARGA'];
+    $titleDoc  = 'Liquidación - ' . $refDoc . ' - ' . $nombreTemporada;
+
+    // Pre-compute line totals
+    $lineasPrint = [];
+    foreach ($LINEAS as $l) {
+        $kgCaja      = (int)$l['ENVASES'] > 0 ? (float)$l['NETO'] / (int)$l['ENVASES'] : 0;
+        $refKg       = $kgCaja > 0 ? (float)$l['FOB_REFERENCIA'] / $kgCaja : 0;
+        $fobVentaKg  = (float)$l['FOB_REAL'];
+        $fobVentaCja = $kgCaja > 0 ? $fobVentaKg * $kgCaja : 0;
+        $venta       = (float)$l['NETO'] * $fobVentaKg;
+        $comLin      = $TOTAL_VENTA > 0 ? $TOTAL_COMISION_ITEMS * ($venta / $TOTAL_VENTA) : 0;
+        $gasLin      = $TOTAL_NETO  > 0 ? $TOTAL_GASTOS_ITEMS  * ((float)$l['NETO'] / $TOTAL_NETO) : 0;
+        $retorno     = $venta - $comLin - $gasLin;
+        $fobFinalKg  = (float)$l['NETO'] > 0 ? $retorno / (float)$l['NETO'] : 0;
+        $fobFinalCja = $fobFinalKg * $kgCaja;
+        $l['_venta']      = $venta;
+        $l['_refKg']      = $refKg;
+        $l['_fobVentaCja'] = $fobVentaCja;
+        $l['_fobVentaKg'] = $fobVentaKg;
+        $l['_retorno']    = $retorno;
+        $l['_fobFinalKg'] = $fobFinalKg;
+        $l['_fobFinalCja']= $fobFinalCja;
+        $lineasPrint[]    = $l;
+    }
+?><!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title><?php echo h($titleDoc); ?></title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a2e; background: #fff; }
+    .print-page { max-width: 1100px; margin: 0 auto; padding: 20px 24px 40px; }
+    /* ── Header ── */
+    .doc-header { display: flex; justify-content: space-between; align-items: flex-end;
+                  border-bottom: 3px solid #0a3a6a; padding-bottom: 12px; margin-bottom: 16px; }
+    .doc-header-left h1 { font-size: 18px; font-weight: 900; color: #0a3a6a; text-transform: uppercase; letter-spacing: .04em; }
+    .doc-header-left p  { font-size: 11px; color: #555; margin-top: 2px; }
+    .doc-header-right   { text-align: right; font-size: 10px; color: #666; line-height: 1.6; }
+    .doc-header-right strong { font-size: 13px; color: #0a3a6a; display: block; }
+    /* ── Info grid ── */
+    .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .info-cell { background: #f4f7fb; border-left: 3px solid #0a3a6a; padding: 7px 10px; border-radius: 0 4px 4px 0; }
+    .info-cell .lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #667085; margin-bottom: 2px; }
+    .info-cell .val { font-size: 12px; font-weight: 700; color: #10233f; }
+    /* ── Summary bar ── */
+    .summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+    .sum-cell { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; text-align: center; }
+    .sum-cell .sum-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #667085; margin-bottom: 4px; }
+    .sum-cell .sum-val { font-size: 15px; font-weight: 900; color: #10233f; }
+    .sum-cell.highlight { background: #0a3a6a; border-color: #0a3a6a; }
+    .sum-cell.highlight .sum-lbl { color: rgba(255,255,255,.7); }
+    .sum-cell.highlight .sum-val { color: #fff; }
+    /* ── Section title ── */
+    .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+                     color: #0a3a6a; border-bottom: 1px solid #c9d5e0; padding-bottom: 5px; margin-bottom: 8px; margin-top: 16px; }
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    th { background: #0a3a6a; color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase;
+         letter-spacing: .04em; padding: 6px 7px; text-align: center; border: 1px solid #08305a; }
+    td { padding: 5px 7px; border: 1px solid #dde3ec; vertical-align: middle; }
+    tr:nth-child(even) td { background: #f9fbfd; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .total-row td { background: #e8f1fb !important; font-weight: 800; color: #0a3a6a; border-top: 2px solid #0a3a6a; }
+    /* ── Gastos table ── */
+    .gastos-table { width: 50%; font-size: 10.5px; margin-top: 4px; }
+    .gastos-table td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+    .gastos-table .gasto-lbl { color: #555; }
+    .gastos-table .gasto-val { text-align: right; font-weight: 600; color: #10233f; }
+    /* ── Footer ── */
+    .doc-footer { margin-top: 30px; border-top: 1px solid #c9d5e0; padding-top: 10px;
+                  display: flex; justify-content: space-between; color: #999; font-size: 9px; }
+    /* ── Print ── */
+    @media print {
+        body { font-size: 10px; }
+        .no-print { display: none !important; }
+        .print-page { padding: 0; }
+        @page { size: A4 landscape; margin: 15mm 12mm; }
+    }
+</style>
+</head>
+<body onload="window.print()">
+<div class="print-page">
+
+    <!-- Header -->
+    <div class="doc-header">
+        <div class="doc-header-left">
+            <h1>Liquidación de Exportación</h1>
+            <p><?php echo h($nombreEmpresa); ?> &nbsp;·&nbsp; Temporada <?php echo h($nombreTemporada); ?></p>
+        </div>
+        <div class="doc-header-right">
+            <strong><?php echo h($refDoc); ?></strong>
+            <?php echo h($CABECERA['NCONTENEDOR_ICARGA']); ?><br>
+            Instructivo <?php echo h($CABECERA['NUMERO_ICARGA']); ?><br>
+            <?php echo h($CABECERA['FECHA_ICARGA']); ?>
+        </div>
+    </div>
+
+    <!-- Info grid -->
+    <div class="info-grid">
+        <div class="info-cell"><div class="lbl">Referencia</div><div class="val"><?php echo h($CABECERA['NREFERENCIA_ICARGA']); ?></div></div>
+        <div class="info-cell"><div class="lbl">Contenedor</div><div class="val"><?php echo h($CABECERA['NCONTENEDOR_ICARGA']); ?></div></div>
+        <div class="info-cell"><div class="lbl">Instructivo</div><div class="val"><?php echo h($CABECERA['NUMERO_ICARGA']); ?></div></div>
+        <div class="info-cell"><div class="lbl">Fecha</div><div class="val"><?php echo h($CABECERA['FECHA_ICARGA']); ?></div></div>
+        <div class="info-cell"><div class="lbl">Total cajas</div><div class="val"><?php echo number_format((int)$TOTAL_ENVASES_EXPORTADO, 0, ',', '.'); ?></div></div>
+        <div class="info-cell"><div class="lbl">Kg neto</div><div class="val"><?php echo numero($TOTAL_NETO_EXPORTADO); ?></div></div>
+        <div class="info-cell"><div class="lbl">Moneda</div><div class="val"><?php echo h($MONEDA_ACTUAL); ?></div></div>
+        <div class="info-cell"><div class="lbl">Flete</div><div class="val"><?php echo h($CONDICION_FLETE_ACTUAL); ?></div></div>
+    </div>
+
+    <!-- Summary bar -->
+    <div class="summary-bar">
+        <div class="sum-cell">
+            <div class="sum-lbl">Total venta US$</div>
+            <div class="sum-val"><?php echo numero($TOTAL_VENTA); ?></div>
+        </div>
+        <div class="sum-cell">
+            <div class="sum-lbl">Comisión US$</div>
+            <div class="sum-val"><?php echo numero($TOTAL_COMISION_ITEMS); ?></div>
+        </div>
+        <div class="sum-cell">
+            <div class="sum-lbl">Gastos US$</div>
+            <div class="sum-val"><?php echo numero($TOTAL_GASTOS_ITEMS); ?></div>
+        </div>
+        <div class="sum-cell highlight">
+            <div class="sum-lbl">Retorno neto US$</div>
+            <div class="sum-val"><?php echo numero($TOTAL_VENTA_NETO); ?></div>
+        </div>
+    </div>
+
+    <!-- Line items -->
+    <div class="section-title">Detalle de líneas</div>
+    <table>
+        <thead>
+            <tr>
+                <?php if ($AGRUPAR_FOLIO)    echo '<th>Folio</th>'; ?>
+                <?php if ($AGRUPAR_ESTANDAR) echo '<th>Estándar</th>'; ?>
+                <?php if ($AGRUPAR_VARIEDAD) echo '<th>Variedad</th>'; ?>
+                <?php if ($AGRUPAR_CALIBRE)  echo '<th>Calibre</th>'; ?>
+                <?php if ($mostrarProductor) echo '<th>Productor</th>'; ?>
+                <th>Cajas</th>
+                <th>Kg Neto</th>
+                <th>Ref. Caja</th>
+                <th>Ref. Kg</th>
+                <th>FOB Venta Caja</th>
+                <th>FOB Venta Kg</th>
+                <th>Venta US$</th>
+                <th>FOB Final Caja</th>
+                <th>FOB Final Kg</th>
+                <th>Obs.</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($lineasPrint as $l): ?>
+            <tr>
+                <?php if ($AGRUPAR_FOLIO)    echo '<td class="text-center">' . h($l['FOLIO_LINEA']) . '</td>'; ?>
+                <?php if ($AGRUPAR_ESTANDAR) echo '<td>' . h($l['NOMBRE_ESTANDAR']) . '</td>'; ?>
+                <?php if ($AGRUPAR_VARIEDAD) echo '<td>' . h($l['NOMBRE_VESPECIES']) . '</td>'; ?>
+                <?php if ($AGRUPAR_CALIBRE)  echo '<td class="text-center">' . h($l['NOMBRE_TCALIBRE']) . '</td>'; ?>
+                <?php if ($mostrarProductor) echo '<td>' . h($l['CSG_PRODUCTOR'] . ' - ' . $l['NOMBRE_PRODUCTOR']) . '</td>'; ?>
+                <td class="text-right"><?php echo number_format((int)$l['ENVASES'], 0, ',', '.'); ?></td>
+                <td class="text-right"><?php echo numero($l['NETO']); ?></td>
+                <td class="text-right"><?php echo numero($l['FOB_REFERENCIA']); ?></td>
+                <td class="text-right"><?php echo numero($l['_refKg']); ?></td>
+                <td class="text-right"><?php echo numero($l['_fobVentaCja']); ?></td>
+                <td class="text-right"><?php echo numero($l['_fobVentaKg']); ?></td>
+                <td class="text-right"><?php echo numero($l['_venta']); ?></td>
+                <td class="text-right"><?php echo numero($l['_fobFinalCja']); ?></td>
+                <td class="text-right"><?php echo numero($l['_fobFinalKg']); ?></td>
+                <td><?php echo h($l['OBSERVACION']); ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <?php
+                $colsGrp = (int)$AGRUPAR_FOLIO + (int)$AGRUPAR_ESTANDAR + (int)$AGRUPAR_VARIEDAD + (int)$AGRUPAR_CALIBRE + (int)$mostrarProductor;
+                echo '<td colspan="' . $colsGrp . '" class="text-right">TOTALES</td>';
+                ?>
+                <td class="text-right"><?php echo number_format((int)$TOTAL_ENVASES, 0, ',', '.'); ?></td>
+                <td class="text-right"><?php echo numero($TOTAL_NETO); ?></td>
+                <td class="text-right">—</td>
+                <td class="text-right">—</td>
+                <td class="text-right">—</td>
+                <td class="text-right">—</td>
+                <td class="text-right"><?php echo numero($TOTAL_VENTA); ?></td>
+                <td class="text-right">—</td>
+                <td class="text-right">—</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Gastos items -->
+    <?php
+    $gastosConValor = [];
+    foreach ($ITEMS_LIQUIDACION as $item) {
+        $val = $GASTOS_VALOR[(int)$item['ID_TITEM']] ?? 0;
+        if ($MONEDA_ACTUAL === 'EUR' && $TIPO_CAMBIO_ACTUAL > 0) $val = $val / $TIPO_CAMBIO_ACTUAL;
+        if (abs((float)$val) > 0) $gastosConValor[] = ['nombre' => $item['NOMBRE_TITEM'], 'val' => $val];
+    }
+    if (count($gastosConValor) > 0): ?>
+    <div class="section-title">Items de gastos</div>
+    <table class="gastos-table">
+        <?php foreach ($gastosConValor as $g): ?>
+        <tr>
+            <td class="gasto-lbl"><?php echo h($g['nombre']); ?></td>
+            <td class="gasto-val"><?php echo numero($g['val']); ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+    <?php endif; ?>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+        <span>Generado: <?php echo date('d/m/Y H:i'); ?></span>
+        <span><?php echo h($nombreEmpresa); ?> · Temporada <?php echo h($nombreTemporada); ?></span>
+        <span class="no-print">
+            <button onclick="window.print()" style="cursor:pointer;padding:4px 12px;background:#0a3a6a;color:#fff;border:none;border-radius:4px;">Imprimir</button>
+            <button onclick="window.close()" style="cursor:pointer;padding:4px 12px;background:#e2e8f0;color:#333;border:none;border-radius:4px;margin-left:6px;">Cerrar</button>
+        </span>
+    </div>
+
+</div>
+</body>
+</html>
+<?php exit; } // end IMPRIMIR ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -790,6 +1025,14 @@ $URL_NOTADC_SUGERIDA = $TNOTA_SUGERIDA > 0
             background: #f7f7f7;
             margin-top: 10px;
         }
+        @media print {
+            .main-header, .main-sidebar, .content-header,
+            .box-header .btn, .box-header a.btn,
+            .liq-export-bar, footer { display: none !important; }
+            .content-wrapper { margin-left: 0 !important; padding: 0 !important; }
+            .box { border: none !important; box-shadow: none !important; }
+            .liqui-table input { border: none !important; background: transparent !important; }
+        }
     </style>
 </head>
 <body class="hold-transition light-skin fixed sidebar-mini theme-primary">
@@ -821,63 +1064,146 @@ $URL_NOTADC_SUGERIDA = $TNOTA_SUGERIDA > 0
                 <?php if ($LIQUIDACION_BLOQUEADA) { ?>
                     <div class="alert alert-info">Liquidacion en estado liquidada. La informacion queda bloqueada para edicion.</div>
                 <?php } ?>
+                <?php if ($IDICARGA === 0) { ?>
                 <div class="box">
-                    <div class="box-header with-border bg-primary">
-                        <h4 class="box-title">Seleccion de referencia / contenedor</h4>
-                    </div>
-                    <form method="get">
-                        <div class="box-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label>Instructivo / Referencia</label>
-                                    <select class="form-control select2" name="ICARGA" style="width:100%">
-                                        <option></option>
-                                        <?php foreach ($INSTRUCTIVOS as $i) { ?>
-                                            <option value="<?php echo (int)$i['ID_ICARGA']; ?>" <?php echo $IDICARGA == (int)$i['ID_ICARGA'] ? 'selected' : ''; ?>>
-                                                <?php
-                                                    if ((int)$i['TIENE_VALORES_LIQUIDACION'] === 1) {
-                                                        $estadoLiquidacion = 'Liquidado';
-                                                    } elseif (!empty($i['ID_VALOR_LIQUIDACION'])) {
-                                                        $estadoLiquidacion = 'En proceso';
-                                                    } elseif ((int)$i['TIENE_PRECIO_REFERENCIA'] === 1) {
-                                                        $estadoLiquidacion = 'Estimado';
-                                                    } else {
-                                                        $estadoLiquidacion = 'Pendiente';
-                                                    }
-                                                    echo h($i['NUMERO_ICARGA'] . ' - ' . $i['NREFERENCIA_ICARGA'] . ' - ' . $i['NCONTENEDOR_ICARGA'] . ' (' . (int)$i['DETALLE_EXPORTADO'] . ' folios) - ' . $estadoLiquidacion);
-                                                ?>
-                                            </option>
-                                        <?php } ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label>Agrupar por</label>
-                                    <div class="checkbox">
-                                        <input type="checkbox" id="AGRUPAR_FOLIO" name="AGRUPAR_FOLIO" value="1" <?php echo $AGRUPAR_FOLIO ? 'checked' : ''; ?>>
-                                        <label for="AGRUPAR_FOLIO">Folio</label>
-                                    </div>
-                                    <div class="checkbox">
-                                        <input type="checkbox" id="AGRUPAR_ESTANDAR" name="AGRUPAR_ESTANDAR" value="1" <?php echo $AGRUPAR_ESTANDAR ? 'checked' : ''; ?>>
-                                        <label for="AGRUPAR_ESTANDAR">Estandar</label>
-                                    </div>
-                                    <div class="checkbox">
-                                        <input type="checkbox" id="AGRUPAR_VARIEDAD" name="AGRUPAR_VARIEDAD" value="1" <?php echo $AGRUPAR_VARIEDAD ? 'checked' : ''; ?>>
-                                        <label for="AGRUPAR_VARIEDAD">Variedad</label>
-                                    </div>
-                                    <div class="checkbox">
-                                        <input type="checkbox" id="AGRUPAR_CALIBRE" name="AGRUPAR_CALIBRE" value="1" <?php echo $AGRUPAR_CALIBRE ? 'checked' : ''; ?>>
-                                        <label for="AGRUPAR_CALIBRE">Calibre</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 pt-30">
-                                    <button class="btn btn-primary" type="submit"><i class="ti-search"></i> Cargar</button>
-                                </div>
+                    <div class="box-header with-border">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                            <h4 class="box-title">Liquidaciones de exportación</h4>
+                            <div class="d-flex align-items-center" style="gap:6px;flex-wrap:wrap;">
+                                <span class="text-muted" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Filtrar:</span>
+                                <button class="btn btn-xs btn-default liq-filter active" data-estado="">Todos</button>
+                                <button class="btn btn-xs btn-success liq-filter" data-estado="Liquidado">Liquidado</button>
+                                <button class="btn btn-xs btn-info liq-filter" data-estado="En proceso">En proceso</button>
+                                <button class="btn btn-xs btn-warning liq-filter" data-estado="Estimado">Estimado</button>
+                                <button class="btn btn-xs btn-default liq-filter" data-estado="Pendiente">Pendiente</button>
                             </div>
                         </div>
-                    </form>
+                    </div>
+                    <div class="box-body">
+                        <table class="table table-bordered table-hover" id="liqTable" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Referencia</th>
+                                    <th>Contenedor</th>
+                                    <th>Fecha</th>
+                                    <th>Folios</th>
+                                    <th>Estado</th>
+                                    <th class="no-export">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php $liqIdx = 0; foreach ($INSTRUCTIVOS as $instr) {
+                                $liqIdx++;
+                                if ((int)$instr['TIENE_VALORES_LIQUIDACION'] === 1) {
+                                    $estadoLiq = 'Liquidado';
+                                    $badgeLiq  = 'badge-success';
+                                } elseif (!empty($instr['ID_VALOR_LIQUIDACION'])) {
+                                    $estadoLiq = 'En proceso';
+                                    $badgeLiq  = 'badge-info';
+                                } elseif ((int)$instr['TIENE_PRECIO_REFERENCIA'] === 1) {
+                                    $estadoLiq = 'Estimado';
+                                    $badgeLiq  = 'badge-warning';
+                                } else {
+                                    $estadoLiq = 'Pendiente';
+                                    $badgeLiq  = 'badge-secondary';
+                                }
+                                $urlAbrir = 'registroLiquidacionExp.php?ICARGA=' . (int)$instr['ID_ICARGA'] . '&AGRUPAR_ESTANDAR=1';
+                            ?>
+                                <tr>
+                                    <td><?php echo $liqIdx; ?></td>
+                                    <td><strong><?php echo h($instr['NREFERENCIA_ICARGA']); ?></strong></td>
+                                    <td><?php echo h($instr['NCONTENEDOR_ICARGA']); ?></td>
+                                    <td><?php echo h($instr['FECHA_ICARGA']); ?></td>
+                                    <td class="text-center"><?php echo (int)$instr['DETALLE_EXPORTADO']; ?></td>
+                                    <td class="text-center"><?php echo $estadoLiq; ?></td>
+                                    <td class="text-center no-export">
+                                        <a href="<?php echo $urlAbrir; ?>" class="btn btn-sm btn-outline-primary">
+                                            Abrir <i class="ti-angle-right"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php } ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+                <script>
+                $(document).ready(function(){
+                    if (!$.fn.DataTable || !$('#liqTable').length) return;
 
-                <?php if ($CABECERA) { ?>
+                    var liqDT = $('#liqTable').DataTable({
+                        pageLength: 25,
+                        order: [[3, 'desc']],
+                        columnDefs: [
+                            { orderable: false, targets: [0, 6] },
+                            { searchable: false, targets: [0, 4, 6] },
+                            {
+                                targets: 5,
+                                render: function(data, type) {
+                                    if (type !== 'display') return data;
+                                    var map = {
+                                        'Liquidado':  'badge-success',
+                                        'En proceso': 'badge-info',
+                                        'Estimado':   'badge-warning',
+                                        'Pendiente':  'badge-secondary'
+                                    };
+                                    return '<span class="badge ' + (map[data] || 'badge-default') + '">' + data + '</span>';
+                                }
+                            }
+                        ],
+                        language: {
+                            search:       'Buscar:',
+                            lengthMenu:   'Mostrar _MENU_ registros',
+                            info:         'Mostrando _START_ a _END_ de _TOTAL_ registros',
+                            infoEmpty:    'Mostrando 0 a 0 de 0 registros',
+                            infoFiltered: '(filtrado de _MAX_ registros totales)',
+                            zeroRecords:  'No se encontraron resultados',
+                            emptyTable:   'No hay datos disponibles',
+                            paginate: {
+                                first: 'Primero', last: 'Último',
+                                next: 'Siguiente', previous: 'Anterior'
+                            }
+                        }
+                    });
+
+                    // State filter buttons
+                    $('.liq-filter').on('click', function(){
+                        $('.liq-filter').removeClass('active');
+                        $(this).addClass('active');
+                        liqDT.column(5).search($(this).data('estado')).draw();
+                    });
+                });
+                </script>
+                <?php } ?>
+
+                <?php if ($CABECERA) {
+                    // Build grouping toggle URLs (click to toggle each option)
+                    $grpActive = [];
+                    if ($AGRUPAR_FOLIO)    $grpActive[] = 'AGRUPAR_FOLIO';
+                    if ($AGRUPAR_ESTANDAR) $grpActive[] = 'AGRUPAR_ESTANDAR';
+                    if ($AGRUPAR_VARIEDAD) $grpActive[] = 'AGRUPAR_VARIEDAD';
+                    if ($AGRUPAR_CALIBRE)  $grpActive[] = 'AGRUPAR_CALIBRE';
+                    $grpOpts = [
+                        'AGRUPAR_FOLIO'    => 'Folio',
+                        'AGRUPAR_ESTANDAR' => 'Estándar',
+                        'AGRUPAR_VARIEDAD' => 'Variedad',
+                        'AGRUPAR_CALIBRE'  => 'Calibre',
+                    ];
+                    $grpToggleUrls = [];
+                    foreach ($grpOpts as $gk => $glbl) {
+                        $next = [];
+                        if (in_array($gk, $grpActive)) {
+                            foreach ($grpActive as $g) { if ($g !== $gk) $next[] = $g; }
+                        } else {
+                            $next = array_merge($grpActive, [$gk]);
+                        }
+                        if (empty($next)) $next = ['AGRUPAR_ESTANDAR'];
+                        $qs = 'ICARGA=' . (int)$IDICARGA;
+                        foreach ($next as $g) $qs .= '&' . $g . '=1';
+                        $grpToggleUrls[$gk] = 'registroLiquidacionExp.php?' . $qs;
+                    }
+                ?>
                     <form method="post">
                         <input type="hidden" name="ICARGA" value="<?php echo (int)$IDICARGA; ?>">
                         <?php if ($AGRUPAR_FOLIO) { ?><input type="hidden" name="AGRUPAR_FOLIO" value="1"><?php } ?>
@@ -886,9 +1212,40 @@ $URL_NOTADC_SUGERIDA = $TNOTA_SUGERIDA > 0
                         <?php if ($AGRUPAR_CALIBRE) { ?><input type="hidden" name="AGRUPAR_CALIBRE" value="1"><?php } ?>
                         <div class="box">
                             <div class="box-header with-border bg-info">
-                                <h4 class="box-title">
-                                    <?php echo h($CABECERA['NREFERENCIA_ICARGA'] . ' / ' . $CABECERA['NCONTENEDOR_ICARGA']); ?>
-                                </h4>
+                                <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                                    <div class="d-flex align-items-center" style="gap:10px;">
+                                        <a href="registroLiquidacionExp.php" class="btn btn-sm btn-default" title="Volver al listado" style="color:#333;">
+                                            <i class="ti-angle-left"></i> Listado
+                                        </a>
+                                        <h4 class="box-title" style="margin:0;">
+                                            <?php echo h($CABECERA['NREFERENCIA_ICARGA'] . ' / ' . $CABECERA['NCONTENEDOR_ICARGA']); ?>
+                                        </h4>
+                                    </div>
+                                    <div class="d-flex align-items-center" style="gap:6px;flex-wrap:wrap;">
+                                        <a href="exportarLiquidacionExp.php?ICARGA=<?php echo (int)$IDICARGA; ?>&EXPORTAR=1"
+                                           class="btn btn-xs btn-success" title="Descargar Excel de esta liquidación">
+                                            <i class="ti-export"></i> Excel
+                                        </a>
+                                        <?php
+                                        $pdfUrl = 'registroLiquidacionExp.php?ICARGA=' . (int)$IDICARGA . '&IMPRIMIR=1';
+                                        foreach ($grpActive as $gk) $pdfUrl .= '&' . $gk . '=1';
+                                        ?>
+                                        <a href="<?php echo htmlspecialchars($pdfUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank"
+                                           class="btn btn-xs btn-warning" title="Ver e imprimir / Guardar como PDF">
+                                            <i class="ti-printer"></i> PDF
+                                        </a>
+                                        <span style="width:1px;height:18px;background:rgba(255,255,255,.3);display:inline-block;margin:0 4px;"></span>
+                                        <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.04em;">Agrupar:</span>
+                                        <?php foreach ($grpOpts as $gk => $glbl):
+                                            $isOn = in_array($gk, $grpActive); ?>
+                                        <a href="<?php echo htmlspecialchars($grpToggleUrls[$gk], ENT_QUOTES, 'UTF-8'); ?>"
+                                           class="btn btn-xs <?php echo $isOn ? 'btn-primary' : 'btn-default'; ?>"
+                                           style="font-weight:<?php echo $isOn ? '700' : '400'; ?>;<?php echo $isOn ? '' : 'opacity:.7;'; ?>">
+                                            <?php echo $glbl; ?>
+                                        </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             </div>
                             <div class="box-body">
                                 <?php if (count($LINEAS) === 0) { ?>

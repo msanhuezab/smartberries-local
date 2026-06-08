@@ -19,11 +19,13 @@ function pdfPorc($gramos, $muestra, $dec = 2) {
     if ($m <= 0) return '0,00 %';
     return number_format(((float) $gramos / $m) * 100, $dec, ',', '.') . ' %';
 }
-function pdfColorResolucion($resultado) {
-    switch (strtoupper((string) $resultado)) {
-        case 'APROBADO': return '#2e7d32';
-        case 'OBJETADO': return '#f9a825';
-        case 'RECHAZADO': return '#c62828';
+function pdfColorResolucion($score) {
+    switch ((int) $score) {
+        case 1:  return '#1565c0'; // azul
+        case 2:  return '#2e7d32'; // verde
+        case 3:  return '#f9a825'; // amarillo
+        case 4:  return '#e65100'; // naranja
+        case 5:  return '#c62828'; // rojo
         default: return '#607d8b';
     }
 }
@@ -113,23 +115,23 @@ foreach ($detParams as $d) {
 /* ── constantes de estilo ─────────────────────────────────── */
 $COL1   = '#393764'; // azul oscuro
 $COL2   = '#555580'; // azul medio
-$COLFIL = pdfColorResolucion($c['RESULTADO_GENERAL']); // color resolucion
+$COLFIL = pdfColorResolucion($c['SCORE_GENERAL']); // color resolucion según score
 
 $S_TH1 = "background:{$COL1};color:#fff;padding:4px 6px;text-align:left;font-size:10px;font-weight:bold;";
 $S_TH2 = "background:{$COL2};color:#fff;padding:3px 5px;text-align:left;font-size:9px;font-weight:bold;";
-$S_TH2C= "background:{$COL2};color:#fff;padding:3px 5px;text-align:center;font-size:9px;font-weight:bold;width:68px;";
-$S_TD  = "background:#f4f4f4;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;";
-$S_TDA = "background:#ebebeb;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;";
-$S_TDC = "padding:3px 5px;font-size:9px;text-align:center;border-bottom:1px solid #fff;width:68px;";
-$S_TOT = "background:#ccc;font-weight:bold;padding:4px 6px;font-size:9px;border-top:2px solid #888;";
-$S_TOTC= "background:#ccc;font-weight:bold;padding:4px 6px;font-size:9px;text-align:center;border-top:2px solid #888;width:68px;";
+$S_TH2C= "background:{$COL2};color:#fff;padding:3px 5px;text-align:right;font-size:9px;font-weight:bold;width:68px;";
+$S_TD  = "background:#f4f4f4;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;text-align:left;";
+$S_TDA = "background:#ebebeb;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;text-align:left;";
+$S_TDC = "padding:3px 5px;font-size:9px;text-align:right;border-bottom:1px solid #fff;width:68px;";
+$S_TOT = "background:#ccc;font-weight:bold;padding:4px 6px;font-size:9px;border-top:2px solid #888;text-align:left;";
+$S_TOTC= "background:#ccc;font-weight:bold;padding:4px 6px;font-size:9px;text-align:right;border-top:2px solid #888;width:68px;";
 
-$S_KEY = "background:#e0e0e0;font-weight:bold;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;width:44%;";
-$S_VAL = "background:#f4f4f4;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;";
+$S_KEY = "background:#e0e0e0;font-weight:bold;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;width:44%;text-align:left;";
+$S_VAL = "background:#f4f4f4;padding:3px 5px;font-size:9px;border-bottom:1px solid #fff;text-align:right;";
 
 function filaKV($k, $v) {
     global $S_KEY, $S_VAL;
-    return "<tr><td style=\"{$S_KEY}\">" . pdfT($k) . "</td><td style=\"{$S_VAL}\">" . pdfT($v) . "</td></tr>\n";
+    return "<tr><td style=\"{$S_KEY}\">" . pdfT($k) . "</td><td align=\"right\" style=\"{$S_VAL}\">" . pdfT($v) . "</td></tr>\n";
 }
 
 /* ── generadores de tablas ────────────────────────────────── */
@@ -146,7 +148,7 @@ function tablaDet($titulo, $rows, $muestra, $esGramos, $unidad = '%') {
         $bgC = $par ? str_replace('#ebebeb','#ebebeb',$S_TDC) : $S_TDC;
         $filas .= "<tr>
           <td style=\"{$bg}\">" . pdfT($d['NOMBRE_PARAMETRO']) . "</td>
-          <td style=\"background:" . ($par ? '#ebebeb' : '#f4f4f4') . ";{$bgC}\">{$val}</td>
+          <td align=\"right\" style=\"background:" . ($par ? '#ebebeb' : '#f4f4f4') . ";{$bgC}\">{$val}</td>
         </tr>\n";
         $par = !$par;
     }
@@ -154,7 +156,7 @@ function tablaDet($titulo, $rows, $muestra, $esGramos, $unidad = '%') {
 
     $totalHtml = '';
     if ($esGramos && $totalG !== null && count($rows) > 0) {
-        $totalHtml = "<tr><td style=\"{$S_TOT}\">TOTAL</td><td style=\"{$S_TOTC}\">" . pdfPorc($totalG, $muestra) . "</td></tr>\n";
+        $totalHtml = "<tr><td style=\"{$S_TOT}\">TOTAL</td><td align=\"right\" style=\"{$S_TOTC}\">" . pdfPorc($totalG, $muestra) . "</td></tr>\n";
     }
 
     $u = $esGramos ? '%' : $unidad;
@@ -162,7 +164,7 @@ function tablaDet($titulo, $rows, $muestra, $esGramos, $unidad = '%') {
       <thead>
         <tr><th colspan=\"2\" style=\"{$S_TH1}\">" . pdfT($titulo) . " ({$u})</th></tr>
         <tr>
-          <th style=\"{$S_TH2}\">Parametro</th>
+          <th style=\"{$S_TH2}\">PARÁMETRO</th>
           <th style=\"{$S_TH2C}\">Valor</th>
         </tr>
       </thead>
@@ -176,15 +178,21 @@ function tablaCalibres($rows, $muestra) {
 
     $colores = ['#393764','#4a4a80','#5c5c9c','#6e6eb8','#8484cc','#9696d4','#a8a8dc'];
 
+    // filtrar calibres con valor > 0
+    $rowsFiltrados = array_values(array_filter($rows, function($d) {
+        return (float) $d['VALOR_NUMERICO'] > 0;
+    }));
+
+    if (empty($rowsFiltrados)) return '';
+
     $filas = '';
     $i = 0;
-    foreach ($rows as $d) {
-        $g    = max(0, (float) $d['VALOR_NUMERICO']);
+    foreach ($rowsFiltrados as $d) {
+        $g    = (float) $d['VALOR_NUMERICO'];
         $porc = $muestra > 0 ? ($g / $muestra) * 100 : 0;
         $w    = min(100, round($porc, 1));
         $resto = max(0, 100 - $w);
         $col  = $colores[$i % count($colores)];
-        // barra: tabla anidada de 2 celdas (relleno + vacío) — compatible mPDF
         $barra = "<table style=\"width:100%;border-collapse:collapse;height:13px;\">
           <tr>
             <td style=\"background:{$col};width:{$w}%;height:13px;\"></td>
@@ -196,14 +204,12 @@ function tablaCalibres($rows, $muestra) {
             " . pdfT($d['NOMBRE_PARAMETRO']) . "
           </td>
           <td style=\"background:#fff;padding:2px 4px;border-bottom:1px solid #f0f0f0;\">{$barra}</td>
-          <td style=\"background:#fff;padding:2px 0 2px 6px;font-size:9px;font-weight:bold;text-align:left;width:50px;border-bottom:1px solid #f0f0f0;color:{$col};\">
+          <td style=\"background:#fff;padding:2px 0 2px 6px;font-size:9px;font-weight:bold;text-align:right;width:44px;border-bottom:1px solid #f0f0f0;color:{$col};\">
             " . number_format($porc, 1, ',', '.') . " %
           </td>
         </tr>\n";
         $i++;
     }
-
-    // eje X simple
     $eje = "<tr>
       <td style=\"background:#fff;\"></td>
       <td style=\"background:#fff;padding:1px 4px 3px 4px;\">
@@ -222,9 +228,97 @@ function tablaCalibres($rows, $muestra) {
 
     return "<table style=\"width:100%;border-collapse:collapse;margin-bottom:8px;\">
       <thead>
-        <tr><th colspan=\"3\" style=\"{$S_TH1}\">DISTRIBUCION DE CALIBRES</th></tr>
+        <tr><th colspan=\"3\" style=\"{$S_TH1}\">DISTRIBUCIÓN DE CALIBRES</th></tr>
       </thead>
       <tbody>{$filas}{$eje}</tbody>
+    </table>";
+}
+
+/* genera un SVG de torta a partir de rows con VALOR_NUMERICO */
+function svgTorta($rows, $muestra) {
+    $colores = ['#393764','#4a4a80','#5c5c9c','#6e6eb8','#8484cc','#9696d4','#a8a8dc'];
+
+    $totalG = 0;
+    $vals   = [];
+    foreach ($rows as $j => $d) {
+        $g = max(0, (float) $d['VALOR_NUMERICO']);
+        $totalG += $g;
+        $vals[] = ['nombre' => $d['NOMBRE_PARAMETRO'], 'g' => $g, 'col' => $colores[$j % count($colores)]];
+    }
+
+    // coordenadas internas del SVG (espacio de usuario)
+    $titleH = 22;
+    $cx = 120; $cy = $titleH + 110; $r = 100;
+    $paths    = '';
+    $legItems = '';
+    $legY     = 4;
+
+    if ($totalG > 0) {
+        if (count($vals) === 1) {
+            $paths = '<circle cx="' . $cx . '" cy="' . $cy . '" r="' . $r . '" fill="' . $vals[0]['col'] . '"/>';
+        } else {
+            $startAngle = -M_PI / 2;
+            foreach ($vals as $d) {
+                $fraction   = $d['g'] / $totalG;
+                $sweepAngle = $fraction * 2 * M_PI;
+                $endAngle   = $startAngle + $sweepAngle;
+                $x1 = round($cx + $r * cos($startAngle), 3);
+                $y1 = round($cy + $r * sin($startAngle), 3);
+                $x2 = round($cx + $r * cos($endAngle),   3);
+                $y2 = round($cy + $r * sin($endAngle),   3);
+                $largeArc = ($sweepAngle > M_PI) ? 1 : 0;
+                $paths .= '<path d="M' . $cx . ',' . $cy
+                    . ' L' . $x1 . ',' . $y1
+                    . ' A' . $r . ',' . $r . ' 0 ' . $largeArc . ',1 ' . $x2 . ',' . $y2
+                    . ' Z" fill="' . $d['col'] . '" stroke="#fff" stroke-width="2"/>';
+                $startAngle = $endAngle;
+            }
+        }
+    } else {
+        $paths = '<circle cx="' . $cx . '" cy="' . $cy . '" r="' . $r . '" fill="#e0e0e0"/>';
+    }
+
+    foreach ($vals as $d) {
+        $porc = $muestra > 0 ? ($d['g'] / $muestra) * 100 : 0;
+        $legItems .= '<rect x="0" y="' . $legY . '" width="12" height="12" fill="' . $d['col'] . '"/>';
+        $legItems .= '<text x="17" y="' . ($legY + 11) . '" font-size="11" font-family="Arial,sans-serif" fill="#333">'
+            . htmlspecialchars($d['nombre'], ENT_XML1, 'UTF-8') . '  '
+            . number_format($porc, 1, ',', '.') . '%</text>';
+        $legY += 17;
+    }
+
+    $svgW   = $cx * 2;
+    $legTop = ($cy + $r) + 14;
+    $svgH   = $legTop + $legY + 8;
+
+    $titulo = '<rect x="0" y="0" width="' . $svgW . '" height="' . ($titleH - 2) . '" fill="#393764"/>'
+        . '<text x="' . ($svgW / 2) . '" y="' . ($titleH - 6) . '" font-size="11" font-weight="bold"'
+        . ' font-family="Arial,sans-serif" fill="#fff" text-anchor="middle">FIRMEZA (Baxlo)</text>';
+
+    // viewBox + width en mm para que mPDF escale el SVG al ancho del contenedor
+    $mmW = 82;
+    $mmH = round($mmW * $svgH / $svgW, 1);
+    return '<svg xmlns="http://www.w3.org/2000/svg"'
+        . ' viewBox="0 0 ' . $svgW . ' ' . $svgH . '"'
+        . ' width="' . $mmW . 'mm" height="' . $mmH . 'mm">'
+        . $titulo
+        . '<g>' . $paths . '</g>'
+        . '<g transform="translate(4,' . $legTop . ')">' . $legItems . '</g>'
+        . '</svg>';
+}
+
+/* FIRMEZA (Baxlo): tabla de barras a la izquierda + torta a la derecha */
+function tablaPresionesConTorta($rows, $muestra) {
+    if (empty($rows)) return '';
+    $tabla    = tablaDet('FIRMEZA (Baxlo)', $rows, $muestra, true);
+    $torta    = svgTorta($rows, $muestra);
+    return "<table style=\"width:100%;border-collapse:collapse;margin-bottom:0;\">
+      <tbody>
+        <tr style=\"vertical-align:top;\">
+          <td style=\"width:60%;padding-right:6px;vertical-align:top;\">{$tabla}</td>
+          <td style=\"width:40%;vertical-align:middle;text-align:center;\">{$torta}</td>
+        </tr>
+      </tbody>
     </table>";
 }
 
@@ -253,7 +347,7 @@ $html = '<!DOCTYPE html>
 <table style="width:100%;border-collapse:collapse;margin-bottom:7px;">
   <tr>
     <td style="background:#393764;color:#fff;text-align:center;padding:5px 8px;">
-      <strong style="font-size:12px;">INFORME CONTROL DE CALIDAD &mdash; RECEPCION</strong><br>
+      <strong style="font-size:12px;">INFORME CONTROL DE CALIDAD &mdash; RECEPCIÓN</strong><br>
       <span style="font-size:9px;">Control N&deg; ' . pdfT($IDCONTROL) . ' &nbsp;|&nbsp; Modo: ' . pdfT($c['MODO_INGRESO']) . ' &nbsp;|&nbsp; Muestra: ' . pdfN($muestra, 0) . ' g</span>
     </td>
   </tr>
@@ -274,8 +368,8 @@ $html = '<!DOCTYPE html>
           ' . filaKV('Nombre',          $c['PRODUCTORES']) . '
           ' . filaKV('CSG',             $c['CSG']) . '
           ' . filaKV('Especie',         $c['NOMBRE_ESPECIES']) . '
-          ' . filaKV('Fecha recepcion', $c['FECHA_RECEPCION']) . '
-          ' . filaKV('N° Guia',         $c['NUMERO_GUIA_RECEPCION']) . '
+          ' . filaKV('Fecha recepción', $c['FECHA_RECEPCION']) . '
+          ' . filaKV('N° Guía',         $c['NUMERO_GUIA_RECEPCION']) . '
           ' . filaKV('Folio(s)',        $folios) . '
           ' . filaKV('Inspector',       $c['NOMBRE_INSPECTOR']) . '
           ' . filaKV('Fecha cierre',    $c['FECHA_CIERRE'] . ' ' . $c['HORA_CIERRE']) . '
@@ -284,41 +378,47 @@ $html = '<!DOCTYPE html>
       <td style="vertical-align:top;padding:0;">
         <table style="width:100%;border-collapse:collapse;">
           <tr>
-            <td colspan="2" style="background:' . $COLFIL . ';color:#fff;font-weight:bold;font-size:14px;padding:7px 6px;text-align:center;border-bottom:2px solid #fff;">
-              ' . pdfT($c['RESULTADO_GENERAL']) . '
+            <td colspan="2" style="background:' . $COLFIL . ';color:#fff;font-weight:bold;font-size:14px;padding:8.px 6px;text-align:center;border-bottom:2px solid #fff;">
+              ' . pdfT($c['RESULTADO_GENERAL']." / SCORE: ".number_format($c['SCORE_GENERAL'], 0)) . '
             </td>
           </tr>
-          ' . filaKV('Score',              pdfN($c['SCORE_GENERAL'] ?? '', 0)) . '
-          ' . filaKV('Grupo score',        $c['GRUPO_SCORE'] ?? '') . '
-          ' . filaKV('% Est. Exportacion', pdfN($c['PORC_ESTIMADO_EXPORTACION'], 2) . ' %') . '
-          ' . filaKV('% Def. Condicion',   pdfN($c['PORC_DEFECTO_CONDICION'],    2) . ' %') . '
+          ' . filaKV('% Estimado Exportación', pdfN($c['PORC_ESTIMADO_EXPORTACION'], 2) . ' %') . '
+          ' . filaKV('% Def. Condición',   pdfN($c['PORC_DEFECTO_CONDICION'],    2) . ' %') . '
           ' . filaKV('% Def. Calidad',     pdfN($c['PORC_DEFECTO_CALIDAD'],      2) . ' %') . '
           ' . filaKV('% Firmeza',          pdfN($c['PORC_FIRMEZA'],              2) . ' %') . '
           ' . ($valorTemp !== null ? filaKV('Temperatura',     pdfN($valorTemp, 2) . ' °C')    : '') . '
-          ' . ($valorBrix !== null ? filaKV('Solidos Solubles',pdfN($valorBrix, 2) . ' °Brix') : '') . '
+          ' . ($valorBrix !== null ? filaKV('Sólidos Solubles',pdfN($valorBrix, 2) . ' °Brix') : '') . '
         </table>
       </td>
     </tr>
   </tbody>
 </table>
 
-' . ($calibresHtml !== '' ? $calibresHtml : '') . '
+' . '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;"><tbody><tr style="vertical-align:top;">
+  <td style="width:48%;padding-right:8px;vertical-align:top;">'
+  . tablaDet('FIRMEZA (Baxlo)', $detPresiones, $muestra, true) .
+  '</td>
+  <td style="width:52%;vertical-align:top;">'
+  . $calibresHtml .
+  '</td>
+</tr></tbody></table>' . '
 
-<!-- PRESIONES (fila completa) -->
-' . tablaDet('Presiones', $detPresiones, $muestra, true) . '
-
-<!-- DEFECTOS (dos columnas) + firma embebida en columna derecha -->
+<!-- DEFECTOS (dos columnas) -->
 ' . '<table style="width:100%;border-collapse:collapse;margin-top:7px;"><tbody><tr style="vertical-align:top;"><td style="width:50%;padding-right:3px;vertical-align:top;">'
-. tablaDet('Defectos de Condicion', $detCondicion, $muestra, true)
+. tablaDet('Defectos de Condición', $detCondicion, $muestra, true)
 . ($c['OBSERVACION_CIERRE'] ? '<p style="font-size:8px;color:#666;margin-top:4px;"><em>Obs: ' . pdfT($c['OBSERVACION_CIERRE']) . '</em></p>' : '')
 . '</td><td style="width:50%;padding-left:3px;vertical-align:top;">'
 . tablaDet('Defectos de Calidad', $detCalidad, $muestra, true)
-. '<table style="width:100%;border-collapse:collapse;margin-top:10px;"><tr>
-    <td style="border-top:1px solid #555;padding-top:40px;padding-bottom:4px;text-align:center;font-size:9px;background:#fff;">
-      Firma Inspector &mdash; ' . pdfT($c['NOMBRE_INSPECTOR']) . '
-    </td>
-  </tr></table>'
-. '</td></tr></tbody></table></body></html>';
+. '</td></tr></tbody></table>
+
+<!-- FIRMA INSPECTOR – anclada cerca del footer -->
+<div style="position:fixed;bottom:10mm;right:12mm;display:table;">
+  <div style="border-top:1px solid #555;padding-top:8px;padding-bottom:4px;font-size:9px;font-family:Arial,sans-serif;color:#333;white-space:nowrap;">
+    Firma Inspector &mdash; ' . pdfT($c['NOMBRE_INSPECTOR']) . '
+  </div>
+</div>
+
+</body></html>';
 
 /* ── mPDF ─────────────────────────────────────────────────── */
 $NOMBREARCHIVOFINAL = 'InformeCalidadRecepcion_' . $IDCONTROL . '.pdf';
