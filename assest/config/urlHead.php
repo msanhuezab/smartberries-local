@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="../../api/cryptioadmin10/html/main/css/skin_color.css">
 <!--Api Datatables-->
 <link rel="stylesheet" type="text/css" href="../../api/DataTables/datatables.min.css"/> 
+<link rel="stylesheet" href="../../assest/css/smartberries-responsive.css">
 
 <!--Otros-->
 <!--JS -->

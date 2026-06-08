@@ -33,6 +33,31 @@ if ($PADMINISTRADOR == "1" && $PADAVISO == "1") {
         "meta" => "Tareas del sistema"
     );
 }
+
+$headerEmpresa = "Empresa";
+$headerTemporada = "Temporada";
+$headerUsuario = "";
+
+if (isset($EMPRESA_ADO, $EMPRESAS)) {
+    $arrayEmpresaHeader = $EMPRESA_ADO->verEmpresa($EMPRESAS);
+    if ($arrayEmpresaHeader) {
+        $headerEmpresa = $arrayEmpresaHeader[0]["NOMBRE_EMPRESA"];
+    }
+}
+
+if (isset($TEMPORADA_ADO, $TEMPORADAS)) {
+    $arrayTemporadaHeader = $TEMPORADA_ADO->verTemporada($TEMPORADAS);
+    if ($arrayTemporadaHeader) {
+        $headerTemporada = $arrayTemporadaHeader[0]["NOMBRE_TEMPORADA"];
+    }
+}
+
+if (isset($USUARIO_ADO, $IDUSUARIOS)) {
+    $arrayUsuarioHeader = $USUARIO_ADO->ObtenerNombreCompleto($IDUSUARIOS);
+    if ($arrayUsuarioHeader) {
+        $headerUsuario = $arrayUsuarioHeader[0]["NOMBRE_COMPLETO"];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -43,6 +68,7 @@ if ($PADMINISTRADOR == "1" && $PADAVISO == "1") {
   <link rel="icon" href="../../assest/img/favicon.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="../../assest/css/smartberries-responsive.css">
   <style>
     :root{
       --ink:#10233f;
@@ -60,8 +86,9 @@ if ($PADMINISTRADOR == "1" && $PADAVISO == "1") {
     .commandbar{
       min-height:76px;background:var(--surface);border-bottom:1px solid var(--line);
       display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:22px;padding:12px 24px;
-      box-shadow:0 1px 10px rgba(16,35,63,.05)
+      box-shadow:0 1px 10px rgba(16,35,63,.05);position:fixed;top:0;left:0;right:0;z-index:1200
     }
+    .commandbar-spacer{height:76px}
     .brand{display:flex;align-items:center;gap:18px;min-width:0}
     .brand img{width:150px;max-width:38vw;height:auto}
     .module-kicker{display:flex;flex-direction:column;gap:2px;border-left:1px solid var(--line);padding-left:18px}
@@ -73,7 +100,11 @@ if ($PADMINISTRADOR == "1" && $PADAVISO == "1") {
       border-radius:8px;background:#f8fbff;color:var(--muted);font-size:13px;font-weight:700;max-width:100%
     }
     .context-pill .material-icons{font-size:18px;color:var(--blue)}
+    .context-text{display:flex;align-items:center;gap:8px;min-width:0}
+    .context-text strong{color:var(--ink);font-weight:800;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .context-text span{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .actions{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+    .user-chip{font-size:12px;font-weight:800;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .action{
       min-height:46px;border:1px solid #c8d4e3;background:#fff;color:var(--blue);border-radius:8px;
       padding:0 16px;text-decoration:none;font-weight:800;font-size:14px;display:inline-flex;align-items:center;gap:9px;
@@ -117,13 +148,16 @@ if ($PADMINISTRADOR == "1" && $PADAVISO == "1") {
     .empty{background:#fff;border:1px solid var(--line);border-radius:8px;padding:22px;color:var(--muted)}
     @media(max-width:860px){
       .commandbar{grid-template-columns:1fr;align-items:start}
+      .commandbar-spacer{height:168px}
       .context-strip{justify-content:flex-start}
       .actions{justify-content:flex-start;flex-wrap:wrap}
+      .user-chip{max-width:100%;flex-basis:100%}
       .workspace-head{grid-template-columns:1fr}
       .count-box{text-align:left}
     }
     @media(max-width:560px){
       .commandbar{padding:16px}
+      .commandbar-spacer{height:218px}
       .brand{align-items:flex-start;flex-direction:column;gap:10px}
       .module-kicker{border-left:0;padding-left:0}
       .action{flex:1;justify-content:center}
@@ -145,10 +179,16 @@ if ($PADMINISTRADOR == "1" && $PADAVISO == "1") {
       <div class="context-strip">
         <div class="context-pill">
           <span class="material-icons">verified_user</span>
-          <span>Administración del sistema</span>
+          <span class="context-text">
+            <strong><?php echo htmlspecialchars($headerEmpresa, ENT_QUOTES, "UTF-8"); ?></strong>
+            <span><?php echo htmlspecialchars($headerTemporada, ENT_QUOTES, "UTF-8"); ?></span>
+          </span>
         </div>
       </div>
       <div class="actions">
+        <?php if ($headerUsuario !== "") { ?>
+          <span class="user-chip"><?php echo htmlspecialchars($headerUsuario, ENT_QUOTES, "UTF-8"); ?></span>
+        <?php } ?>
         <a class="action" href="../../interno.php"><span class="material-icons">apps</span> Módulos</a>
         <form method="post">
           <button class="action action-danger" type="submit" name="CERRARS" value="CERRARS">
@@ -157,6 +197,7 @@ if ($PADMINISTRADOR == "1" && $PADAVISO == "1") {
         </form>
       </div>
     </header>
+    <div class="commandbar-spacer" aria-hidden="true"></div>
     <main>
       <section class="workspace-head">
         <div>
