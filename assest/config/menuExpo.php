@@ -459,6 +459,44 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
       height: calc(100vh - 218px);
     }
   }
+  /* ── sidebar redesign ─────────────────────────── */
+  .main-sidebar { background:#fff; border-right:1px solid #e8eef6; }
+  .main-sidebar .sidebar-menu > li > a {
+    padding:10px 16px 10px 18px; font-size:13px; font-weight:500;
+    color:#3a4a5c; display:flex; align-items:center; gap:10px;
+    border-left:3px solid transparent; transition:background .14s, border-color .14s, color .14s;
+  }
+  .main-sidebar .sidebar-menu > li > a > i.fa {
+    width:17px; text-align:center; font-size:13px; color:#8fa3bc; flex-shrink:0;
+  }
+  .main-sidebar .sidebar-menu > li > a:hover { background:#f0f6ff; border-left-color:#0a3a6a; color:#0a3a6a; }
+  .main-sidebar .sidebar-menu > li > a:hover > i.fa { color:#0a3a6a; }
+  .main-sidebar .sidebar-menu > li.active > a {
+    background:#e8f0fe !important; border-left-color:#0a3a6a !important;
+    color:#0a3a6a !important; font-weight:700;
+  }
+  .main-sidebar .sidebar-menu > li.active > a > i.fa { color:#0a3a6a !important; }
+  .main-sidebar .sidebar-menu li.header {
+    font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    color:#9baec8; padding:16px 18px 5px; background:none; border:none;
+  }
+  .main-sidebar .sidebar-menu li.header:first-child { padding-top:10px; }
+  .main-sidebar .treeview-menu { background:#f8fbff !important; padding:3px 0 5px !important; }
+  .main-sidebar .sidebar { overflow-y:auto !important; overflow-x:hidden !important; }
+  .main-sidebar .treeview-menu.scrollable { max-height:55vh; overflow-y:auto !important; overflow-x:hidden; }
+  .main-sidebar .treeview-menu.scrollable::-webkit-scrollbar { width:4px; }
+  .main-sidebar .treeview-menu.scrollable::-webkit-scrollbar-thumb { background:#c5d5e8; border-radius:4px; }
+  .main-sidebar .treeview-menu > li > a {
+    padding:7px 10px 7px 46px !important; font-size:12px !important;
+    color:#4a5568 !important; border-left:3px solid transparent;
+    transition:background .14s, border-color .14s, color .14s;
+  }
+  .main-sidebar .treeview-menu > li > a:hover,
+  .main-sidebar .treeview-menu > li.active > a {
+    background:#deeafe !important; border-left-color:#0a3a6a !important;
+    color:#0a3a6a !important; font-weight:600;
+  }
+  .main-sidebar .treeview > a > .pull-right-container { margin-left:auto; }
   /* ── module switcher ──────────────────────────── */
   .module-switcher { position: relative; }
   .module-panel {
@@ -622,357 +660,237 @@ $ARRAYPLANTACAMBIAR = $PLANTA_ADO->listarPlantaPropiaCBX();
     </div>
   </form>
 </div>
-<!-- Left side column. contains the logo and sidebar -->
+<?php
+$_sbPage = basename($_SERVER['PHP_SELF']);
+function _sb($pages) {
+    global $_sbPage;
+    return in_array($_sbPage, (array)$pages) ? 'active' : '';
+}
+function _sbTree($pages) {
+    global $_sbPage;
+    return in_array($_sbPage, (array)$pages) ? 'treeview active menu-open' : 'treeview';
+}
+?>
 <aside class="main-sidebar">
-  <!-- sidebar-->
   <section class="sidebar">
-    <!-- sidebar menu-->
     <ul class="sidebar-menu" data-widget="tree">
-      <li>
+
+      <!-- Inicio -->
+      <li class="<?php echo _sb(['index.php','../../configuracion/']); ?>">
         <a href="<?php echo $MENU_CONFIGURACION ? '../../configuracion/' : 'index.php'; ?>">
-          <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/dashboard.svg" class="svg-icon" alt="">
-          <span>Inicio</span>
+          <i class="fa fa-home"></i><span>Inicio</span>
         </a>
-      </li>     
-      <?php if(!$MENU_CONFIGURACION && $PEXPORTADORA=="1"){ ?>
-        <li class="header">Módulo</li>    
-        <?php if($PEMATERIALES=="1"){ ?>
-          <!--<li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/reports.svg" class="svg-icon" alt="">
-              <span>Materiales</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">     
-              <li class="treeview">
-                <a href="#">Ficha Consumo
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="registroFicha.php">Registro Ficha</a></li>
-                  <li><a href="listarFicha.php"> Agrupado Ficha</a></li>
-                </ul>
-              </li>
-              <li><a href="listarConsumo.php">Consumo Materiales</a></li>
-              <li><a href="listarConsumoProceso.php">Cons. Mat. Proceso</a></li>
-               <li style="display:none"><a href="listarConsumoFolio.php">Cons. Mat. Folio</a></li> 
-            </ul>
-          </li>-->            
-        <?php  } ?>    
-        <?php if($PEEXPORTACION=="1"){ ?>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/exchange.svg" class="svg-icon" alt="">
-              <span> Exportación</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-              <li class="treeview">
-                <a href="#">Inst. Carga
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="registroICarga.php">Registro Inst. Carga</a></li>
-                  <li><a href="listarICarga.php">Agrupado Inst. Carga</a></li>
-                  <li><a href="listarICargaDetallado.php">Detallado Inst. Carga</a></li>
-                  <li><a href="registroInvoiceExp.php">Invoice Editable</a></li>
-                </ul>
-              </li> 
-              <li class="treeview">
-                <a href="#">Nota D/C
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="registroNotadc.php">Registro Nota</a></li>
-                  <li><a href="listarNotadc.php">Agrupado Nota</a></li>
-                </ul>
-              </li>
-              <li><a href="registroIvvExp.php">Registro IVV</a></li>
-            </ul>
-          </li>
-        <?php  } ?>     
-        <?php if($PELIQUIDACION=="1"){ ?>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/transactions.svg" class="svg-icon" alt="">
-              <span> Liquidación</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-                <li><a href="registroLiquidacionExp.php">Liquidación Detallada</a></li>
-                <li><a href="cuentaCorrienteBroker.php">Cuenta Corriente Broker</a></li>
-                <li><a href="registroPresupuestoFob.php">Presupuesto FOB</a></li>
-                <li><a href="registroTitemLiqui.php">Item Liqui.</a></li>
-            </ul>
-          </li>
-        <?php  } ?>
-        <?php if($PADMINISTRADOR=="1"){ ?>   
-          <?php if($PADAPERTURA=="1"){ ?> 
-            <li class="treeview">
-              <a href="#">
-                <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/extensions.svg" class="svg-icon" alt="">
-                <span>Apertura Registro</span>
-                <span class="pull-right-container">
-                  <i class="fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <?php if($PEEXPORTACION=="1"){ ?>
-                  <li><a href="listarAPICargaExp.php">Instructivos</a></li>
-                  <li><a href="listarAPInvoiceExp.php">Invoice</a></li>
-                  <li><a href="listarAPNotaDcExp.php">Notas D/C</a></li>
-                <?php  } ?>
-                <?php if($PELIQUIDACION=="1"){ ?>
-                  <li><a href="listarAPLiquidacionExp.php">Liquidaciones</a></li>
-                <?php  } ?>
-              </ul>
-            </li> 
-          <?php  } ?>  
-        <?php  } ?> 
-      <?php  } ?>
-      <?php if($MENU_CONFIGURACION && $PMANTENEDORES=="1"){ ?>
-        <li class="header">Configuraciones</li>
-        <li class="treeview">
+      </li>
+
+      <?php if (!$MENU_CONFIGURACION && $PEXPORTADORA == "1"): ?>
+
+        <?php if ($PEEXPORTACION == "1"): ?>
+        <li class="header">Exportación</li>
+
+        <li class="<?php echo _sb('listarICarga.php'); ?>">
+          <a href="listarICarga.php"><i class="fa fa-ship"></i><span>Instructivos</span></a>
+        </li>
+        <li class="<?php echo _sb('registroInvoiceExp.php'); ?>">
+          <a href="registroInvoiceExp.php"><i class="fa fa-file-text-o"></i><span>Invoice</span></a>
+        </li>
+        <li class="<?php echo _sbTree(['registroNotadc.php','listarNotadc.php']); ?>">
           <a href="#">
-            <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/miscellaneous.svg" class="svg-icon" alt="">
-            <span>Configuración App</span>
-            <span class="pull-right-container">
-              <i class="fa fa-angle-right pull-right"></i>
-            </span>
-          </a>      
+            <i class="fa fa-exchange"></i><span>Nota D/C</span>
+            <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+          </a>
           <ul class="treeview-menu">
-            <li class="treeview">
-              <a href="#">Principal
-                <span class="pull-left-container">
-                  <i class=" fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <li><a href="registroEmpresa.php">Empresa</a></li>
-                <li><a href="registroPlanta.php">Planta</a></li>
-                <li><a href="registroTemporada.php">Temporada</a></li>
-                <!--<li><a href="registroBodega.php">Bodega</a></li> -->
-                <li><a href="registroFolio.php">Folio</a></li>
-              </ul>
-            </li>
-            <li class="treeview">
-              <a href="#">Fruta
-                <span class="pull-left-container">
-                  <i class=" fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <li><a href="registroProductor.php">Productor</a></li>
-                <li><a href="registroVespecies.php">Variedad</a></li>
-                <li><a href="registroEspecies.php">Especies</a></li>
-                <li><a href="registroCuartel.php"> Cuartel</a></li>
-                <li><a href="registroTetiqueta.php">Etiqueta</a></li>
-                <li><a href="registroTembalaje.php">Embalaje</a></li>
-                <li><a href="registroTcalibre.php">Calibre</a></li>
-                <li><a href="registroTcalibreind.php">Calibre Industrial</a></li>
-              </ul>
-            </li>          
-            <li class="treeview">
-              <a href="#">Estandares
-                <span class="pull-left-container">
-                  <i class=" fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <li><a href="registroErecepcion.php">Granel</a></li>
-                <li><a href="registroEexportacion.php">Exportacion</a></li>
-                <li><a href="registroEcomercial.php"> Expo. Comercial</a></li>
-                <li><a href="registroEindustrial.php">Industrial</a></li>
-              </ul>
-            </li>
-            <li class="treeview">
-              <a href="#">Ubicacion
-                <span class="pull-left-container">
-                  <i class=" fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <li><a href="registroCiudad.php">Ciudad</a></li>
-                <li><a href="registroComuna.php">Comuna</a></li>
-                <li><a href="registroProvincia.php">Provincia</a></li>
-                <li><a href="registroRegion.php">Region</a></li>
-                <li><a href="registroPais.php">Pais</a></li>
-              </ul>
-            </li>
-            <li class="treeview">
-              <a href="#">Transporte
-                <span class="pull-left-container">
-                  <i class=" fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <li><a href="registroLaerea.php">Linea Area</a></li>
-                <li><a href="registroNaviera.php">Naviera</a></li>
-                <li><a href="registroTransporte.php">Transporte</a></li>
-                <li><a href="registroConductor.php">Conductor</a></li>
-              </ul>
-            </li>
-            <li class="treeview">
-              <a href="#">Tipo
-                <span class="pull-left-container">
-                <i class=" fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <li><a href="registroTproductor.php">Tipo Productor</a></li>
-                <li><a href="registroTproceso.php">Tipo Proceso</a></li>
-                <li><a href="registroTreembalaje.php">Tipo Reembalaje</a></li>
-                <li><a href="registroTcontenedor.php">Tipo Contenedor</a></li>
-                <li><a href="registroTflete.php">Tipo Flete</a></li>
-                <li><a href="registroTmoneda.php">Tipo Moneda</a></li>
-                <li><a href="registroTservicio.php">Tipo Servicio</a></li>
-                <li><a href="registroTmanejo.php">Tipo Manejo</a></li>
-                <li><a href="registroTinpsag.php">Tipo Inspección Sag</a></li>
-                <li><a href="registroTtratamiento1.php">Tipo Tratamiento 1</a></li>
-                <li><a href="registroTtratamiento2.php">Tipo Tratamiento 2</a></li>
-                <li><a href="registroTcategoria.php">Tipo Categoria</a></li>
-                <li><a href="registroTcolor.php">Tipo Color</a></li>    
-              </ul>
-            </li>         
-            <li class="treeview">
-              <a href="#">Otros
-                <span class="pull-left-container">
-                  <i class=" fa fa-angle-right pull-right"></i>
-                </span>
-              </a>
-              <ul class="treeview-menu">
-                <li><a href="registroCcalidad.php">Color Calidad</a></li>
-                <li><a href="registroContraparte.php">Contraparte</a></li>
-                <li><a href="registroInpector.php">Inpector</a></li>
-                <li><a href="registroComprador.php">Comprador</a></li>
-              </ul>
-            </li>      
+            <li class="<?php echo _sb('registroNotadc.php'); ?>"><a href="registroNotadc.php">Registro</a></li>
+            <li class="<?php echo _sb('listarNotadc.php'); ?>"><a href="listarNotadc.php">Listado</a></li>
           </ul>
-        </li>     
-      <?php  } ?>
-        <?php if(!$MENU_CONFIGURACION && $PMANTENEDORES=="1" && $PEEXPORTACION=="1"){ ?>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/exchange.svg" class="svg-icon" alt="">
-              <span>Configuración Exportadora</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-              <li class="treeview">
-                <a href="#">Destino
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="registroLdestino.php">Lugar Destino</a></li>
-                  <li><a href="registroPdestino.php">Puerto Destino</a></li>
-                  <li><a href="registroAdestino.php">Aeropuerto Destino</a></li>
-                </ul>
-              </li>
-              <li class="treeview">
-                <a href="#">Carga
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="registroLcarga.php">Lugar Carga</a></li>
-                  <li><a href="registroPcarga.php">Puerto Carga</a></li>
-                  <li><a href="registroAcarga.php">Aeropuerto Carga</a></li>
-                </ul>
-              </li>
-              <li class="treeview">
-                <a href="#">Pago
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="registroFpago.php">Formato Pago</a></li>
-                  <li><a href="registroCventa.php">Clausaula Venta</a></li>
-                  <li><a href="registroMventa.php">Modalidad Venta</a></li>
-                </ul>
-              </li>
-              <li class="treeview">
-                <a href="#">Mercado
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="registroMercado.php">Mercado</a></li>
-                  <li><a href="registroRmercado.php">Restrinccion Mercado</a></li>
-                </ul>
-              </li>
-              <li><a href="registroExportadora.php">Exportadora</a></li>
-              <li><a href="registroAtmosfera.php">Atmosfera</a></li>
-              <li><a href="registroEmisionbl.php">Emision BL</a></li>
-              <li><a href="registroConsignatorio.php">Consignatorio</a></li>
-              <li><a href="registroNotificador.php">Notificador</a></li>
-              <li><a href="registroBroker.php">Cliente</a></li>
-              <li><a href="registroRfinal.php">Recibidor Final</a></li>
-              <li><a href="registroAaduana.php">Agente Aduana</a></li>
-              <li><a href="registroAgcarga.php">Agente Carga</a></li>
-              <li><a href="registroDfinal.php">Destino Final</a></li>
-              <li><a href="registroSeguro.php">Seguro</a></li>
-            </ul>
-          </li>
-        <?php  } ?>
-      <?php if($MENU_CONFIGURACION && $PADMINISTRADOR=="1"){ ?>
-        <?php if($PADUSUARIO=="1"){ ?>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/members.svg" class="svg-icon" alt="">
-              <span>Usuario</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-              <li><a href="registroUsuario.php">Usuario</a></li>
-              <li><a href="listarAusuario.php">Historial Usuario</a></li>
-              <li><a href="registroTusuario.php">Tipo Usuario</a></li>
-              <li><a href="registroPtusuario.php">Privilegio Tipo Usuario</a></li>
-              <li><a href="registroUsuarioEmpPro.php">Usu. Asoc.Empre. Prod.</a></li>
-            </ul>
-          </li>    
-        <?php  } ?>   
-        <?php if($PADAVISO=="1"){ ?>
-          <li>
-            <a href="registroUsuarioAviso.php">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/miscellaneous.svg" class="svg-icon" alt="">
-              <span>Registro Aviso</span>
-            </a>
-          </li>
-          <li>
-            <a href="cronPt.php">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/schedule.svg" class="svg-icon" alt="">
-              <span>Cron PT</span>
-            </a>
-          </li>
-          <li>
-            <a href="cronEjecutados.php">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/schedule.svg" class="svg-icon" alt="">
-              <span>Cron ejecutados</span>
-            </a>
-          </li>
-        <?php  } ?>
-      <?php  } ?>
+        </li>
+        <li class="<?php echo _sb('registroIvvExp.php'); ?>">
+          <a href="registroIvvExp.php"><i class="fa fa-clipboard"></i><span>Registro IVV</span></a>
+        </li>
+        <?php endif; ?>
+
+        <?php if ($PELIQUIDACION == "1"): ?>
+        <li class="header">Liquidación</li>
+
+        <li class="<?php echo _sb('registroLiquidacionExp.php'); ?>">
+          <a href="registroLiquidacionExp.php"><i class="fa fa-calculator"></i><span>Liquidaciones</span></a>
+        </li>
+        <li class="<?php echo _sb('cuentaCorrienteBroker.php'); ?>">
+          <a href="cuentaCorrienteBroker.php"><i class="fa fa-credit-card"></i><span>Cta. Cte. Broker</span></a>
+        </li>
+        <li class="<?php echo _sb('registroPresupuestoFob.php'); ?>">
+          <a href="registroPresupuestoFob.php"><i class="fa fa-bar-chart"></i><span>Presupuesto FOB</span></a>
+        </li>
+        <li class="<?php echo _sb('registroTitemLiqui.php'); ?>">
+          <a href="registroTitemLiqui.php"><i class="fa fa-list"></i><span>Ítems Liquidación</span></a>
+        </li>
+        <?php endif; ?>
+
+        <?php if ($PADMINISTRADOR == "1" && $PADAPERTURA == "1"): ?>
+        <li class="header">Administración</li>
+
+        <li class="<?php echo _sbTree(['listarAPICargaExp.php','listarAPInvoiceExp.php','listarAPNotaDcExp.php','listarAPLiquidacionExp.php']); ?>">
+          <a href="#">
+            <i class="fa fa-unlock-alt"></i><span>Apertura Registro</span>
+            <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+          </a>
+          <ul class="treeview-menu">
+            <?php if ($PEEXPORTACION == "1"): ?>
+            <li class="<?php echo _sb('listarAPICargaExp.php'); ?>"><a href="listarAPICargaExp.php">Instructivos</a></li>
+            <li class="<?php echo _sb('listarAPInvoiceExp.php'); ?>"><a href="listarAPInvoiceExp.php">Invoice</a></li>
+            <li class="<?php echo _sb('listarAPNotaDcExp.php'); ?>"><a href="listarAPNotaDcExp.php">Notas D/C</a></li>
+            <?php endif; ?>
+            <?php if ($PELIQUIDACION == "1"): ?>
+            <li class="<?php echo _sb('listarAPLiquidacionExp.php'); ?>"><a href="listarAPLiquidacionExp.php">Liquidaciones</a></li>
+            <?php endif; ?>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <?php if ($PMANTENEDORES == "1" && $PEEXPORTACION == "1"): ?>
+        <li class="header">Configuración</li>
+
+        <li class="<?php echo _sbTree(['registroExportadora.php','registroConsignatorio.php','registroBroker.php','registroRfinal.php','registroAaduana.php','registroAgcarga.php','registroDfinal.php','registroNotificador.php','registroSeguro.php','registroAtmosfera.php','registroEmisionbl.php','registroLdestino.php','registroPdestino.php','registroAdestino.php','registroLcarga.php','registroPcarga.php','registroAcarga.php','registroFpago.php','registroCventa.php','registroMventa.php','registroMercado.php','registroRmercado.php','registroTcontenedor.php','registroTflete.php','registroTmoneda.php','registroTservicio.php','registroTmanejo.php']); ?>">
+          <a href="#">
+            <i class="fa fa-cog"></i><span>Config. Exportadora</span>
+            <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+          </a>
+          <ul class="treeview-menu scrollable">
+            <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Actores</li>
+            <li class="<?php echo _sb('registroExportadora.php'); ?>"><a href="registroExportadora.php">Exportadora</a></li>
+            <li class="<?php echo _sb('registroConsignatorio.php'); ?>"><a href="registroConsignatorio.php">Consignatorio</a></li>
+            <li class="<?php echo _sb('registroBroker.php'); ?>"><a href="registroBroker.php">Cliente</a></li>
+            <li class="<?php echo _sb('registroRfinal.php'); ?>"><a href="registroRfinal.php">Recibidor Final</a></li>
+            <li class="<?php echo _sb('registroAaduana.php'); ?>"><a href="registroAaduana.php">Agente Aduana</a></li>
+            <li class="<?php echo _sb('registroAgcarga.php'); ?>"><a href="registroAgcarga.php">Agente Carga</a></li>
+            <li class="<?php echo _sb('registroDfinal.php'); ?>"><a href="registroDfinal.php">Destino Final</a></li>
+            <li class="<?php echo _sb('registroNotificador.php'); ?>"><a href="registroNotificador.php">Notificador</a></li>
+            <li class="<?php echo _sb('registroSeguro.php'); ?>"><a href="registroSeguro.php">Seguro</a></li>
+            <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Rutas</li>
+            <li class="<?php echo _sb('registroLdestino.php'); ?>"><a href="registroLdestino.php">Lugar Destino</a></li>
+            <li class="<?php echo _sb('registroPdestino.php'); ?>"><a href="registroPdestino.php">Puerto Destino</a></li>
+            <li class="<?php echo _sb('registroAdestino.php'); ?>"><a href="registroAdestino.php">Aeropuerto Destino</a></li>
+            <li class="<?php echo _sb('registroLcarga.php'); ?>"><a href="registroLcarga.php">Lugar Carga</a></li>
+            <li class="<?php echo _sb('registroPcarga.php'); ?>"><a href="registroPcarga.php">Puerto Carga</a></li>
+            <li class="<?php echo _sb('registroAcarga.php'); ?>"><a href="registroAcarga.php">Aeropuerto Carga</a></li>
+            <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Comercio</li>
+            <li class="<?php echo _sb('registroFpago.php'); ?>"><a href="registroFpago.php">Formato Pago</a></li>
+            <li class="<?php echo _sb('registroCventa.php'); ?>"><a href="registroCventa.php">Cláusula Venta</a></li>
+            <li class="<?php echo _sb('registroMventa.php'); ?>"><a href="registroMventa.php">Modalidad Venta</a></li>
+            <li class="<?php echo _sb('registroMercado.php'); ?>"><a href="registroMercado.php">Mercado</a></li>
+            <li class="<?php echo _sb('registroRmercado.php'); ?>"><a href="registroRmercado.php">Restricción Mercado</a></li>
+            <li class="<?php echo _sb('registroAtmosfera.php'); ?>"><a href="registroAtmosfera.php">Atmósfera</a></li>
+            <li class="<?php echo _sb('registroEmisionbl.php'); ?>"><a href="registroEmisionbl.php">Emisión BL</a></li>
+            <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Tipos</li>
+            <li class="<?php echo _sb('registroTcontenedor.php'); ?>"><a href="registroTcontenedor.php">Contenedor</a></li>
+            <li class="<?php echo _sb('registroTflete.php'); ?>"><a href="registroTflete.php">Flete</a></li>
+            <li class="<?php echo _sb('registroTmoneda.php'); ?>"><a href="registroTmoneda.php">Moneda</a></li>
+            <li class="<?php echo _sb('registroTservicio.php'); ?>"><a href="registroTservicio.php">Servicio</a></li>
+            <li class="<?php echo _sb('registroTmanejo.php'); ?>"><a href="registroTmanejo.php">Manejo</a></li>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+      <?php endif; ?>
+
+      <?php if ($MENU_CONFIGURACION && $PMANTENEDORES == "1"): ?>
+      <li class="header">Configuraciones</li>
+
+      <li class="<?php echo _sbTree(['registroEmpresa.php','registroPlanta.php','registroTemporada.php','registroFolio.php','registroProductor.php','registroVespecies.php','registroEspecies.php','registroCuartel.php','registroTetiqueta.php','registroTembalaje.php','registroTcalibre.php','registroTcalibreind.php','registroErecepcion.php','registroEexportacion.php','registroEcomercial.php','registroEindustrial.php','registroCiudad.php','registroComuna.php','registroProvincia.php','registroRegion.php','registroPais.php','registroLaerea.php','registroNaviera.php','registroTransporte.php','registroConductor.php','registroTproductor.php','registroTproceso.php','registroTreembalaje.php','registroTcontenedor.php','registroTflete.php','registroTmoneda.php','registroTservicio.php','registroTmanejo.php','registroTinpsag.php','registroTtratamiento1.php','registroTtratamiento2.php','registroTcategoria.php','registroTcolor.php','registroCcalidad.php','registroContraparte.php','registroInpector.php','registroComprador.php']); ?>">
+        <a href="#">
+          <i class="fa fa-cog"></i><span>Configuración App</span>
+          <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+        </a>
+        <ul class="treeview-menu scrollable">
+          <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Principal</li>
+          <li class="<?php echo _sb('registroEmpresa.php'); ?>"><a href="registroEmpresa.php">Empresa</a></li>
+          <li class="<?php echo _sb('registroPlanta.php'); ?>"><a href="registroPlanta.php">Planta</a></li>
+          <li class="<?php echo _sb('registroTemporada.php'); ?>"><a href="registroTemporada.php">Temporada</a></li>
+          <li class="<?php echo _sb('registroFolio.php'); ?>"><a href="registroFolio.php">Folio</a></li>
+          <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Fruta</li>
+          <li class="<?php echo _sb('registroProductor.php'); ?>"><a href="registroProductor.php">Productor</a></li>
+          <li class="<?php echo _sb('registroVespecies.php'); ?>"><a href="registroVespecies.php">Variedad</a></li>
+          <li class="<?php echo _sb('registroEspecies.php'); ?>"><a href="registroEspecies.php">Especies</a></li>
+          <li class="<?php echo _sb('registroCuartel.php'); ?>"><a href="registroCuartel.php">Cuartel</a></li>
+          <li class="<?php echo _sb('registroTetiqueta.php'); ?>"><a href="registroTetiqueta.php">Etiqueta</a></li>
+          <li class="<?php echo _sb('registroTembalaje.php'); ?>"><a href="registroTembalaje.php">Embalaje</a></li>
+          <li class="<?php echo _sb('registroTcalibre.php'); ?>"><a href="registroTcalibre.php">Calibre</a></li>
+          <li class="<?php echo _sb('registroTcalibreind.php'); ?>"><a href="registroTcalibreind.php">Calibre Industrial</a></li>
+          <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Estándares</li>
+          <li class="<?php echo _sb('registroErecepcion.php'); ?>"><a href="registroErecepcion.php">Granel</a></li>
+          <li class="<?php echo _sb('registroEexportacion.php'); ?>"><a href="registroEexportacion.php">Exportación</a></li>
+          <li class="<?php echo _sb('registroEcomercial.php'); ?>"><a href="registroEcomercial.php">Expo. Comercial</a></li>
+          <li class="<?php echo _sb('registroEindustrial.php'); ?>"><a href="registroEindustrial.php">Industrial</a></li>
+          <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Ubicación</li>
+          <li class="<?php echo _sb('registroCiudad.php'); ?>"><a href="registroCiudad.php">Ciudad</a></li>
+          <li class="<?php echo _sb('registroComuna.php'); ?>"><a href="registroComuna.php">Comuna</a></li>
+          <li class="<?php echo _sb('registroProvincia.php'); ?>"><a href="registroProvincia.php">Provincia</a></li>
+          <li class="<?php echo _sb('registroRegion.php'); ?>"><a href="registroRegion.php">Región</a></li>
+          <li class="<?php echo _sb('registroPais.php'); ?>"><a href="registroPais.php">País</a></li>
+          <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Transporte</li>
+          <li class="<?php echo _sb('registroLaerea.php'); ?>"><a href="registroLaerea.php">Línea Aérea</a></li>
+          <li class="<?php echo _sb('registroNaviera.php'); ?>"><a href="registroNaviera.php">Naviera</a></li>
+          <li class="<?php echo _sb('registroTransporte.php'); ?>"><a href="registroTransporte.php">Transporte</a></li>
+          <li class="<?php echo _sb('registroConductor.php'); ?>"><a href="registroConductor.php">Conductor</a></li>
+          <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Tipos</li>
+          <li class="<?php echo _sb('registroTproductor.php'); ?>"><a href="registroTproductor.php">Tipo Productor</a></li>
+          <li class="<?php echo _sb('registroTproceso.php'); ?>"><a href="registroTproceso.php">Tipo Proceso</a></li>
+          <li class="<?php echo _sb('registroTreembalaje.php'); ?>"><a href="registroTreembalaje.php">Tipo Reembalaje</a></li>
+          <li class="<?php echo _sb('registroTcontenedor.php'); ?>"><a href="registroTcontenedor.php">Tipo Contenedor</a></li>
+          <li class="<?php echo _sb('registroTflete.php'); ?>"><a href="registroTflete.php">Tipo Flete</a></li>
+          <li class="<?php echo _sb('registroTmoneda.php'); ?>"><a href="registroTmoneda.php">Tipo Moneda</a></li>
+          <li class="<?php echo _sb('registroTservicio.php'); ?>"><a href="registroTservicio.php">Tipo Servicio</a></li>
+          <li class="<?php echo _sb('registroTmanejo.php'); ?>"><a href="registroTmanejo.php">Tipo Manejo</a></li>
+          <li class="<?php echo _sb('registroTinpsag.php'); ?>"><a href="registroTinpsag.php">Tipo Insp. SAG</a></li>
+          <li class="<?php echo _sb('registroTtratamiento1.php'); ?>"><a href="registroTtratamiento1.php">Tratamiento 1</a></li>
+          <li class="<?php echo _sb('registroTtratamiento2.php'); ?>"><a href="registroTtratamiento2.php">Tratamiento 2</a></li>
+          <li class="<?php echo _sb('registroTcategoria.php'); ?>"><a href="registroTcategoria.php">Tipo Categoría</a></li>
+          <li class="<?php echo _sb('registroTcolor.php'); ?>"><a href="registroTcolor.php">Tipo Color</a></li>
+          <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Otros</li>
+          <li class="<?php echo _sb('registroCcalidad.php'); ?>"><a href="registroCcalidad.php">Color Calidad</a></li>
+          <li class="<?php echo _sb('registroContraparte.php'); ?>"><a href="registroContraparte.php">Contraparte</a></li>
+          <li class="<?php echo _sb('registroInpector.php'); ?>"><a href="registroInpector.php">Inspector</a></li>
+          <li class="<?php echo _sb('registroComprador.php'); ?>"><a href="registroComprador.php">Comprador</a></li>
+        </ul>
+      </li>
+      <?php endif; ?>
+
+      <?php if ($MENU_CONFIGURACION && $PADMINISTRADOR == "1"): ?>
+      <li class="header">Usuarios y Sistema</li>
+
+      <?php if ($PADUSUARIO == "1"): ?>
+      <li class="<?php echo _sbTree(['registroUsuario.php','listarAusuario.php','registroTusuario.php','registroPtusuario.php','registroUsuarioEmpPro.php']); ?>">
+        <a href="#">
+          <i class="fa fa-users"></i><span>Usuarios</span>
+          <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+        </a>
+        <ul class="treeview-menu">
+          <li class="<?php echo _sb('registroUsuario.php'); ?>"><a href="registroUsuario.php">Registro</a></li>
+          <li class="<?php echo _sb('listarAusuario.php'); ?>"><a href="listarAusuario.php">Historial</a></li>
+          <li class="<?php echo _sb('registroTusuario.php'); ?>"><a href="registroTusuario.php">Tipo Usuario</a></li>
+          <li class="<?php echo _sb('registroPtusuario.php'); ?>"><a href="registroPtusuario.php">Privilegios</a></li>
+          <li class="<?php echo _sb('registroUsuarioEmpPro.php'); ?>"><a href="registroUsuarioEmpPro.php">Usu. Asoc. Empresa</a></li>
+        </ul>
+      </li>
+      <?php endif; ?>
+
+      <?php if ($PADAVISO == "1"): ?>
+      <li class="<?php echo _sb('registroUsuarioAviso.php'); ?>">
+        <a href="registroUsuarioAviso.php"><i class="fa fa-bell-o"></i><span>Avisos</span></a>
+      </li>
+      <li class="<?php echo _sbTree(['cronPt.php','cronEjecutados.php']); ?>">
+        <a href="#">
+          <i class="fa fa-clock-o"></i><span>Cron</span>
+          <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+        </a>
+        <ul class="treeview-menu">
+          <li class="<?php echo _sb('cronPt.php'); ?>"><a href="cronPt.php">Cron PT</a></li>
+          <li class="<?php echo _sb('cronEjecutados.php'); ?>"><a href="cronEjecutados.php">Ejecutados</a></li>
+        </ul>
+      </li>
+      <?php endif; ?>
+
+      <?php endif; ?>
+
     </ul>
   </section>
 </aside>

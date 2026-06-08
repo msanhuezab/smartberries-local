@@ -1133,7 +1133,7 @@ if (isset($_GET['IMPRIMIR']) && $IDICARGA > 0 && $CABECERA) {
                     if (!$.fn.DataTable || !$('#liqTable').length) return;
 
                     var liqDT = $('#liqTable').DataTable({
-                        pageLength: 25,
+                        pageLength: 10,
                         order: [[3, 'desc']],
                         columnDefs: [
                             { orderable: false, targets: [0, 6] },

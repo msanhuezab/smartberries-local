@@ -104,7 +104,7 @@ $estadoLabels = ['1' => 'Creado', '2' => 'Por Cargar', '3' => 'Cargado', '4' => 
 <?php include_once "../../assest/config/urlBase.php"; ?>
 <script>
 $('#apIcargaTable').DataTable({
-    pageLength: 25,
+    pageLength: 10,
     order: [[0, 'desc']],
     columnDefs: [{ orderable: false, targets: 4 }],
     language: {

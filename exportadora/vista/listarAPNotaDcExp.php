@@ -108,7 +108,7 @@ $tipoNota = ['1' => 'Débito', '2' => 'Crédito'];
 <?php include_once "../../assest/config/urlBase.php"; ?>
 <script>
 $('#apNotaTable').DataTable({
-    pageLength: 25,
+    pageLength: 10,
     order: [[0, 'desc']],
     columnDefs: [{ orderable: false, targets: 4 }],
     language: {

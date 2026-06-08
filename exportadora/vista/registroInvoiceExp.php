@@ -900,7 +900,7 @@ if (isset($_GET['IMPRIMIR']) && $IDICARGA > 0 && $INVOICE && $CABECERA) {
 <?php if ($IDICARGA === 0): ?>
 (function () {
     var invDT = $('#invTable').DataTable({
-        pageLength: 25,
+        pageLength: 10,
         order: [[1, 'asc']],
         columnDefs: [
             { orderable: false, targets: [0, 5] },
