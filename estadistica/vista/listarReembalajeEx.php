@@ -125,7 +125,7 @@ include_once "../../assest/config/datosUrLP.php";
                             <div class="row">
                                 <div class="col-xxl-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 col-xs-12">
                                     <div class="table-responsive">
-                                        <table id="reembalaje" class="table-hover " style="width: 100%;">
+                                        <table id="reembalaje" class="table table-bordered table-hover table-striped" style="width: 100%;">
                                             <thead>
                                                 <tr>
                                                     <th>Numero</th>
@@ -238,13 +238,9 @@ include_once "../../assest/config/datosUrLP.php";
                                                             <?php  }  ?>
                                                         </td>                                                
                                                         <td class="text-center">
-                                                            <form method="post" id="form1" name="form1">
-                                                                <div class="btn-group btn-rounded btn-block" role="group" aria-label="Operaciones Detalle">                                                                    
-                                                                    <button type="button" class="btn  btn-danger   btn-sm" id="defecto" <?php if ($r['ESTADO'] == "1") { echo "disabled"; } ?> name="informe" title="Informe" Onclick="abrirPestana('../../assest/documento/informeReembalajeEx.php?parametro=<?php echo $r['ID_REEMBALAJE']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                        <i class="fa fa-file-pdf-o"></i><br> Informe
-                                                                    </button>
-                                                                </div>
-                                                            </form>
+                                                            <button type="button" class="btn btn-danger btn-sm btn-block" <?php if ($r['ESTADO'] == "1") { echo "disabled"; } ?> onclick="abrirPestana('../../assest/documento/informeReembalajeEx.php?parametro=<?php echo $r['ID_REEMBALAJE']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>')">
+                                                                <i class="fa fa-file-pdf-o"></i> Informe
+                                                            </button>
                                                         </td>
                                                         <td><?php echo $r['FECHA']; ?></td>
                                                         <td><?php echo $TREEMBALAJE; ?> </td>

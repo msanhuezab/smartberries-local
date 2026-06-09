@@ -5493,64 +5493,39 @@ $(function () {
 
         //estadistica             
         var tableProceso = $('#procesoEstadistica').DataTable({
-            //MARCO EN ROJO LOS DATOS QUE SEA IGUAL A ZERO PARA ENVASE, NETO BRUTO
-            /*
-            "createdRow":function(row, data,index){
-                //pintar una celda
-                if(data[10]<=0){
-                    $('td',row).css({
-                        'background-color': '#ff5252',
-                        'color': 'white',
-                    });
-                }
-                if(data[11]<=0){
-                    $('td',row).css({
-                        'background-color': '#ff5252',
-                        'color': 'white',
-                    });
-                }
-                if(data[13]<=0){
-                    $('td',row).css({
-                        'background-color': '#ff5252',
-                        'color': 'white',
-                    });
-                }
-            },  
-            */  
-            //PRIMERA FORMA DE OBTENER TOTTALES,SI DESCUENTA LO FILTRADO
-            'drawCallback':function(){
-                var api =this.api();  
-                var totalnetoeconsolidado = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(10,{page:'current'}).data().sum()).toFixed(2));            
-                var totalnetoexpoconsolidado = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(11,{page:'current'}).data().sum()).toFixed(2));            
-                var totalnetoexpodconsolidado2 = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(13,{page:'current'}).data().sum()).toFixed(2));            
-                var totalnetoindconsolidado = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(16,{page:'current'}).data().sum()).toFixed(2));           
-                console.log("neto entrada: "+  totalnetoeconsolidado);            
-                console.log("neto expo: "+  totalnetoexpoconsolidado);           
-                console.log("neto expo: "+  totalnetoexpodconsolidado2);           
-                console.log("neto expo: "+  totalnetoindconsolidado); 
-                $("#TOTALNETOEV").text(totalnetoeconsolidado);
-                $("#TOTALNETOEXPOV").text(totalnetoexpoconsolidado);
-                $("#TOTALNETOEXPODV").text(totalnetoexpodconsolidado2);
-                $("#TOTALNETOINDV").text(totalnetoindconsolidado);
-                
+            'drawCallback': function(){
+                var api = this.api();
+                $("#TOTALNETOEV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(10,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOEXPOV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(11,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOEXPODV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(13,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOINDV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(16,{page:'current'}).data().sum()).toFixed(2)));
             },
-            "scrollY": 450,
-            "scrollX": true,
-            'scrollCollapse': false,
-            'deferRender':    false,
-            'scroller': false,
-            'paging': false,
+            'initComplete': function() {
+                this.api().columns().every(function() {
+                    var col = this, idx = col.index(), header = $(col.header());
+                    if (idx === 2) return; // omitir columna Operaciones
+                    if (idx === 1) {
+                        $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option><option value="Cerrado">Cerrado</option><option value="Abierto">Abierto</option></select>')
+                            .appendTo(header).on('change', function(){ col.search($(this).val()).draw(); });
+                    } else {
+                        $('<br><input type="text" class="form-control form-control-sm dt-col-filter" placeholder="Filtrar" style="font-size:11px;">')
+                            .appendTo(header).on('keyup change clear', function(){ if(col.search()!==this.value) col.search(this.value).draw(); });
+                    }
+                });
+            },
+            'scrollX': true,
+            'paging': true,
+            'pageLength': 10,
+            'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
             'fixedHeader': true,
-            'fixedColumns':   false,
-            'colReorder': false,
-            'lengthChange': false, //ordernar por 10 25 100 500
-            'searching': true, //buscador
+            'lengthChange': true,
+            'searching': true,
             'ordering': true,
             'info': true,
             'autoWidth': false,
             'responsive': false,
             'order': [
-                [0, 'desc'], //desc ->descente asc -> ascedente
+                [3, 'desc'],
             ],
             "pagingType": "full_numbers",
             "language": {
@@ -6331,64 +6306,39 @@ $(function () {
                         
         }); 
         var tableReembalaje = $('#reembalaje').DataTable({
-            //MARCO EN ROJO LOS DATOS QUE SEA IGUAL A ZERO PARA ENVASE, NETO BRUTO
-            /*
-            "createdRow":function(row, data,index){
-                //pintar una celda
-                if(data[10]<=0){
-                    $('td',row).css({
-                        'background-color': '#ff5252',
-                        'color': 'white',
-                    });
-                }
-                if(data[11]<0){
-                    $('td',row).css({
-                        'background-color': '#ff5252',
-                        'color': 'white',
-                    });
-                }
-                if(data[13]<0){
-                    $('td',row).css({
-                        'background-color': '#ff5252',
-                        'color': 'white',
-                    });
-                }
-            },  
-            */  
-            //PRIMERA FORMA DE OBTENER TOTTALES,SI DESCUENTA LO FILTRADO
-            'drawCallback':function(){
-                var api =this.api();  
-                var totalnetoeconsolidado = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(10,{page:'current'}).data().sum()).toFixed(2));            
-                var totalnetoexpoconsolidado = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(11,{page:'current'}).data().sum()).toFixed(2));            
-                var totalnetoexpodconsolidado = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(13,{page:'current'}).data().sum()).toFixed(2));            
-                var totalnetoindconsolidado = new Intl.NumberFormat('de-DE').format(parseFloat(api.column(18,{page:'current'}).data().sum()).toFixed(2));            
-                //console.log("neto entrada: "+  totalnetoeconsolidado);            
-                //console.log("neto expo: "+  totalnetoexpoconsolidado);           
-                //console.log("neto expo: "+  totalnetoexpodconsolidado);           
-                //console.log("neto expo: "+  totalnetoindconsolidado);  
-                $("#TOTALNETOEV").text(totalnetoeconsolidado);
-                $("#TOTALNETOEXPOV").text(totalnetoexpoconsolidado);
-                $("#TOTALNETOEXPODV").text(totalnetoexpodconsolidado);
-                $("#TOTALNETOINDV").text(totalnetoindconsolidado);
-                
+            'drawCallback': function(){
+                var api = this.api();
+                $("#TOTALNETOEV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(10,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOEXPOV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(11,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOEXPODV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(13,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOINDV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(18,{page:'current'}).data().sum()).toFixed(2)));
             },
-            "scrollY": 450,
-            "scrollX": true,
-            'scrollCollapse': false,
-            'deferRender':    false,
-            'scroller': false,
-            'paging': false,
+            'initComplete': function() {
+                this.api().columns().every(function() {
+                    var col = this, idx = col.index(), header = $(col.header());
+                    if (idx === 2) return; // omitir columna Operaciones
+                    if (idx === 1) {
+                        $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option><option value="Cerrado">Cerrado</option><option value="Abierto">Abierto</option></select>')
+                            .appendTo(header).on('change', function(){ col.search($(this).val()).draw(); });
+                    } else {
+                        $('<br><input type="text" class="form-control form-control-sm dt-col-filter" placeholder="Filtrar" style="font-size:11px;">')
+                            .appendTo(header).on('keyup change clear', function(){ if(col.search()!==this.value) col.search(this.value).draw(); });
+                    }
+                });
+            },
+            'scrollX': true,
+            'paging': true,
+            'pageLength': 10,
+            'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
             'fixedHeader': true,
-            'fixedColumns':   false,
-            'colReorder': false,
-            'lengthChange': false, //ordernar por 10 25 100 500
-            'searching': true, //buscador
+            'lengthChange': true,
+            'searching': true,
             'ordering': true,
             'info': true,
             'autoWidth': false,
             'responsive': false,
             'order': [
-                [0, 'desc'], //desc ->descente asc -> ascedente
+                [3, 'desc'],
             ],
             "pagingType": "full_numbers",
             "language": {
