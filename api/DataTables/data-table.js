@@ -1,4 +1,4 @@
-//[Data Table Javascript]
+﻿//[Data Table Javascript]
 
 //Project:	Crypto Tokenizer UI Interface & Cryptocurrency Admin Template
 //Primary use:   Used only for the Data Table
@@ -5498,26 +5498,48 @@ $(function () {
                 $("#TOTALNETOEV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(10,{page:'current'}).data().sum()).toFixed(2)));
                 $("#TOTALNETOEXPOV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(11,{page:'current'}).data().sum()).toFixed(2)));
                 $("#TOTALNETOEXPODV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(13,{page:'current'}).data().sum()).toFixed(2)));
-                $("#TOTALNETOINDV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(16,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOINDV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(17,{page:'current'}).data().sum()).toFixed(2)));
             },
             'initComplete': function() {
-                this.api().columns().every(function() {
+                var api = this.api();
+                api.columns().every(function() {
                     var col = this, idx = col.index(), header = $(col.header());
-                    if (idx === 2) return; // omitir columna Operaciones
-                    if (idx === 1) {
-                        $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option><option value="Cerrado">Cerrado</option><option value="Abierto">Abierto</option></select>')
-                            .appendTo(header).on('change', function(){ col.search($(this).val()).draw(); });
-                    } else {
-                        $('<br><input type="text" class="form-control form-control-sm dt-col-filter" placeholder="Filtrar" style="font-size:11px;">')
-                            .appendTo(header).on('keyup change clear', function(){ if(col.search()!==this.value) col.search(this.value).draw(); });
+                    if (idx === 2) return;
+                    var vals = [];
+                    col.data().unique().sort().each(function(d) {
+                        var text = $('<span>').html(d).text().trim();
+                        if (text) vals.push(text);
+                    });
+                    if (vals.length <= 25) {
+                        var sel = $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option></select>')
+                            .appendTo(header)
+                            .on('change', function() {
+                                var v = $.fn.dataTable.util.escapeRegex($(this).val());
+                                col.search(v ? '^' + v + '$' : '', true, false).draw();
+                            });
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
                     }
+                });
+                api.on('draw.dt', function() {
+                    api.columns().every(function() {
+                        var col = this, idx = col.index();
+                        var sel = $(col.header()).find('select.dt-col-filter');
+                        if (!sel.length) return;
+                        if (sel.val()) return;
+                        var vals = [];
+                        api.column(idx, { search: 'applied' }).data().unique().sort().each(function(d) {
+                            var text = $('<span>').html(d).text().trim();
+                            if (text) vals.push(text);
+                        });
+                        sel.find('option:not(:first)').remove();
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    });
                 });
             },
             'scrollX': true,
             'paging': true,
             'pageLength': 10,
             'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
-            'fixedHeader': true,
             'lengthChange': true,
             'searching': true,
             'ordering': true,
@@ -5739,12 +5761,24 @@ $(function () {
                 "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
             },          
             'buttons': [
-                'excel',
-                'searchBuilder'
+                {
+                    extend: 'excel',
+                    text: '<i class="fa fa-file-excel-o"></i> Excel',
+                    exportOptions: {
+                        modifier: { search: 'applied', order: 'applied' },
+                        format: {
+                            header: function(data) {
+                                var $el = $('<div>').html(data);
+                                $el.find('select, input, br').remove();
+                                return $el.text().trim();
+                            }
+                        }
+                    }
+                }
             ],
-            'dom': 'Bfrtip',
-                        
-        }); 
+            'dom': 'Blrtip',
+
+        });
 
 
         //estadistica   productor           
@@ -6299,38 +6333,72 @@ $(function () {
                 "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
             },          
             'buttons': [
-                'excel',
-                'searchBuilder'
+                {
+                    extend: 'excel',
+                    text: '<i class="fa fa-file-excel-o"></i> Excel',
+                    exportOptions: {
+                        modifier: { search: 'applied', order: 'applied' },
+                        format: {
+                            header: function(data) {
+                                var $el = $('<div>').html(data);
+                                $el.find('select, input, br').remove();
+                                return $el.text().trim();
+                            }
+                        }
+                    }
+                }
             ],
-            'dom': 'Bfrtip',
-                        
-        }); 
+            'dom': 'Blrtip',
+
+        });
         var tableReembalaje = $('#reembalaje').DataTable({
             'drawCallback': function(){
                 var api = this.api();
                 $("#TOTALNETOEV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(10,{page:'current'}).data().sum()).toFixed(2)));
                 $("#TOTALNETOEXPOV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(11,{page:'current'}).data().sum()).toFixed(2)));
                 $("#TOTALNETOEXPODV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(13,{page:'current'}).data().sum()).toFixed(2)));
-                $("#TOTALNETOINDV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(18,{page:'current'}).data().sum()).toFixed(2)));
+                $("#TOTALNETOINDV").text(new Intl.NumberFormat('de-DE').format(parseFloat(api.column(16,{page:'current'}).data().sum()).toFixed(2)));
             },
             'initComplete': function() {
-                this.api().columns().every(function() {
+                var api = this.api();
+                api.columns().every(function() {
                     var col = this, idx = col.index(), header = $(col.header());
-                    if (idx === 2) return; // omitir columna Operaciones
-                    if (idx === 1) {
-                        $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option><option value="Cerrado">Cerrado</option><option value="Abierto">Abierto</option></select>')
-                            .appendTo(header).on('change', function(){ col.search($(this).val()).draw(); });
-                    } else {
-                        $('<br><input type="text" class="form-control form-control-sm dt-col-filter" placeholder="Filtrar" style="font-size:11px;">')
-                            .appendTo(header).on('keyup change clear', function(){ if(col.search()!==this.value) col.search(this.value).draw(); });
+                    if (idx === 2) return;
+                    var vals = [];
+                    col.data().unique().sort().each(function(d) {
+                        var text = $('<span>').html(d).text().trim();
+                        if (text) vals.push(text);
+                    });
+                    if (vals.length <= 25) {
+                        var sel = $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option></select>')
+                            .appendTo(header)
+                            .on('change', function() {
+                                var v = $.fn.dataTable.util.escapeRegex($(this).val());
+                                col.search(v ? '^' + v + '$' : '', true, false).draw();
+                            });
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
                     }
+                });
+                api.on('draw.dt', function() {
+                    api.columns().every(function() {
+                        var col = this, idx = col.index();
+                        var sel = $(col.header()).find('select.dt-col-filter');
+                        if (!sel.length) return;
+                        if (sel.val()) return;
+                        var vals = [];
+                        api.column(idx, { search: 'applied' }).data().unique().sort().each(function(d) {
+                            var text = $('<span>').html(d).text().trim();
+                            if (text) vals.push(text);
+                        });
+                        sel.find('option:not(:first)').remove();
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    });
                 });
             },
             'scrollX': true,
             'paging': true,
             'pageLength': 10,
             'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
-            'fixedHeader': true,
             'lengthChange': true,
             'searching': true,
             'ordering': true,
@@ -6550,14 +6618,26 @@ $(function () {
                     }
                 },
                 "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
-            },          
+            },
             'buttons': [
-                'excel',
-                'searchBuilder'
+                {
+                    extend: 'excel',
+                    text: '<i class="fa fa-file-excel-o"></i> Excel',
+                    exportOptions: {
+                        modifier: { search: 'applied', order: 'applied' },
+                        format: {
+                            header: function(data) {
+                                var $el = $('<div>').html(data);
+                                $el.find('select, input, br').remove();
+                                return $el.text().trim();
+                            }
+                        }
+                    }
+                }
             ],
-            'dom': 'Bfrtip',
-                        
-        });  
+            'dom': 'Blrtip',
+
+        });
         //inspeccion sag
         var tableSag = $('#sag').DataTable({
             //MARCO EN ROJO LOS DATOS QUE SEA IGUAL A ZERO PARA ENVASE, NETO BRUTO
@@ -8228,16 +8308,46 @@ $(function () {
                 $("#TOTALNETOV").text(totalnetoconsolidado);
                 $("#TOTALBRUTOV").text(totalbrutoconsolidado);
             },
-            "scrollY": 450,
-            "scrollX": true,
-            'scrollCollapse': false,
-            'deferRender':    false,
-            'scroller': false,
-            'paging': false,
-            'fixedHeader': true,
-            'fixedColumns':   false,
-            'colReorder': false,
-            'lengthChange': false, //ordernar por 10 25 100 500
+            'initComplete': function() {
+                var api = this.api();
+                api.columns().every(function() {
+                    var col = this, header = $(col.header());
+                    var vals = [];
+                    col.data().unique().sort().each(function(d) {
+                        var text = $('<span>').html(d).text().trim();
+                        if (text) vals.push(text);
+                    });
+                    if (vals.length <= 25) {
+                        var sel = $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option></select>')
+                            .appendTo(header)
+                            .on('change', function() {
+                                var v = $.fn.dataTable.util.escapeRegex($(this).val());
+                                col.search(v ? '^' + v + '$' : '', true, false).draw();
+                            });
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    }
+                });
+                api.on('draw.dt', function() {
+                    api.columns().every(function() {
+                        var col = this, idx = col.index();
+                        var sel = $(col.header()).find('select.dt-col-filter');
+                        if (!sel.length) return;
+                        if (sel.val()) return;
+                        var vals = [];
+                        api.column(idx, { search: 'applied' }).data().unique().sort().each(function(d) {
+                            var text = $('<span>').html(d).text().trim();
+                            if (text) vals.push(text);
+                        });
+                        sel.find('option:not(:first)').remove();
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    });
+                });
+            },
+            'scrollX': true,
+            'paging': true,
+            'pageLength': 10,
+            'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
+            'lengthChange': true,
             'searching': true, //buscador
             'ordering': true,
             'info': true,
@@ -8457,11 +8567,21 @@ $(function () {
                 },
                 "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
             },          
-            'buttons': [
-                'excel',
-                'searchBuilder'
-            ],
-            'dom': 'Bfrtip',
+            'buttons': [{
+                extend: 'excel',
+                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                exportOptions: {
+                    modifier: { search: 'applied', order: 'applied' },
+                    format: {
+                        header: function(data) {
+                            var $el = $('<div>').html(data);
+                            $el.find('select, input, br').remove();
+                            return $el.text().trim();
+                        }
+                    }
+                }
+            }],
+            'dom': 'Blrtip',
                         
         });
 
@@ -8485,16 +8605,46 @@ $(function () {
                 //console.log("neto: "+  totalnetoconsolidado);
                 $("#TOTALNETOV").text(totalnetoconsolidado);
             },
-            "scrollY": 450,
-            "scrollX": true,
-            'scrollCollapse': false,
-            'deferRender':    false,
-            'scroller': false,
-            'paging': false,
-            'fixedHeader': true,
-            'fixedColumns':   false,
-            'colReorder': false,
-            'lengthChange': false, //ordernar por 10 25 100 500
+            'initComplete': function() {
+                var api = this.api();
+                api.columns().every(function() {
+                    var col = this, header = $(col.header());
+                    var vals = [];
+                    col.data().unique().sort().each(function(d) {
+                        var text = $('<span>').html(d).text().trim();
+                        if (text) vals.push(text);
+                    });
+                    if (vals.length <= 25) {
+                        var sel = $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option></select>')
+                            .appendTo(header)
+                            .on('change', function() {
+                                var v = $.fn.dataTable.util.escapeRegex($(this).val());
+                                col.search(v ? '^' + v + '$' : '', true, false).draw();
+                            });
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    }
+                });
+                api.on('draw.dt', function() {
+                    api.columns().every(function() {
+                        var col = this, idx = col.index();
+                        var sel = $(col.header()).find('select.dt-col-filter');
+                        if (!sel.length) return;
+                        if (sel.val()) return;
+                        var vals = [];
+                        api.column(idx, { search: 'applied' }).data().unique().sort().each(function(d) {
+                            var text = $('<span>').html(d).text().trim();
+                            if (text) vals.push(text);
+                        });
+                        sel.find('option:not(:first)').remove();
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    });
+                });
+            },
+            'scrollX': true,
+            'paging': true,
+            'pageLength': 10,
+            'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
+            'lengthChange': true,
             'searching': true, //buscador
             'ordering': true,
             'info': true,
@@ -8714,11 +8864,21 @@ $(function () {
                 },
                 "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
             },          
-            'buttons': [
-                'excel',
-                'searchBuilder'
-            ],
-            'dom': 'Bfrtip',
+            'buttons': [{
+                extend: 'excel',
+                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                exportOptions: {
+                    modifier: { search: 'applied', order: 'applied' },
+                    format: {
+                        header: function(data) {
+                            var $el = $('<div>').html(data);
+                            $el.find('select, input, br').remove();
+                            return $el.text().trim();
+                        }
+                    }
+                }
+            }],
+            'dom': 'Blrtip',
                         
         });
        
@@ -9041,16 +9201,46 @@ $(function () {
                 $("#TOTALNETOV").text(totalnetoconsolidado);
                 $("#TOTALBRUTOV").text(totalbrutoconsolidado);
             },
-            "scrollY": 450,
-            "scrollX": true,
-            'scrollCollapse': false,
-            'deferRender':    false,
-            'scroller': false,
-            'paging': false,
-            'fixedHeader': true,
-            'fixedColumns':   false,
-            'colReorder': false,
-            'lengthChange': false, //ordernar por 10 25 100 500
+            'initComplete': function() {
+                var api = this.api();
+                api.columns().every(function() {
+                    var col = this, header = $(col.header());
+                    var vals = [];
+                    col.data().unique().sort().each(function(d) {
+                        var text = $('<span>').html(d).text().trim();
+                        if (text) vals.push(text);
+                    });
+                    if (vals.length <= 25) {
+                        var sel = $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option></select>')
+                            .appendTo(header)
+                            .on('change', function() {
+                                var v = $.fn.dataTable.util.escapeRegex($(this).val());
+                                col.search(v ? '^' + v + '$' : '', true, false).draw();
+                            });
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    }
+                });
+                api.on('draw.dt', function() {
+                    api.columns().every(function() {
+                        var col = this, idx = col.index();
+                        var sel = $(col.header()).find('select.dt-col-filter');
+                        if (!sel.length) return;
+                        if (sel.val()) return;
+                        var vals = [];
+                        api.column(idx, { search: 'applied' }).data().unique().sort().each(function(d) {
+                            var text = $('<span>').html(d).text().trim();
+                            if (text) vals.push(text);
+                        });
+                        sel.find('option:not(:first)').remove();
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    });
+                });
+            },
+            'scrollX': true,
+            'paging': true,
+            'pageLength': 10,
+            'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
+            'lengthChange': true,
             'searching': true, //buscador
             'ordering': true,
             'info': true,
@@ -9270,11 +9460,21 @@ $(function () {
                 },
                 "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
             },          
-            'buttons': [
-                'excel',
-                'searchBuilder'
-            ],
-            'dom': 'Bfrtip',
+            'buttons': [{
+                extend: 'excel',
+                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                exportOptions: {
+                    modifier: { search: 'applied', order: 'applied' },
+                    format: {
+                        header: function(data) {
+                            var $el = $('<div>').html(data);
+                            $el.find('select, input, br').remove();
+                            return $el.text().trim();
+                        }
+                    }
+                }
+            }],
+            'dom': 'Blrtip',
                         
         });
 

@@ -68,9 +68,11 @@ $ARRAYDESPACHO2="";
 
 //DEFINIR ARREGLOS CON LOS DATOS OBTENIDOS DE LAS FUNCIONES DE LOS CONTROLADORES
 
-if ( $TEMPORADAS) {
-    $ARRAYEXIINDUSTRIAL1= $EXIINDUSTRIAL_ADO->listarExiindustrialTemporadaDisponibleCBX(  $TEMPORADAS);
-    $ARRAYEXIINDUSTRIAL2 = $EXIINDUSTRIAL_ADO->listarExiindustrialRechazoMPTemporadaDisponibleCBX(  $TEMPORADAS);
+if ($TEMPORADAS) {
+    $ARRAYEXIINDUSTRIAL1 = $EXIINDUSTRIAL_ADO->listarExiindustrialTemporadaDisponibleCBX($TEMPORADAS);
+    $ARRAYEXIINDUSTRIAL1 = array_values(array_filter($ARRAYEXIINDUSTRIAL1, function($r){ return ($r['ID_EMPRESA'] ?? 0) != 5; }));
+    $ARRAYEXIINDUSTRIAL2 = $EXIINDUSTRIAL_ADO->listarExiindustrialRechazoMPTemporadaDisponibleCBX($TEMPORADAS);
+    $ARRAYEXIINDUSTRIAL2 = array_values(array_filter($ARRAYEXIINDUSTRIAL2, function($r){ return ($r['ID_EMPRESA'] ?? 0) != 5; }));
 }
 ?>
 
@@ -132,7 +134,7 @@ if ( $TEMPORADAS) {
                                 <div class="row">
                                     <div class="col-xxl-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 col-xs-12">
                                         <div class="table-responsive">
-                                            <table id="existenciaind" class="table-hover " style="width: 100%;">
+                                            <table id="existenciaind" class="table table-bordered table-hover table-striped" style="width:100%;">
                                                 <thead>
                                                     <tr class="text-center">
                                                         <th>Folio Original</th>

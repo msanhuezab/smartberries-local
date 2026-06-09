@@ -61,6 +61,7 @@ if ($TEMPORADAS) {
     } else {
         $ARRAYPROCESO = $PROCESO_ADO->listarProcesoTemporadaCBX($TEMPORADAS);
     }
+    $ARRAYPROCESO = array_values(array_filter($ARRAYPROCESO, function($r){ return ($r['ID_EMPRESA'] ?? 0) != 5; }));
 }
 //include_once "../../assest/config/validarDatosUrl.php";
 //include_once "../../assest/config/datosUrLP.php";

@@ -3803,4 +3803,21 @@ WHERE
             die($e->getMessage());
         }
     }
+
+    public function listarEximateriaprimaTemporadaDisponibleView($TEMPORADA)
+    {
+        try {
+            $datos = $this->conexion->prepare(
+                "SELECT * FROM view_eximateriaprima
+                 WHERE ID_TEMPORADA = ? AND ESTADO = 2 AND ID_EMPRESA != 5
+                 ORDER BY FOLIO_AUXILIAR_EXIMATERIAPRIMA ASC"
+            );
+            $datos->execute([$TEMPORADA]);
+            $resultado = $datos->fetchAll();
+            $datos = null;
+            return $resultado;
+        } catch (Exception $e) {
+            die($e->getMessage());
+        }
+    }
 }

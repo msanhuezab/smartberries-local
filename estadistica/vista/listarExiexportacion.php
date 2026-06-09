@@ -94,8 +94,9 @@ $ARRAYINPSAG = "";
 
 
 //DEFINIR ARREGLOS CON LOS DATOS OBTENIDOS DE LAS FUNCIONES DE LOS CONTROLADORES
-if ( $TEMPORADAS) {
-    $ARRAYEXIEXPORTACION = $EXIEXPORTACION_ADO->listarExiexportacionAgrupadoPorFolioTemporadaDisponible( $TEMPORADAS);
+if ($TEMPORADAS) {
+    $ARRAYEXIEXPORTACION = $EXIEXPORTACION_ADO->listarExiexportacionAgrupadoPorFolioTemporadaDisponible($TEMPORADAS);
+    $ARRAYEXIEXPORTACION = array_values(array_filter($ARRAYEXIEXPORTACION, function($r){ return ($r['ID_EMPRESA'] ?? 0) != 5; }));
 }
 
 ?>
@@ -158,7 +159,7 @@ if ( $TEMPORADAS) {
                                 <div class="row">
                                     <div class="col-xxl-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12 col-xs-12">
                                         <div class="table-responsive">
-                                            <table id="existenciapt_estadisticas" class="table-hover" style="width: 300%;">
+                                            <table id="existenciapt_estadisticas" class="table table-bordered table-hover table-striped" style="width:100%;">
                                                 <thead>
                                                     <tr class="text-center">
                                                         <th>Folio Original</th>
