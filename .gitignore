@@ -23,6 +23,8 @@ node_modules/
 vendor/
 !api/vendor/
 !api/vendor/**
+!api/phpoffice/vendor/
+!api/phpoffice/vendor/**
 
 # Editor and OS files
 .idea/
