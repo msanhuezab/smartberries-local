@@ -62,7 +62,7 @@ if (!in_array($FILTRO_ESTADO, array("TODOS", "SIN_CONTROL", "ABIERTO", "CERRADO"
 }
 
 $nombreEspecie = "";
-foreach ($ESPECIES_ADO->listarEspeciesCalidadCBX() as $especie) {
+foreach ($ESPECIES_ADO->listarEspeciesCalidadEmpresaCBX($EMPRESAS) as $especie) {
     if ((string) $especie["ID_ESPECIES"] === (string) $ID_ESPECIES) {
         $nombreEspecie = $especie["NOMBRE_ESPECIES"];
         break;

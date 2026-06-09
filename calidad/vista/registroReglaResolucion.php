@@ -78,7 +78,7 @@ if (isset($_POST["DESHABILITARREGLA"])) {
     $TIPOMENSAJE = "success";
 }
 
-$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadCBX();
+$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadEmpresaCBX($EMPRESAS);
 $ARRAYREGLAS = $REGLA_ADO->listarReglaActiva($EMPRESAS, $TEMPORADAS);
 if (isset($_GET["ID"])) {
     $ARRAYREGLA_EDITAR = $REGLA_ADO->verRegla($_GET["ID"]);

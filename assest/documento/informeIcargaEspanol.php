@@ -262,46 +262,36 @@ if($ARRAYICARGA){
     $ARRAYDESPACHOEX=$DESPACHOEX_ADO->buscarDespachoExPorIcarga($IDOP);
 
     if($ARRAYDESPACHOEX){
+      $_fechas = []; $_sellos = []; $_lugares = []; $_fdas = [];
       foreach ($ARRAYDESPACHOEX as $r) :
-        if(isset($r['FECHA']) && $r['FECHA']){
-          $FECHADESPACHOEX=$FECHADESPACHOEX.$r['FECHA']."<br> ";
-        }
-        if(isset($r['NUMERO_SELLO_DESPACHOEX']) && $r['NUMERO_SELLO_DESPACHOEX']){
-          $NUMEROSELLO=$NUMEROSELLO.$r['NUMERO_SELLO_DESPACHOEX']."<br> ";
-        }
-        if(isset($r['NUMERO_CONTENEDOR_DESPACHOEX']) && $r['NUMERO_CONTENEDOR_DESPACHOEX']){
+        if(isset($r['FECHA']) && $r['FECHA'])
+          $_fechas[] = $r['FECHA'];
+        if(isset($r['NUMERO_SELLO_DESPACHOEX']) && $r['NUMERO_SELLO_DESPACHOEX'])
+          $_sellos[] = $r['NUMERO_SELLO_DESPACHOEX'];
+        if(isset($r['NUMERO_CONTENEDOR_DESPACHOEX']) && $r['NUMERO_CONTENEDOR_DESPACHOEX'])
           $NUMEROCONTENEDOR = $r['NUMERO_CONTENEDOR_DESPACHOEX'];
-        }
         $ARRAYVERPLANTA = $PLANTA_ADO->verPlanta($r['ID_PLANTA']);
         if($ARRAYVERPLANTA){
-          $LUGARDECARGA= $LUGARDECARGA.$ARRAYVERPLANTA[0]["RAZON_SOCIAL_PLANTA"]."<br> ";
-          $FDADESPACHOEX= $FDADESPACHOEX.$ARRAYVERPLANTA[0]["FDA_PLANTA"]."<br> ";
+          $_lugares[] = $ARRAYVERPLANTA[0]["RAZON_SOCIAL_PLANTA"];
+          $_fdas[]    = $ARRAYVERPLANTA[0]["FDA_PLANTA"];
         }
       endforeach;
 
-      if(!$FECHADESPACHOEX){
-        $FECHADESPACHOEX="Sin Datos";
-      }
-      if(!$NUMEROSELLO){
-        $NUMEROSELLO="Sin Datos";
-      }
-      if(!$LUGARDECARGA){
-        $LUGARDECARGA="Sin Datos";
-      }
-      if(!$FDADESPACHOEX){
-        $FDADESPACHOEX="Sin Datos";
-      }
+      $FECHADESPACHOEX = implode("<br>", array_unique($_fechas))  ?: "";
+      $NUMEROSELLO     = implode("<br>", array_unique($_sellos))  ?: "";
+      $LUGARDECARGA    = implode("<br>", array_unique($_lugares)) ?: "";
+      $FDADESPACHOEX   = implode("<br>", array_unique($_fdas))    ?: "";
 
     }else{
-      $FDADESPACHOEX=$ARRAYICARGA[0]['FDA_ICARGA'] ?? "Sin Datos";
+      $FDADESPACHOEX=$ARRAYICARGA[0]['FDA_ICARGA'] ?? "";
       $NUMEROCONTENEDOR=$ARRAYICARGA[0]['NCONTENEDOR_ICARGA'];
-      $NUMEROSELLO="Sin Datos";
-      $FECHADESPACHOEX="Sin Datos";
+      $NUMEROSELLO="";
+      $FECHADESPACHOEX="";
       $ARRAYVERLCARGA = $LCARGA_ADO->verLcarga($ARRAYICARGA[0]['ID_LCARGA']);
       if($ARRAYVERLCARGA){
         $LUGARDECARGA=$ARRAYVERLCARGA[0]['NOMBRE_LCARGA'];
       }else{
-        $LUGARDECARGA="Sin Datos";
+        $LUGARDECARGA="";
       }
     }
     
@@ -324,12 +314,12 @@ if($ARRAYICARGA){
     $FECHAETA = $ARRAYICARGA[0]['FECHAETA'];
     $FECHAETDREAL = $ARRAYICARGA[0]['FECHAETDREAL'];
     if(!$FECHAETDREAL){
-      $FECHAETDREAL = "Sin Datos";
+      $FECHAETDREAL = "";
     }
     $FECHAETAREAL = $ARRAYICARGA[0]['FECHAETAREAL'];
       $BOLAWBCRTINSTRUCTIVO = $ARRAYICARGA[0]['BOLAWBCRT_ICARGA'];
       if(!$BOLAWBCRTINSTRUCTIVO){
-        $BOLAWBCRTINSTRUCTIVO = "Sin Datos";
+        $BOLAWBCRTINSTRUCTIVO = "";
       }
 
     $TINSTRUCTIVO = $ARRAYICARGA[0]['T_ICARGA'];
@@ -343,7 +333,7 @@ if($ARRAYICARGA){
     }else if($ARRAYICARGA[0]['FUMIGADO_ICARGA']==2){
       $FUMIGADO="No";
     }else{
-      $FUMIGADO="Sin Datos";
+      $FUMIGADO="";
     }
 
     $ESTADO = $ARRAYICARGA[0]['ESTADO'];
@@ -352,7 +342,7 @@ if($ARRAYICARGA){
     }else if ($ARRAYICARGA[0]['ESTADO'] == 0) {
       $ESTADO = "Cerrado";
     }else{
-      $ESTADO="Sin Datos";
+      $ESTADO="";
     }  
 
     $ARRAYCONSIGNATARIO = $CONSIGNATARIO_ADO->verConsignatorio($ARRAYICARGA[0]['ID_CONSIGNATARIO']);            
@@ -363,11 +353,11 @@ if($ARRAYICARGA){
       $TELEFONOCONSIGNATARIO=$ARRAYCONSIGNATARIO[0]["TELEFONO_CONSIGNATARIO"];
       $EMAIL1CONSIGNATARIO=$ARRAYCONSIGNATARIO[0]["EMAIL1_CONSIGNATARIO"];
     }else{
-      $NOMBRECONSIGNATARIO="Sin Datos";
-      $EORICONSIGNATARIO="Sin Datos";
-      $TELEFONOCONSIGNATARIO="Sin Datos";
-      $DIRECCIONCONSIGNATARIO="Sin Datos";
-      $EMAIL1CONSIGNATARIO="Sin Datos";
+      $NOMBRECONSIGNATARIO="";
+      $EORICONSIGNATARIO="";
+      $TELEFONOCONSIGNATARIO="";
+      $DIRECCIONCONSIGNATARIO="";
+      $EMAIL1CONSIGNATARIO="";
     }
 
     $ARRYANOTIFICADOR=$NOTIFICADOR_ADO->verNotificador($ARRAYICARGA[0]['ID_NOTIFICADOR']);   
@@ -378,11 +368,11 @@ if($ARRAYICARGA){
       $TELEFONONOTIFICADOR=$ARRYANOTIFICADOR[0]["TELEFONO_NOTIFICADOR"];
       $EMAIL1NOTIFICADOR=$ARRYANOTIFICADOR[0]["EMAIL1_NOTIFICADOR"];
     }else{
-      $NOMBRENOTIFICADOR="Sin Datos";
-      $EORINOTIFICADOR="Sin Datos";
-      $TELEFONONOTIFICADOR="Sin Datos";
-      $DIRECCIONNOTIFICADOR="Sin Datos";
-      $EMAIL1NOTIFICADOR="Sin Datos";
+      $NOMBRENOTIFICADOR="";
+      $EORINOTIFICADOR="";
+      $TELEFONONOTIFICADOR="";
+      $DIRECCIONNOTIFICADOR="";
+      $EMAIL1NOTIFICADOR="";
     }
 
  
@@ -391,7 +381,7 @@ if($ARRAYICARGA){
       if($ARRAYRFINAL){
           $NOMBRERFINAL=$ARRAYRFINAL[0]["NOMBRE_RFINAL"];
       }else{
-          $NOMBRERFINAL="Sin Datos";
+          $NOMBRERFINAL="";
       }
 
  
@@ -399,63 +389,63 @@ if($ARRAYICARGA){
       if($ARRAYFPAGO){
         $NOMBREFPAGO=$ARRAYFPAGO[0]["NOMBRE_FPAGO"];
       }else{
-        $NOMBREFPAGO="Sin Datos";
+        $NOMBREFPAGO="";
       }
       $ARRAYMVENTA = $MVENTA_ADO->verMventa( $ARRAYICARGA[0]['ID_MVENTA']);        
       if($ARRAYMVENTA){
         $NOMBREMVENTA=$ARRAYMVENTA[0]["NOMBRE_MVENTA"];
       }else{
-        $NOMBREMVENTA="Sin Datos";
+        $NOMBREMVENTA="";
       }
       $ARRAYCVENTA = $CVENTA_ADO->verCventa( $ARRAYICARGA[0]['ID_CVENTA']);        
       if($ARRAYMVENTA){
         $NOMBRECVENTA=$ARRAYCVENTA[0]["NOMBRE_CVENTA"];
       }else{
-        $NOMBRECVENTA="Sin Datos";
+        $NOMBRECVENTA="";
       }
       $ARRAYTFLETE= $TFLETE_ADO->verTflete( $ARRAYICARGA[0]['ID_TFLETE']);        
       if($ARRAYTFLETE){
         $NOMBRETFLETE=$ARRAYTFLETE[0]["NOMBRE_TFLETE"];
       }else{
-        $NOMBRETFLETE="Sin Datos";
+        $NOMBRETFLETE="";
       }      
       $ARRAYATMOSFERA =$ATMOSFERA_ADO->verAtmosfera( $ARRAYICARGA[0]['ID_ATMOSFERA']);
       if($ARRAYATMOSFERA){
         $NOMBREATMOSFERA=$ARRAYATMOSFERA[0]["NOMBRE_ATMOSFERA"];
       }else{
-        $NOMBREATMOSFERA="Sin Datos";
+        $NOMBREATMOSFERA="";
       }
       $ARRAYEMISIONBL =$EMISIONBL_ADO->verEmisionbl( $ARRAYICARGA[0]['ID_EMISIONBL']);
       if($ARRAYEMISIONBL){
         $NOMBREEMISIONBL=$ARRAYEMISIONBL[0]["NOMBRE_EMISIONBL"];
       }else{
-        $NOMBREEMISIONBL="Sin Datos";
+        $NOMBREEMISIONBL="";
       }
       $ARRAYTCONTENEDOR =$TCONTENEDOR_ADO->verTcontenedorInstructivo( $ARRAYICARGA[0]['ID_TCONTENEDOR']);
       if($ARRAYTCONTENEDOR){
         $NOMBRETCONTENEDOR=$ARRAYTCONTENEDOR[0]["NOMBRE_TCONTENEDOR"];
       }else{
-        $NOMBRETCONTENEDOR="Sin Datos";
+        $NOMBRETCONTENEDOR="";
       }      
       $ARRAYPAIS =$PAIS_ADO->verPais( $ARRAYICARGA[0]['ID_PAIS']);
       if($ARRAYPAIS){
         $NOMBREPAIS=$ARRAYPAIS[0]["NOMBRE_PAIS"];
       }else{
-        $NOMBREPAIS="Sin Datos";
+        $NOMBREPAIS="";
       }
       $ARRAYEXPORTADORA = $EXPORTADORA_ADO->verExportadora( $ARRAYICARGA[0]['ID_EXPPORTADORA']);
       if($ARRAYEXPORTADORA){
         $RUTEXPPORTADORA=$ARRAYEXPORTADORA[0]["RUT_EXPORTADORA"]."-".$ARRAYEXPORTADORA[0]["DV_EXPORTADORA"];
         $NOMBREEXPPORTADORA=$ARRAYEXPORTADORA[0]["NOMBRE_EXPORTADORA"];
       }else{
-        $RUTEXPPORTADORA="Sin Datos";
-        $NOMBREEXPPORTADORA="Sin Datos";
+        $RUTEXPPORTADORA="";
+        $NOMBREEXPPORTADORA="";
       }
       $ARRAYPAISFINAL = $PAIS_ADO->verPais($ARRAYICARGA[0]['ID_DFINAL']);
       if($ARRAYPAISFINAL){
         $NOMBREDFINAL=$ARRAYPAISFINAL[0]["NOMBRE_PAIS"];
       }else{
-        $NOMBREDFINAL="Sin Datos";
+        $NOMBREDFINAL="";
       }
 
     if($TEMBARQUE){
@@ -466,19 +456,19 @@ if($ARRAYICARGA){
               if($ARRAYTRANSPORTE){
                 $NOMBRETRANSPORTE=$ARRAYTRANSPORTE[0]["NOMBRE_TRANSPORTE"];
               }else{
-                $NOMBRETRANSPORTE="Sin Datos";
+                $NOMBRETRANSPORTE="";
               }            
               $ARRAYLCARGA =$LCARGA_ADO->verLcarga(  $ARRAYICARGA[0]['ID_LCARGA']);       
               if($ARRAYLCARGA){
                 $NOMBREORIGEN=$ARRAYLCARGA[0]["NOMBRE_LCARGA"];
               }else{
-                $NOMBREORIGEN="Sin Datos";
+                $NOMBREORIGEN="";
               }
               $ARRAYLDESTINO =$LDESTINO_ADO->verLdestino( $ARRAYICARGA[0]['ID_LDESTINO']);     
               if($ARRAYLDESTINO){
                 $NOMBREDESTINO=$ARRAYLDESTINO[0]["NOMBRE_LDESTINO"];
               }else{
-                $NOMBREDESTINO="Sin Datos";
+                $NOMBREDESTINO="";
               }
           }
           if ($TEMBARQUE == "2") {
@@ -490,19 +480,19 @@ if($ARRAYICARGA){
               if($ARRAYLAEREA){
                 $NOMBRETRANSPORTE=$ARRAYLAEREA[0]["NOMBRE_LAEREA"];
               }else{
-                $NOMBRETRANSPORTE="Sin Datos";
+                $NOMBRETRANSPORTE="";
               }            
               $ARRAYACARGA =$ACARGA_ADO->verAcarga(  $ARRAYICARGA[0]['ID_ACARGA']);  
               if($ARRAYACARGA){
                 $NOMBREORIGEN=$ARRAYACARGA[0]["NOMBRE_ACARGA"];
               }else{
-                $NOMBREORIGEN="Sin Datos";
+                $NOMBREORIGEN="";
               }
               $ARRAYADESTINO =$ADESTINO_ADO->verAdestino( $ARRAYICARGA[0]['ID_ADESTINO']);  
               if($ARRAYADESTINO){
                 $NOMBREDESTINO=$ARRAYADESTINO[0]["NOMBRE_ADESTINO"];
               }else{
-                $NOMBREDESTINO="Sin Datos";
+                $NOMBREDESTINO="";
               }
           }
           if ($TEMBARQUE == "3") {
@@ -515,19 +505,19 @@ if($ARRAYICARGA){
               if($ARRAYNAVIERA){
                 $NOMBRETRANSPORTE=$ARRAYNAVIERA[0]["NOMBRE_NAVIERA"];
               }else{
-                $NOMBRETRANSPORTE="Sin Datos";
+                $NOMBRETRANSPORTE="";
               }            
               $ARRAYPCARGA =$PCARGA_ADO->verPcarga(  $ARRAYICARGA[0]['ID_PCARGA']);
               if($ARRAYPCARGA){
                 $NOMBREORIGEN=$ARRAYPCARGA[0]["NOMBRE_PCARGA"];
               }else{
-                $NOMBREORIGEN="Sin Datos";
+                $NOMBREORIGEN="";
               }
               $ARRAYPDESTINO =$PDESTINO_ADO->verPdestino( $ARRAYICARGA[0]['ID_PDESTINO']);
               if($ARRAYPDESTINO){
                 $NOMBREDESTINO=$ARRAYPDESTINO[0]["NOMBRE_PDESTINO"];
               }else{
-                $NOMBREDESTINO="Sin Datos";
+                $NOMBREDESTINO="";
               }
           }
     }      
@@ -541,12 +531,12 @@ if($ARRAYICARGA){
       $EMAILAGCARGA=$ARRAYAGCARGA[0]["EMAIL_AGCARGA"];
       $TELEFONOAGCARGA=$ARRAYAGCARGA[0]["TELEFONO_AGCARGA"];
     }else{
-      $RUTAGCARGA="Sin Datos";
-      $NOMBREAGCARGA="Sin Datos";
-      $DIRECCIONAGCARGA="Sin Datos";
-      $CONTACTOAGCARGA="Sin Datos";
-      $EMAILAGCARGA="Sin Datos";
-      $TELEFONOAGCARGA="Sin Datos";
+      $RUTAGCARGA="";
+      $NOMBREAGCARGA="";
+      $DIRECCIONAGCARGA="";
+      $CONTACTOAGCARGA="";
+      $EMAILAGCARGA="";
+      $TELEFONOAGCARGA="";
     } 
     $ARRAYAADUANA = $AADUANA_ADO->verAaduana( $ARRAYICARGA[0]['ID_AADUANA']);
     if($ARRAYAADUANA){
@@ -557,12 +547,12 @@ if($ARRAYICARGA){
       $EMAILAADUANA=$ARRAYAADUANA[0]["EMAIL_AADUANA"];
       $TELEFONOAADUANA=$ARRAYAADUANA[0]["TELEFONO_AADUANA"];
     }else{
-      $RUTAADUANA="Sin Datos";
-      $NOMBREAADUANA="Sin Datos";
-      $DIRECCIONAADUANA="Sin Datos";
-      $CONTACTOAADUANA="Sin Datos";
-      $EMAILAADUANA="Sin Datos";
-      $TELEFONOAADUANA="Sin Datos";
+      $RUTAADUANA="";
+      $NOMBREAADUANA="";
+      $DIRECCIONAADUANA="";
+      $CONTACTOAADUANA="";
+      $EMAILAADUANA="";
+      $TELEFONOAADUANA="";
     }
 
 
@@ -581,16 +571,16 @@ if($ARRAYICARGA){
         $DIRECCIONEMPRESA=$DIRECCIONEMPRESA;
       }
     }else{    
-      $NOMBREEMPRESA="Sin Datos";
-      $RAZONSOCIALEMPRESA="Sin Datos";
-      $RUTEMPRESA="Sin Datos";
-      $DIRECCIONEMPRESA="Sin Datos";
+      $NOMBREEMPRESA="";
+      $RAZONSOCIALEMPRESA="";
+      $RUTEMPRESA="";
+      $DIRECCIONEMPRESA="";
     }
   $ARRAYTEMPORADA = $TEMPORADA_ADO->verTemporada($ARRAYICARGA[0]['ID_TEMPORADA']);  
   if($ARRAYTEMPORADA){
     $NOMBRETEMPORADA=$ARRAYTEMPORADA[0]["NOMBRE_TEMPORADA"];
   }else{
-    $NOMBRETEMPORADA="Sin Datos";
+    $NOMBRETEMPORADA="";
   }
 
 } 
@@ -694,44 +684,70 @@ $html='
     </table>  
     </header>
     <main>
-    <div class="titulo bcolor" >
-      <div class="f20 titulo"  style="text-align: left; font-weight: bold;">  INSTRUCTIVO EMBARQUE  </div>    
-      <div class="f15 titulo"  style="text-align: right;">  <b>  Número Referencia: ' . $NUMEROIREFERENCIA . '   </b>  </div>      
-    </div>   
-    <br>
-      <div id="details" class="clearfix">            
-        <div id="invoice">
-          <div class="color2"><b>Fecha Instructivo: </b> '.$FECHA.'</div>
-          <div class="color2"><b> Número Instructivo </b>: '.$NUMEROICARGA.'  </div>
-          <div class="color2"><b> Número Referencia </b>: '.$NUMEROIREFERENCIA.'  </div>
-          <div class="color2"><b> Estado Instructivo </b>: '.$ESTADO.' </div>
-          <div class="color2"><b>Temporada: </b> '.$NOMBRETEMPORADA.'</div>
-        </div>
-        <div id="invoicer"> 
-          <div class="color2"> <b> Consignatario  </b></div>
-          <div class="color2"> <b> Nombre: </b>'.$NOMBRECONSIGNATARIO.'  </div>
-          <div class="color2"> <b> Dirección: </b>'.$DIRECCIONCONSIGNATARIO.'  </div>
-          <div class="color2"> <b> Id Tributario: </b>'.$EORICONSIGNATARIO.'  </div>
-          <div class="color2"> <b> Teléfono / Fax: </b>'.$TELEFONOCONSIGNATARIO.'  </div>
-          <div class="color2"> <b> Email: </b>'.$EMAIL1CONSIGNATARIO.'  </div>
-        </div> 
-        <div id="invoicer"> 
-          <div class="color2"> <b> Notificador  </b></div>
-          <div class="color2"> <b> Nombre: </b>'.$NOMBRENOTIFICADOR.'  </div>
-          <div class="color2"> <b> Dirección: </b>'.$DIRECCIONNOTIFICADOR.'  </div>
-          <div class="color2"> <b> Id Tributario: </b>'.$EORINOTIFICADOR.'  </div>
-          <div class="color2"> <b> Teléfono / Fax: </b>'.$TELEFONONOTIFICADOR.'  </div>
-          <div class="color2"> <b> Email: </b>'.$EMAIL1NOTIFICADOR.'  </div>
-        </div>     
-      </div> 
-
+    <table border="0" cellspacing="0" cellpadding="8" style="width:100%; background:#505050; margin-bottom:4px;">
+      <tr>
+        <td style="background:#505050; color:#ffffff; font-size:20px; font-weight:bold; text-align:left; border-bottom:none;"><b>INSTRUCTIVO EMBARQUE</b></td>
+        <td style="background:#505050; color:#ffffff; font-size:13px; text-align:right; border-bottom:none;"><b>Número Referencia: ' . $NUMEROIREFERENCIA . '</b></td>
+      </tr>
+    </table>
+    <table class="t6" border="0" cellspacing="0" cellpadding="0">
+      <thead>
+        <tr>
+          <th colspan="2" class="center color">Datos del Instructivo</th>
+          <th colspan="2" class="center color">Consignatario</th>
+          <th colspan="2" class="center color">Notificador</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th class="color2 left">Fecha:</th>
+          <td class="color2 left">'.$FECHA.'</td>
+          <th class="color2 left">Nombre:</th>
+          <td class="color2 left">'.$NOMBRECONSIGNATARIO.'</td>
+          <th class="color2 left">Nombre:</th>
+          <td class="color2 left">'.$NOMBRENOTIFICADOR.'</td>
+        </tr>
+        <tr>
+          <th class="color2 left">N° Instructivo:</th>
+          <td class="color2 left">'.$NUMEROICARGA.'</td>
+          <th class="color2 left">Dirección:</th>
+          <td class="color2 left">'.$DIRECCIONCONSIGNATARIO.'</td>
+          <th class="color2 left">Dirección:</th>
+          <td class="color2 left">'.$DIRECCIONNOTIFICADOR.'</td>
+        </tr>
+        <tr>
+          <th class="color2 left">N° Referencia:</th>
+          <td class="color2 left">'.$NUMEROIREFERENCIA.'</td>
+          <th class="color2 left">Id Tributario:</th>
+          <td class="color2 left">'.$EORICONSIGNATARIO.'</td>
+          <th class="color2 left">Id Tributario:</th>
+          <td class="color2 left">'.$EORINOTIFICADOR.'</td>
+        </tr>
+        <tr>
+          <th class="color2 left">Estado:</th>
+          <td class="color2 left">'.$ESTADO.'</td>
+          <th class="color2 left">Teléfono/Fax:</th>
+          <td class="color2 left">'.$TELEFONOCONSIGNATARIO.'</td>
+          <th class="color2 left">Teléfono/Fax:</th>
+          <td class="color2 left">'.$TELEFONONOTIFICADOR.'</td>
+        </tr>
+        <tr>
+          <th class="color2 left">Temporada:</th>
+          <td class="color2 left">'.$NOMBRETEMPORADA.'</td>
+          <th class="color2 left">Email:</th>
+          <td class="color2 left">'.$EMAIL1CONSIGNATARIO.'</td>
+          <th class="color2 left">Email:</th>
+          <td class="color2 left">'.$EMAIL1NOTIFICADOR.'</td>
+        </tr>
+      </tbody>
+    </table>
      ';
 
      $html=$html.'
-     <table  border="0" cellspacing="0" cellpadding="0">
+     <table class="t4" border="0" cellspacing="0" cellpadding="0">
        <thead>
-         <tr class="">
-           <th colspan="4" class="center titulo color">Datos del Despacho</th>
+         <tr>
+           <th colspan="4" class="center color">Datos del Despacho</th>
          </tr>
        </thead>
        <tbody>   
@@ -753,7 +769,7 @@ $html='
        ' ;
 
      $html=$html.'
-     <table  border="0" cellspacing="0" cellpadding="0">
+     <table class="t6" border="0" cellspacing="0" cellpadding="0">
        <thead>
          <tr>
            <th colspan="6" class="center color">Datos del Embarque</th>
@@ -847,7 +863,7 @@ $html='
 
 
      $html=$html.'
-     <table  border="0" cellspacing="0" cellpadding="0">
+     <table class="t4" border="0" cellspacing="0" cellpadding="0">
        <thead>
          <tr>
            <th colspan="4" class="center color">Condiciones del Embarque</th>
@@ -879,7 +895,7 @@ $html='
      ';
      
 $html=$html.'
-<table  border="0" cellspacing="0" cellpadding="0">
+<table class="t6" border="0" cellspacing="0" cellpadding="0">
   <thead>
     <tr>
       <th colspan="6" class="center color">Información Gasificado</th>
@@ -907,10 +923,10 @@ $html=$html.'
 ';
 
 $html=$html.'
-<table  border="0" cellspacing="0" cellpadding="0">
+<table class="t6" border="0" cellspacing="0" cellpadding="0">
   <thead>
     <tr>
-      <th colspan="7" class="center color">Otros Datos del Embarque</th>
+      <th colspan="6" class="center color">Otros Datos del Embarque</th>
     </tr>
   </thead>
   <tbody>
@@ -953,16 +969,14 @@ $html=$html.'
     }
     if ($TEMBARQUE == "3") {
       $html = $html . '
-      
       <tr>
-      <th class="color2 left">Lugar Carga: </th>     
-      <td class="color2 left">'.$LUGARDECARGA.'</td>  
-      <th class="color2 left">Puerto Carga: </th>     
-      <td class="color2 left">'.$NOMBREORIGEN.'</td>  
-      <th class="color2 left">Puerto Destino: </th>  
-      <td class="color2 left">'.$NOMBREDESTINO.'</td>      
-      </tr>   
-        
+      <th class="color2 left">Puerto Carga: </th>
+      <td class="color2 left">'.$NOMBREORIGEN.'</td>
+      <th class="color2 left">Puerto Destino: </th>
+      <td class="color2 left">'.$NOMBREDESTINO.'</td>
+      <th class="color2 left">&nbsp;</th>
+      <td class="color2 left">&nbsp;</td>
+      </tr>
       ';
     }
 
@@ -986,7 +1000,7 @@ $html=$html.'
 ';
 
 $html=$html.'
-<table  border="0" cellspacing="0" cellpadding="0">
+<table class="t6" border="0" cellspacing="0" cellpadding="0">
   <thead>
     <tr>
       <th colspan="6" class="center color">Información Agente de Carga</th>
@@ -1017,7 +1031,7 @@ $html=$html.'
 
 
 $html=$html.'
-<table  border="0" cellspacing="0" cellpadding="0">
+<table class="t6" border="0" cellspacing="0" cellpadding="0">
   <thead>
     <tr>
       <th colspan="6" class="center color">Información Agencia de Aduana</th>
@@ -1082,35 +1096,35 @@ $html = $html . '
           $NETOESTANTAR = $ARRAYEEXPORTACION[0]['PESO_NETO_ESTANDAR'];
           $BRUTOESTANTAR = $ARRAYEEXPORTACION[0]['PESO_BRUTO_ESTANDAR'];
       } else {
-          $CODIGOESTANDAR = "Sin Datos";
-          $NOMBREESTANTAR = "Sin Datos";
-          $NETOESTANTAR = "Sin Datos";
-          $BRUTOESTANTAR = "Sin Datos";
+          $CODIGOESTANDAR = "";
+          $NOMBREESTANTAR = "";
+          $NETOESTANTAR = "";
+          $BRUTOESTANTAR = "";
       }
    
       $ARRAYCALIBRE = $TCALIBRE_ADO->verCalibre($s['ID_TCALIBRE']);
       if ($ARRAYCALIBRE) {
           $NOMBRECALIBRE = $ARRAYCALIBRE[0]['NOMBRE_TCALIBRE'];
       } else {
-          $NOMBRECALIBRE = "Sin Datos";
+          $NOMBRECALIBRE = "";
       }
       $ARRAYTMONEDA = $TMONEDA_ADO->verTmoneda($s['ID_TMONEDA']);
       if ($ARRAYTMONEDA) {
           $NOMBRETMONEDA = $ARRAYTMONEDA[0]['NOMBRE_TMONEDA'];
       } else {
-          $NOMBRETMONEDA = "Sin Datos";
+          $NOMBRETMONEDA = "";
       }
       $ARRAYTMANEJO = $TMANEJO_ADO->verTmanejo($s['ID_TMANEJO']);
       if ($ARRAYTMANEJO) {
           $NOMBRETMANEJO = $ARRAYTMANEJO[0]['NOMBRE_TMANEJO'];
       } else {
-          $NOMBRETMANEJO = "Sin Datos";
+          $NOMBRETMANEJO = "";
       }
       $ARRAYVERVESPECIESID = $VESPECIES_ADO->verVespecies($s['ID_VESPECIES']);
       if ($ARRAYVERVESPECIESID) {
           $NOMBREVARIEDAD = $ARRAYVERVESPECIESID[0]['NOMBRE_VESPECIES'];
       } else {
-          $NOMBREVARIEDAD = "Sin Datos";
+          $NOMBREVARIEDAD = "";
       }
 
       $html = $html . '  
@@ -1159,22 +1173,25 @@ $html = $html . '
 
 $html = $html . '  
 
-  <br><br><br><br><br> <br><br><br><br><br>
-      <div id="details" class="clearfix">      
+  <div id="details" class="clearfix">      
         <div id="client">
-          <div class="address"><b>Observaciones</b></div>
+          <div class="address"><b>Obs.</b></div>
           <div class="address">  '.$OBSERVACIONES.' </div>
-        </div>
-        <div id="invoice">
-          <div class="date"><b><hr></b></div>
-          <div class="date center">  Firma Responsable</div>
-          <div class="date center">  ' . $NOMBRERESPONSABLE . '</div>
-        </div>
-      </div>
-
-
-
+  </div>
+    </div>
+    </div>
+    </div>
+  
     </main>
+
+  <!-- FIRMA INSPECTOR – anclada cerca del footer -->
+<div style="position:fixed;bottom:10mm;right:12mm;display:table;">
+  <div style="border-top:1px solid #555;padding-top:8px;padding-bottom:4px;font-size:9px;font-family:Arial,sans-serif;color:#333;white-space:nowrap;">
+    ' . $NOMBRERESPONSABLE  . '
+  </div>
+</div>
+
+
   </body>
 </html>
 
@@ -1206,8 +1223,14 @@ $ASUNTO = "Instructivo";
 
 //API DE GENERACION DE PDF
 require_once '../../api/mpdf/mpdf/autoload.php';
-//$PDF = new \Mpdf\Mpdf();W
-$PDF = new \Mpdf\Mpdf(['format'=> 'letter']);
+$PDF = new \Mpdf\Mpdf([
+    'format'       => 'letter',
+    'margin_top'   => 18,
+    'margin_bottom'=> 10,
+    'margin_left'  => 8,
+    'margin_right' => 8,
+    'default_font_size' => 9,
+]);
 
 //CONFIGURACION FOOTER Y HEADER DEL PDF//CONFIGURACION FOOTER Y HEADER DEL PDF
 $PDF->SetHTMLHeader('
@@ -1251,10 +1274,25 @@ $PDF->SetSubject($ASUNTO); //ASUNTO PDF
 //INICIALIZACION DEL CSS
 $stylesheet = file_get_contents('../../assest/css/stylePdf.css'); // carga archivo css
 $stylesheet2 = file_get_contents('../../assest/css/reset.css'); // carga archivo css
+$stylesheetCompact = '
+table { margin-bottom: 4px; }
+header { padding: 4px 0; margin-bottom: 4px; }
+table th { padding: 2px 4px; font-size: 9px !important; }
+table td { padding: 2px 4px; font-size: 9px !important; }
+table .color { font-size: 9px !important; }
+table th.color2 { background: #eeeeee; text-align: left; white-space: nowrap; }
+table td.color2 { background: #ffffff; text-align: left; }
+table.t4 th.color2 { width: 22%; }
+table.t4 td.color2 { width: 28%; }
+table.t6 th.color2 { width: 11%; }
+table.t6 td.color2 { width: 22%; }
+.titulo { padding: 4px; }
+';
 
 //ENLASAR CSS CON LA VISTA DEL PDF
 $PDF->WriteHTML($stylesheet, 1);
 $PDF->WriteHTML($stylesheet2, 1);
+$PDF->WriteHTML($stylesheetCompact, 1);
 
 //GENERAR PDF
 $PDF->WriteHTML($html);

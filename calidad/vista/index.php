@@ -39,7 +39,7 @@ function dashResumenCobertura($filas) {
     return $resumen;
 }
 
-$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadCBX();
+$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadEmpresaCBX($EMPRESAS);
 $ID_ESPECIES = $_GET["ID_ESPECIES"] ?? ($ARRAYESPECIES[0]["ID_ESPECIES"] ?? "");
 
 $COBERTURAS = array();

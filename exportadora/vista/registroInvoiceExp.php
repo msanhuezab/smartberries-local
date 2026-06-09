@@ -274,12 +274,17 @@ if ($IDICARGA > 0 && isset($_POST['GUARDAR'])) {
     $moneda = in_array($_POST['MONEDA_INVOICE'] ?? '', ['USD', 'EUR']) ? $_POST['MONEDA_INVOICE'] : 'USD';
     $tipoCambio = max(0.000001, (float)str_replace(',', '.', $_POST['TIPO_CAMBIO_USD'] ?? '1'));
     $observacion = $_POST['OBSERVACION_INVOICE'] ?? '';
+    $seguroRaw = $_POST['SEGURO_INVOICE'] ?? '';
+    $fleteRaw  = $_POST['FLETE_INVOICE']  ?? '';
+    $seguro = $seguroRaw !== '' ? max(0, (float)str_replace(',', '.', $seguroRaw)) : null;
+    $flete  = $fleteRaw  !== '' ? max(0, (float)str_replace(',', '.', $fleteRaw))  : null;
 
     $db->prepare("
         UPDATE exportadora_invoice
-        SET MONEDA_INVOICE = ?, TIPO_CAMBIO_USD = ?, ESTADO_INVOICE = ?, OBSERVACION_INVOICE = ?, ID_USUARIOM = ?, MODIFICACION = SYSDATE()
+        SET MONEDA_INVOICE = ?, TIPO_CAMBIO_USD = ?, ESTADO_INVOICE = ?, OBSERVACION_INVOICE = ?,
+            SEGURO_INVOICE = ?, FLETE_INVOICE = ?, ID_USUARIOM = ?, MODIFICACION = SYSDATE()
         WHERE ID_INVOICE = ?
-    ")->execute([$moneda, $tipoCambio, $estado, $observacion, $IDUSUARIOS, $idInvoice]);
+    ")->execute([$moneda, $tipoCambio, $estado, $observacion, $seguro, $flete, $IDUSUARIOS, $idInvoice]);
 
     $stmtUpd = $db->prepare("
         UPDATE exportadora_invoice_detalle
@@ -355,9 +360,11 @@ $CABECERA = null;
 $INVOICE_CONFIRMADA = $INVOICE && $INVOICE['ESTADO_INVOICE'] === 'CONFIRMADA';
 if ($IDICARGA > 0) {
     $stmtCab = $db->prepare("
-        SELECT i.*, IFNULL(tf.NOMBRE_TFLETE, '') AS TIPO_FLETE
+        SELECT i.*, IFNULL(tf.NOMBRE_TFLETE, '') AS TIPO_FLETE,
+               UPPER(IFNULL(cv.NOMBRE_CVENTA, '')) AS INCOTERM
         FROM fruta_icarga i
         LEFT JOIN fruta_tflete tf ON tf.ID_TFLETE = i.ID_TFLETE
+        LEFT JOIN fruta_cventa cv ON cv.ID_CVENTA = i.ID_CVENTA
         WHERE i.ID_ICARGA = ?
     ");
     $stmtCab->execute([$IDICARGA]);
@@ -823,6 +830,32 @@ if (isset($_GET['IMPRIMIR']) && $IDICARGA > 0 && $INVOICE && $CABECERA) {
                                         <input class="form-control" name="OBSERVACION_INVOICE" value="<?php echo h($INVOICE['OBSERVACION_INVOICE']); ?>" <?php echo $INVOICE_CONFIRMADA ? 'readonly' : ''; ?>>
                                     </div>
                                 </div>
+                                <?php
+                                $incoterm = strtoupper(trim((string)($CABECERA['INCOTERM'] ?? '')));
+                                $esCIF = strpos($incoterm, 'CIF') !== false;
+                                $esDPU = strpos($incoterm, 'DPU') !== false;
+                                if ($esCIF || $esDPU): ?>
+                                <div class="row mt-10">
+                                    <?php if ($esCIF): ?>
+                                    <div class="col-md-3">
+                                        <label>Seguro (<?php echo h($incoterm); ?>)</label>
+                                        <input type="number" step="0.01" min="0" class="form-control"
+                                               name="SEGURO_INVOICE"
+                                               value="<?php echo h($INVOICE['SEGURO_INVOICE'] ?? ''); ?>"
+                                               placeholder="0.00"
+                                               <?php echo $INVOICE_CONFIRMADA ? 'readonly' : ''; ?>>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="col-md-3">
+                                        <label>Flete (<?php echo h($incoterm); ?>)</label>
+                                        <input type="number" step="0.01" min="0" class="form-control"
+                                               name="FLETE_INVOICE"
+                                               value="<?php echo h($INVOICE['FLETE_INVOICE'] ?? ''); ?>"
+                                               placeholder="0.00"
+                                               <?php echo $INVOICE_CONFIRMADA ? 'readonly' : ''; ?>>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                                 <hr>
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-hover" id="listar">

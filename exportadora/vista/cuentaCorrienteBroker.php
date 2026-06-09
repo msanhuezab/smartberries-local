@@ -337,40 +337,52 @@ unset($mov);
                 <?php endif; ?>
 
                 <!-- ─── Filtros ─── -->
-                <div class="box box-primary">
-                    <div class="box-header with-border">
-                        <h4 class="box-title">Filtros</h4>
-                    </div>
+                <div class="box">
                     <div class="box-body">
-                        <form method="GET" class="form-inline flex-wrap" style="gap:8px;">
-                            <div class="form-group">
-                                <label class="mr-1">Broker</label>
-                                <select name="ID_BROKER" class="form-control select2" style="min-width:220px;" required>
-                                    <option value="">— Seleccione —</option>
-                                    <?php foreach ($BROKERS as $b): ?>
-                                        <option value="<?php echo h($b['ID_BROKER']); ?>"
-                                            <?php echo (int)$b['ID_BROKER'] === $filterBroker ? 'selected' : ''; ?>>
-                                            <?php echo h($b['NOMBRE_BROKER']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                        <form method="GET">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>Broker</label>
+                                        <select name="ID_BROKER" class="form-control select2" required>
+                                            <option value="">— Seleccione —</option>
+                                            <?php foreach ($BROKERS as $b): ?>
+                                                <option value="<?php echo h($b['ID_BROKER']); ?>"
+                                                    <?php echo (int)$b['ID_BROKER'] === $filterBroker ? 'selected' : ''; ?>>
+                                                    <?php echo h($b['NOMBRE_BROKER']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Desde</label>
+                                        <input type="date" name="FECHA_DESDE" class="form-control" value="<?php echo h($filterDesde); ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label>Hasta</label>
+                                        <input type="date" name="FECHA_HASTA" class="form-control" value="<?php echo h($filterHasta); ?>">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fa fa-search"></i> Consultar
+                                            </button>
+                                            <?php if ($filterBroker > 0): ?>
+                                                <a href="?ID_BROKER=<?php echo $filterBroker; ?>" class="btn btn-default">
+                                                    <i class="fa fa-times"></i> Limpiar fechas
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label class="mr-1">Desde</label>
-                                <input type="date" name="FECHA_DESDE" class="form-control" value="<?php echo h($filterDesde); ?>">
-                            </div>
-                            <div class="form-group">
-                                <label class="mr-1">Hasta</label>
-                                <input type="date" name="FECHA_HASTA" class="form-control" value="<?php echo h($filterHasta); ?>">
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fa fa-search"></i> Consultar
-                            </button>
-                            <?php if ($filterBroker > 0): ?>
-                                <a href="?ID_BROKER=<?php echo $filterBroker; ?>" class="btn btn-default">
-                                    <i class="fa fa-times"></i> Limpiar fechas
-                                </a>
-                            <?php endif; ?>
                         </form>
                     </div>
                 </div>

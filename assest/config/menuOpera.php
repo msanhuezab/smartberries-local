@@ -569,6 +569,53 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
     width: 8px;
   }
   .module-panel-btn.current .module-panel-dot { background: #1a56db; border-color: #1a56db; }
+  /* ── sidebar scroll fix ─────────────────────────── */
+  .main-sidebar {
+    top: 76px !important;
+    padding-top: 0 !important;
+    height: calc(100vh - 76px) !important;
+    overflow: hidden !important;
+  }
+  .main-sidebar .slimScrollDiv { height: 100% !important; }
+  .main-sidebar .sidebar {
+    height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  /* ── sidebar redesign ─────────────────────────── */
+  .main-sidebar { background:#fff; border-right:1px solid #e8eef6; }
+  .main-sidebar .sidebar-menu > li > a {
+    padding:10px 16px 10px 18px; font-size:13px; font-weight:500;
+    color:#3a4a5c; display:flex; align-items:center; gap:10px;
+    border-left:3px solid transparent; transition:background .14s, border-color .14s, color .14s;
+  }
+  .main-sidebar .sidebar-menu > li > a > i.fa {
+    width:17px; text-align:center; font-size:13px; color:#8fa3bc; flex-shrink:0;
+  }
+  .main-sidebar .sidebar-menu > li > a:hover { background:#f0f6ff; border-left-color:#0a3a6a; color:#0a3a6a; }
+  .main-sidebar .sidebar-menu > li > a:hover > i.fa { color:#0a3a6a; }
+  .main-sidebar .sidebar-menu > li.active > a {
+    background:#e8f0fe !important; border-left-color:#0a3a6a !important;
+    color:#0a3a6a !important; font-weight:700;
+  }
+  .main-sidebar .sidebar-menu > li.active > a > i.fa { color:#0a3a6a !important; }
+  .main-sidebar .sidebar-menu li.header {
+    font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    color:#9baec8; padding:16px 18px 5px; background:none; border:none;
+  }
+  .main-sidebar .sidebar-menu li.header:first-child { padding-top:10px; }
+  .main-sidebar .treeview-menu { background:#f8fbff !important; padding:3px 0 5px !important; }
+  .main-sidebar .treeview-menu > li > a {
+    padding:7px 10px 7px 46px !important; font-size:12px !important;
+    color:#4a5568 !important; border-left:3px solid transparent;
+    transition:background .14s, border-color .14s, color .14s;
+  }
+  .main-sidebar .treeview-menu > li > a:hover,
+  .main-sidebar .treeview-menu > li.active > a {
+    background:#deeafe !important; border-left-color:#0a3a6a !important;
+    color:#0a3a6a !important; font-weight:600;
+  }
+  .main-sidebar .treeview > a > .pull-right-container { margin-left:auto; }
 </style>
 <header class="commandbar">
   <div class="brand">
@@ -671,107 +718,93 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
   });
 })();
 </script>
-<!-- Left side column. contains the logo and sidebar -->
+<?php
+$_sbPage = basename($_SERVER['PHP_SELF']);
+function _sb($pages) {
+    global $_sbPage;
+    return in_array($_sbPage, (array)$pages) ? 'active' : '';
+}
+function _sbTree($pages) {
+    global $_sbPage;
+    return in_array($_sbPage, (array)$pages) ? 'treeview active menu-open' : 'treeview';
+}
+?>
 <aside class="main-sidebar">
-  <!-- sidebar-->
   <section class="sidebar">
-    <!-- sidebar menu-->
     <ul class="sidebar-menu" data-widget="tree">
-      <li>
-        <a href="index.php">
-          <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/dashboard.svg" class="svg-icon" alt="">
-          <span>Inicio</span>
-        </a>
+
+      <li class="<?php echo _sb('index.php'); ?>">
+        <a href="index.php"><i class="fa fa-home"></i><span>Inicio</span></a>
       </li>
-      <?php if($PESTADISTICA=="1"){ ?>
-        <li class="header">Modulo</li>
-        <?php if($PESTAPRODUCTOR=="1"){ ?>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/layout.svg" class="svg-icon" alt="">
-              <span>Informe</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-              <li><a href="listarProductorRecepcionmp.php">Recepción MP</i></a></li>
-              <li><a href="listarRecepcionmpDetalladoProductor.php">Detallado Recepción MP</i></a></li>
-              <li><a href="listarProductorRecepcionind.php">Recepción IND</i></a></li>
-              <li><a href="listarRecepcionindDetalladoProductor.php">Detallado Recepción IND</i></a></li>
-              <li><a href="listarProductorProceso.php">Proceso</i></a></li>
-            </ul>
-          </li>
-        <?php  } ?>
-        <?php if($PESTAINFORME=="1"){ ?>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/layout.svg" class="svg-icon" alt="">
-              <span>Informe</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-              <li><a href="listarProceso.php">Proceso</i></a></li>
-              <li><a href="listarReembalajeEx.php">Reembalaje</i></a></li>
-            </ul>
-          </li>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/reports.svg" class="svg-icon" alt="">
-              <span>Detallado</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-              <li><a href="listarRecepcionmpDetallado.php">Detallado Recepcion MP</i></a></li>
-              <li><a href="listarRecepcionindDetallado.php">Detallado Recepcion IND</i></a></li>
-              <li><a href="listarRecepcionptDetallado.php">Detallado Recepcion PT</i></a></li>
-              <li><a href="listarDespachompDetallado.php">Detallado Despacho MP</i></a></li>
-              <li><a href="listarDespachoindDetallado.php">Detallado Despacho IND</i></a></li>
-              <li><a href="listarDespachoptDetallado.php">Detallado Despacho PT</i></a></li>
-              <li><a href="listarDespachoexDetallado.php">Detallado Despacho Expo</i></a></li>
-            </ul>
-          </li>
-        <?php  } ?>
-        <?php if($PESTAEXISTENCIA=="1"){ ?>
-          <li class="treeview">
-            <a href="#">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/pages.svg" class="svg-icon" alt="">
-              <span>Existencia</span>
-              <span class="pull-right-container">
-                <i class="fa fa-angle-right pull-right"></i>
-              </span>
-            </a>
-            <ul class="treeview-menu">
-              <li class="treeview">
-                <a href="#">Disponible
-                  <span class="pull-left-container">
-                    <i class=" fa fa-angle-right pull-right"></i>
-                  </span>
-                </a>
-                <ul class="treeview-menu">
-                  <li><a href="listarEximateriaprima.php">Materia Prima</i></a></li>
-                  <li><a href="listarExiexportacion.php">Producto Terminado</i></a></li>
-                  <li><a href="listarExiindustrial.php">Producto Industrial</i></a></li>
-                </ul>
-              </li>
-            </ul>
-          </li>
-        <?php  } ?>
 
-        <?php if($PESTAPRODUCTOR=="1"){ ?>
-          <li>
-            <a href="listaDocumento.php">
-              <img src="../../api/cryptioadmin10/html/images/svg-icon/sidebar-menu/pages.svg" class="svg-icon" alt="">
-              <span>Mis Documentos</span>
-            </a>
-          </li>
-        <?php  } ?>
+      <?php if($PESTADISTICA=="1"): ?>
+        <li class="header">Módulo</li>
 
-      <?php  } ?>
+        <?php if($PESTAPRODUCTOR=="1"): ?>
+        <li class="<?php echo _sbTree(['listarProductorRecepcionmp.php','listarRecepcionmpDetalladoProductor.php','listarProductorRecepcionind.php','listarRecepcionindDetalladoProductor.php','listarProductorProceso.php']); ?>">
+          <a href="#">
+            <i class="fa fa-file-text-o"></i><span>Informe Productor</span>
+            <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+          </a>
+          <ul class="treeview-menu">
+            <li class="<?php echo _sb('listarProductorRecepcionmp.php'); ?>"><a href="listarProductorRecepcionmp.php">Recepción MP</a></li>
+            <li class="<?php echo _sb('listarRecepcionmpDetalladoProductor.php'); ?>"><a href="listarRecepcionmpDetalladoProductor.php">Detallado Recepción MP</a></li>
+            <li class="<?php echo _sb('listarProductorRecepcionind.php'); ?>"><a href="listarProductorRecepcionind.php">Recepción IND</a></li>
+            <li class="<?php echo _sb('listarRecepcionindDetalladoProductor.php'); ?>"><a href="listarRecepcionindDetalladoProductor.php">Detallado Recepción IND</a></li>
+            <li class="<?php echo _sb('listarProductorProceso.php'); ?>"><a href="listarProductorProceso.php">Proceso</a></li>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <?php if($PESTAINFORME=="1"): ?>
+        <li class="<?php echo _sbTree(['listarProceso.php','listarReembalajeEx.php']); ?>">
+          <a href="#">
+            <i class="fa fa-bar-chart"></i><span>Informe</span>
+            <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+          </a>
+          <ul class="treeview-menu">
+            <li class="<?php echo _sb('listarProceso.php'); ?>"><a href="listarProceso.php">Proceso</a></li>
+            <li class="<?php echo _sb('listarReembalajeEx.php'); ?>"><a href="listarReembalajeEx.php">Reembalaje</a></li>
+          </ul>
+        </li>
+        <li class="<?php echo _sbTree(['listarRecepcionmpDetallado.php','listarRecepcionindDetallado.php','listarRecepcionptDetallado.php','listarDespachompDetallado.php','listarDespachoindDetallado.php','listarDespachoptDetallado.php','listarDespachoexDetallado.php']); ?>">
+          <a href="#">
+            <i class="fa fa-list-alt"></i><span>Detallado</span>
+            <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+          </a>
+          <ul class="treeview-menu">
+            <li class="<?php echo _sb('listarRecepcionmpDetallado.php'); ?>"><a href="listarRecepcionmpDetallado.php">Recepción MP</a></li>
+            <li class="<?php echo _sb('listarRecepcionindDetallado.php'); ?>"><a href="listarRecepcionindDetallado.php">Recepción IND</a></li>
+            <li class="<?php echo _sb('listarRecepcionptDetallado.php'); ?>"><a href="listarRecepcionptDetallado.php">Recepción PT</a></li>
+            <li class="<?php echo _sb('listarDespachompDetallado.php'); ?>"><a href="listarDespachompDetallado.php">Despacho MP</a></li>
+            <li class="<?php echo _sb('listarDespachoindDetallado.php'); ?>"><a href="listarDespachoindDetallado.php">Despacho IND</a></li>
+            <li class="<?php echo _sb('listarDespachoptDetallado.php'); ?>"><a href="listarDespachoptDetallado.php">Despacho PT</a></li>
+            <li class="<?php echo _sb('listarDespachoexDetallado.php'); ?>"><a href="listarDespachoexDetallado.php">Despacho Expo</a></li>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <?php if($PESTAEXISTENCIA=="1"): ?>
+        <li class="<?php echo _sbTree(['listarEximateriaprima.php','listarExiexportacion.php','listarExiindustrial.php']); ?>">
+          <a href="#">
+            <i class="fa fa-cubes"></i><span>Existencia</span>
+            <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
+          </a>
+          <ul class="treeview-menu">
+            <li class="<?php echo _sb('listarEximateriaprima.php'); ?>"><a href="listarEximateriaprima.php">Materia Prima</a></li>
+            <li class="<?php echo _sb('listarExiexportacion.php'); ?>"><a href="listarExiexportacion.php">Producto Terminado</a></li>
+            <li class="<?php echo _sb('listarExiindustrial.php'); ?>"><a href="listarExiindustrial.php">Producto Industrial</a></li>
+          </ul>
+        </li>
+        <?php endif; ?>
+
+        <?php if($PESTAPRODUCTOR=="1"): ?>
+        <li class="<?php echo _sb('listaDocumento.php'); ?>">
+          <a href="listaDocumento.php"><i class="fa fa-folder-open-o"></i><span>Mis Documentos</span></a>
+        </li>
+        <?php endif; ?>
+
+      <?php endif; ?>
     </ul>
   </section>
 </aside>

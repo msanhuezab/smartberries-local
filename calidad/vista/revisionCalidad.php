@@ -53,7 +53,7 @@ if (!in_array($FILTRO_ESTADO, array("TODOS", "SIN_CONTROL", "ABIERTO", "CERRADO"
     $FILTRO_ESTADO = "TODOS";
 }
 
-$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadCBX();
+$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadEmpresaCBX($EMPRESAS);
 $FILAS = array();
 if ($ID_ESPECIES !== "") {
     if ($ETAPA === "RECEPCION") {

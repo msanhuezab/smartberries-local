@@ -209,72 +209,53 @@ include_once "../../assest/config/datosUrLP.php";
                                                             <td> <?php echo $r['FECHA']; ?> </td>
                                                             <td class="text-center">
                                                                 <form method="post" id="form1">
-                                                                    <div class="list-icons d-inline-flex">
-                                                                        <div class="list-icons-item dropdown">
-                                                                            <button class="btn btn-secondary" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                                                <i class="glyphicon glyphicon-cog"></i>
+                                                                    <div class="dropdown d-inline-block">
+                                                                        <button class="btn btn-secondary btn-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                                            <i class="glyphicon glyphicon-cog"></i>
+                                                                        </button>
+                                                                        <div class="dropdown-menu dropdown-menu-right" style="min-width:200px;padding:8px;">
+                                                                            <input type="hidden" name="ID"   value="<?php echo $r['ID_ICARGA']; ?>" />
+                                                                            <input type="hidden" name="URL"  value="registroICarga" />
+                                                                            <input type="hidden" name="URLO" value="listarICarga" />
+
+                                                                            <?php if ($r['ESTADO'] == "0") { ?>
+                                                                            <button type="submit" class="btn btn-info btn-sm btn-block mb-1" name="VERURL">
+                                                                                <i class="ti-eye"></i> Ver
                                                                             </button>
-                                                                            <div class="dropdown-menu dropdown-menu-right" style="min-width:210px;padding:8px 10px;">
-                                                                                <input type="hidden" class="form-control" placeholder="ID" id="ID" name="ID" value="<?php echo $r['ID_ICARGA']; ?>" />
-                                                                                <input type="hidden" class="form-control" placeholder="URL" id="URL" name="URL" value="registroICarga" />
-                                                                                <input type="hidden" class="form-control" placeholder="URL" id="URLO" name="URLO" value="listarICarga" />
-                                                                                <span href="#" class="dropdown-item">                         
-                                                                                    <div class="btn-group btn-block col-12" role="group" aria-label="Acciones generales">  
-                                                                                        <?php if ($r['ESTADO'] == "0") { ?>
-                                                                                            <button type="submit" class="btn btn-info  " id="VERURL" name="VERURL" data-toggle="tooltip"  title="Ver">
-                                                                                                <i class="ti-eye"></i> Ver
-                                                                                            </button>
-                                                                                        <?php } ?>
-                                                                                        <?php if ($r['ESTADO'] == "1") { ?>
-                                                                                                <button type="submit" class="btn  btn-warning " id="EDITARURL" name="EDITARURL" data-toggle="tooltip"  title="Editar">
-                                                                                                    <i class="ti-pencil-alt"></i> Editar
-                                                                                                </button>
-                                                                                        <?php } ?>                                                                                          
-                                                                                        <?php if ($TIENEDESPACHO) { ?>
-                                                                                            <button type="submit" class="btn btn-success " id="CARGADO" name="CARGADO"  data-toggle="tooltip"  title="Cargado"
-                                                                                            <?php  if ($r['ESTADO_ICARGA'] == "3")  { echo "disabled"; }?>>
-                                                                                                <i class="fa fa-check"></i> Cargado
-                                                                                            </button>  
-                                                                                        <?php } ?>  
-                                                                                    </div>                                                                                   
-                                                                                </span>                                                                            
-                                                                                <hr>     
-                                                                                <span href="#" class="dropdown-item">                         
-                                                                                    <div class="btn-group btn-block col-12" role="group" aria-label="Acciones generales"> 
-                                                                                        <button type="button" class="btn  btn-danger  btn-sm" id="defecto" name="informe" data-toggle="tooltip"  title="Instructivo Español" Onclick="abrirPestana('../../assest/documento/informeIcargaEspanol.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                                            <i class="fa fa-file-pdf-o"></i><br> Instructivo Español
-                                                                                        </button>    
-                                                                                        <button type="button" class="btn  btn-danger  btn-sm" id="defecto" name="informe" data-toggle="tooltip"  title="Instruction English" Onclick="abrirPestana('../../assest/documento/informeIcargaEnglish.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                                                <i class="fa fa-file-pdf-o"></i><br> Instruction English
-                                                                                        </button>                                                                                 
-                                                                                    </div>    
-                                                                                    <hr>             
-                                                                                    <div class="btn-group btn-block col-12" role="group" aria-label="Acciones generales"> 
-                                                                                        <button type="button" class="btn  btn-danger  btn-sm" id="defecto" name="informe" data-toggle="tooltip"  title="Report Invoice" Onclick="abrirPestana('../../assest/documento/informeIcargaInvoice.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                                            <i class="fa fa-file-pdf-o"></i><br> Invoice
-                                                                                        </button>    
-                                                                                        <button type="button" class="btn  btn-danger  btn-sm" id="defecto" name="informe" data-toggle="tooltip"  title="Report Invoice v2" Onclick="abrirPestana('../../assest/documento/informeIcargaInvoicev2.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                                                <i class="fa fa-file-pdf-o"></i><br> Invoice v2
-                                                                                        </button>                                                                                 
-                                                                                    </div>     
-                                                                                    <hr>                         
-                                                                                    <div class="btn-group btn-block col-12" role="group" aria-label="Acciones generales">
-                                                                                        <button type="button" class="btn  btn-danger  btn-sm" id="defecto" name="informe" data-toggle="tooltip"  title="Informe Carga Real" Onclick="abrirPestana('../../assest/documento/informeICargaReal.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                                                <i class="fa fa-file-pdf-o"></i><br>  Carga Real
-                                                                                        </button>                                                                                 
-                                                                                    </div>                                                           
-                                                                                </span>                                                                                     
-                                                                                <span href="#" class="dropdown-item">                         
-                                                                                    <div class="btn-group btn-block col-12" role="group" aria-label="Acciones generales"> 
-                                                                                        <button type="button" class="btn  btn-success  btn-sm" id="defecto" name="informe" data-toggle="tooltip"  title="Reporte Carga Real" Onclick="abrirPestana('../../assest/reporte/reporteCargaRealcarga.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                                            <i class="fa fa-file-excel-o"></i><br> Carga Real
-                                                                                        </button>    
-                                                                                        <button type="button" class="btn  btn-success  btn-sm" id="defecto" name="informe" data-toggle="tooltip"  title="Reporte Packing Lis" Onclick="abrirPestana('../../assest/reporte/reporteICargaPackingList.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>'); ">
-                                                                                            <i class="fa fa-file-excel-o"></i><br>   Packing List
-                                                                                        </button>                                                                                 
-                                                                                    </div>                                                                                   
-                                                                                </span>
-                                                                            </div>
+                                                                            <?php } ?>
+                                                                            <?php if ($r['ESTADO'] == "1") { ?>
+                                                                            <button type="submit" class="btn btn-warning btn-sm btn-block mb-1" name="EDITARURL">
+                                                                                <i class="ti-pencil-alt"></i> Editar
+                                                                            </button>
+                                                                            <?php } ?>
+                                                                            <?php if ($TIENEDESPACHO) { ?>
+                                                                            <button type="submit" class="btn btn-success btn-sm btn-block mb-1" name="CARGADO"
+                                                                                <?php if ($r['ESTADO_ICARGA'] == "3") echo "disabled"; ?>>
+                                                                                <i class="fa fa-check"></i> Cargado
+                                                                            </button>
+                                                                            <?php } ?>
+
+                                                                            <div class="dropdown-divider"></div>
+
+                                                                            <button type="button" class="btn btn-danger btn-sm btn-block mb-1" onclick="abrirPestana('../../assest/documento/informeIcargaEspanol.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>')">
+                                                                                <i class="fa fa-file-pdf-o"></i> Instructivo Español
+                                                                            </button>
+                                                                            <button type="button" class="btn btn-danger btn-sm btn-block mb-1" onclick="abrirPestana('../../assest/documento/informeIcargaEnglish.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>')">
+                                                                                <i class="fa fa-file-pdf-o"></i> Instruction English
+                                                                            </button>
+
+                                                                            <button type="button" class="btn btn-danger btn-sm btn-block mb-1" onclick="abrirPestana('../../assest/documento/informeICargaReal.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>')">
+                                                                                <i class="fa fa-file-pdf-o"></i> Carga Real (PDF)
+                                                                            </button>
+
+                                                                            <div class="dropdown-divider"></div>
+
+                                                                            <button type="button" class="btn btn-success btn-sm btn-block mb-1" onclick="abrirPestana('../../assest/reporte/reporteCargaRealcarga.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>')">
+                                                                                <i class="fa fa-file-excel-o"></i> Carga Real (Excel)
+                                                                            </button>
+                                                                            <button type="button" class="btn btn-success btn-sm btn-block" onclick="abrirPestana('../../assest/reporte/reporteICargaPackingList.php?parametro=<?php echo $r['ID_ICARGA']; ?>&&usuario=<?php echo $IDUSUARIOS; ?>')">
+                                                                                <i class="fa fa-file-excel-o"></i> Packing List
+                                                                            </button>
                                                                         </div>
                                                                     </div>
                                                                 </form>

@@ -39,6 +39,25 @@ canvas {
   width: 100%;
 }
 
+table.dataTable,
+.table {
+  font-size: 13px;
+}
+
+table.dataTable td,
+table.dataTable th,
+.table td,
+.table th {
+  padding: 0.3rem 0.5rem;
+}
+
+table.dataTable .btn,
+.table .btn {
+  padding: 0.15rem 0.5rem;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .form-control,
 .select2-container,
 .select2,

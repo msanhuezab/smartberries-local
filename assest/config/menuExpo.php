@@ -29,12 +29,11 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
   }
 }
 ?>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   header.commandbar,
   header.commandbar * {
     box-sizing: border-box;
-    font-family: 'Inter', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     letter-spacing: 0;
   }
   .sb-config-header {
@@ -459,6 +458,19 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
       height: calc(100vh - 218px);
     }
   }
+  /* ── sidebar scroll fix (commandbar=76px, no .main-header) ─────── */
+  .main-sidebar {
+    top: 76px !important;
+    padding-top: 0 !important;
+    height: calc(100vh - 76px) !important;
+    overflow: hidden !important;
+  }
+  .main-sidebar .slimScrollDiv { height: 100% !important; }
+  .main-sidebar .sidebar {
+    height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
   /* ── sidebar redesign ─────────────────────────── */
   .main-sidebar { background:#fff; border-right:1px solid #e8eef6; }
   .main-sidebar .sidebar-menu > li > a {
@@ -482,10 +494,6 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
   }
   .main-sidebar .sidebar-menu li.header:first-child { padding-top:10px; }
   .main-sidebar .treeview-menu { background:#f8fbff !important; padding:3px 0 5px !important; }
-  .main-sidebar .sidebar { overflow-y:auto !important; overflow-x:hidden !important; }
-  .main-sidebar .treeview-menu.scrollable { max-height:55vh; overflow-y:auto !important; overflow-x:hidden; }
-  .main-sidebar .treeview-menu.scrollable::-webkit-scrollbar { width:4px; }
-  .main-sidebar .treeview-menu.scrollable::-webkit-scrollbar-thumb { background:#c5d5e8; border-radius:4px; }
   .main-sidebar .treeview-menu > li > a {
     padding:7px 10px 7px 46px !important; font-size:12px !important;
     color:#4a5568 !important; border-left:3px solid transparent;
@@ -521,7 +529,7 @@ if (isset($_SESSION["NOMBRE_USUARIO"])) {
     color: #0a3a6a;
     cursor: pointer;
     display: flex;
-    font-family: 'Inter', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     font-size: 13px;
     font-weight: 600;
     gap: 10px;
@@ -754,7 +762,7 @@ function _sbTree($pages) {
             <i class="fa fa-cog"></i><span>Config. Exportadora</span>
             <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
           </a>
-          <ul class="treeview-menu scrollable">
+          <ul class="treeview-menu">
             <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Actores</li>
             <li class="<?php echo _sb('registroExportadora.php'); ?>"><a href="registroExportadora.php">Exportadora</a></li>
             <li class="<?php echo _sb('registroConsignatorio.php'); ?>"><a href="registroConsignatorio.php">Consignatorio</a></li>
@@ -800,7 +808,7 @@ function _sbTree($pages) {
           <i class="fa fa-cog"></i><span>Configuración App</span>
           <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
         </a>
-        <ul class="treeview-menu scrollable">
+        <ul class="treeview-menu">
           <li class="header" style="padding:8px 10px 4px 46px;font-size:9px;">Principal</li>
           <li class="<?php echo _sb('registroEmpresa.php'); ?>"><a href="registroEmpresa.php">Empresa</a></li>
           <li class="<?php echo _sb('registroPlanta.php'); ?>"><a href="registroPlanta.php">Planta</a></li>

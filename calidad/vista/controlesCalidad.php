@@ -58,7 +58,7 @@ function controlesDetalleControles($CALIDADCONTROL_ADO, $controles) {
     return $resultado;
 }
 
-$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadCBX();
+$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadEmpresaCBX($EMPRESAS);
 $ARRAYINSPECTORES = $CALIDADINSPECTOR_ADO->listarInspectorActivo($EMPRESAS, $TEMPORADAS);
 
 $ID_ESPECIES = $_GET["ID_ESPECIES"] ?? ($_POST["ID_ESPECIES"] ?? "");

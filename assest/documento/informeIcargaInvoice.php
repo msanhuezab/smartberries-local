@@ -53,7 +53,7 @@ include_once '../../assest/controlador/VESPECIES_ADO.php';
 include_once '../../assest/controlador/TCALIBRE_ADO.php';
 include_once '../../assest/controlador/TMONEDA_ADO.php';
 include_once '../../assest/controlador/ECOMERCIAL_ADO.php';
- 
+
 include_once '../../assest/controlador/PAIS_ADO.php';
 include_once '../../assest/controlador/REGION_ADO.php';
 include_once '../../assest/controlador/PROVINCIA_ADO.php';
@@ -138,9 +138,9 @@ $IDINOTA = "";
 $FECHAINOTA = "";
 $TNOTA = "";
 $OBSERVACIONINOTA = "";
-$ICARGAD="";
+$ICARGAD = "";
 $BOOKINGINSTRUCTIVO = "";
-$BOLAWBCRTINSTRUCTIVO="";
+$BOLAWBCRTINSTRUCTIVO = "";
 $CONSIGNATARIO = "";
 $FECHAETD = "";
 $FECHAETA = "";
@@ -169,7 +169,7 @@ $EMPRESA = "";
 $COC = "";
 $PLANTA = "";
 $TEMPORADA = "";
-$TOTALPRECIOUSNUEVO=0;
+$TOTALPRECIOUSNUEVO = 0;
 
 
 $TOTALENVASEV = 0;
@@ -177,6 +177,8 @@ $TOTALNETOV = 0;
 $TOTALBRUTOV = 0;
 $TOTALUS = 0;
 $TOTALUSV = 0;
+$SEGURO_INVOICE = 0;
+$FLETE_INVOICE  = 0;
 
 //INICIALIZAR ARREGLOS
 $ARRAYEMPRESA = "";
@@ -206,10 +208,10 @@ $ARRAYPRODUCTOR = "";
 $ARRAYDCARGA = "";
 $ARRAYCALIBRE = "";
 $ARRAYNUMERO = "";
-$ARRAYVERNOTADCNC="";
-$ARRAYCOMUNA="";
-$ARRYAPROVINCIA="";
-$ARRYAREGION="";
+$ARRAYVERNOTADCNC = "";
+$ARRAYCOMUNA = "";
+$ARRYAPROVINCIA = "";
+$ARRYAREGION = "";
 $ARRAYGROSSKILO = [];
 $ARRAYNETKILO = [];
 $ARRAYENVASEAGRUPADO = [];
@@ -226,7 +228,8 @@ if (isset($_REQUEST['parametro'])) {
   $IDOP = $_REQUEST['parametro'];
 }
 
-function obtenerDetalleInvoiceEditable($idIcarga) {
+function obtenerDetalleInvoiceEditable($idIcarga)
+{
   try {
     $db = BDCONFIG::conectar();
     $stmt = $db->prepare("
@@ -269,7 +272,8 @@ function obtenerDetalleInvoiceEditable($idIcarga) {
   }
 }
 
-function obtenerObservacionInvoiceEditable($idIcarga) {
+function obtenerObservacionInvoiceEditable($idIcarga)
+{
   try {
     $db = BDCONFIG::conectar();
     $stmt = $db->prepare("
@@ -287,373 +291,395 @@ function obtenerObservacionInvoiceEditable($idIcarga) {
   }
 }
 
-
-  
-$ARRAYICARGA=$ICARGA_ADO->verIcarga2($IDOP);
-if($ARRAYICARGA){
-      
-    $ARRAYDCARGA1 = $DICARGA_ADO->buscarInvoicePorIcarga($IDOP);
-    $ARRAYDCARGA2 = $DICARGA_ADO->buscarInvoiceIntPorIcarga($IDOP);
-    if($ARRAYDCARGA1){
-      $ARRAYDCARGA = $DICARGA_ADO->buscarInvoicePorIcarga($IDOP);
-    }else if($ARRAYDCARGA2){
-      $ARRAYDCARGA = $DICARGA_ADO->buscarInvoiceIntPorIcarga($IDOP);
-    }
-
-    $ARRAYDCARGA_EDITABLE = obtenerDetalleInvoiceEditable($IDOP);
-    if ($ARRAYDCARGA_EDITABLE) {
-      $ARRAYDCARGA = $ARRAYDCARGA_EDITABLE;
-    }
-    
-
-
+function obtenerCargosInvoice($idIcarga)
+{
+  try {
+    $db = BDCONFIG::conectar();
+    $stmt = $db->prepare("
+      SELECT SEGURO_INVOICE, FLETE_INVOICE
+      FROM exportadora_invoice
+      WHERE ID_ICARGA = ?
+      AND ESTADO_REGISTRO = 1
+      ORDER BY ID_INVOICE DESC
+      LIMIT 1
+    ");
+    $stmt->execute([(int)$idIcarga]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: ['SEGURO_INVOICE' => null, 'FLETE_INVOICE' => null];
+  } catch (Exception $e) {
+    return ['SEGURO_INVOICE' => null, 'FLETE_INVOICE' => null];
+  }
+}
 
 
-    $IDUSUARIOI = $ARRAYICARGA[0]['ID_USUARIOI'];  
-    $ARRAYUSUARIO2 = $USUARIO_ADO->ObtenerNombreCompleto($IDUSUARIOI);
-    $NOMBRERESPONSABLE = $ARRAYUSUARIO2[0]["NOMBRE_COMPLETO"];
-    
-    
-    $NUMEROCONTENEDOR = "Sin Datos";
-    $ARRAYDESPACHOEX=$DESPACHOEX_ADO->buscarDespachoExPorIcarga($IDOP);
-    $ARRAYDESPACHOEX2=$DESPACHOEX_ADO->buscarDespachoExPorIcargaAgrupadoPorPlanta($IDOP);
-    if($ARRAYDESPACHOEX){
-      $CONTENEDORESDESPACHO = [];
-      foreach ($ARRAYDESPACHOEX as $DESPACHOEX) {
-        if (
-          $DESPACHOEX["ESTADO_REGISTRO"] == 1
-          && !empty($DESPACHOEX["NUMERO_CONTENEDOR_DESPACHOEX"])
-        ) {
-          $CONTENEDORESDESPACHO[] = $DESPACHOEX["NUMERO_CONTENEDOR_DESPACHOEX"];
-        }
+
+$ARRAYICARGA = $ICARGA_ADO->verIcarga2($IDOP);
+if ($ARRAYICARGA) {
+
+  $ARRAYDCARGA1 = $DICARGA_ADO->buscarInvoicePorIcarga($IDOP);
+  $ARRAYDCARGA2 = $DICARGA_ADO->buscarInvoiceIntPorIcarga($IDOP);
+  if ($ARRAYDCARGA1) {
+    $ARRAYDCARGA = $DICARGA_ADO->buscarInvoicePorIcarga($IDOP);
+  } else if ($ARRAYDCARGA2) {
+    $ARRAYDCARGA = $DICARGA_ADO->buscarInvoiceIntPorIcarga($IDOP);
+  }
+
+  $ARRAYDCARGA_EDITABLE = obtenerDetalleInvoiceEditable($IDOP);
+  if ($ARRAYDCARGA_EDITABLE) {
+    $ARRAYDCARGA = $ARRAYDCARGA_EDITABLE;
+  }
+
+
+
+
+
+  $IDUSUARIOI = $ARRAYICARGA[0]['ID_USUARIOI'];
+  $ARRAYUSUARIO2 = $USUARIO_ADO->ObtenerNombreCompleto($IDUSUARIOI);
+  $NOMBRERESPONSABLE = $ARRAYUSUARIO2[0]["NOMBRE_COMPLETO"];
+
+
+  $NUMEROCONTENEDOR = "Sin Datos";
+  $ARRAYDESPACHOEX = $DESPACHOEX_ADO->buscarDespachoExPorIcarga($IDOP);
+  $ARRAYDESPACHOEX2 = $DESPACHOEX_ADO->buscarDespachoExPorIcargaAgrupadoPorPlanta($IDOP);
+  if ($ARRAYDESPACHOEX) {
+    $CONTENEDORESDESPACHO = [];
+    foreach ($ARRAYDESPACHOEX as $DESPACHOEX) {
+      if (
+        $DESPACHOEX["ESTADO_REGISTRO"] == 1
+        && !empty($DESPACHOEX["NUMERO_CONTENEDOR_DESPACHOEX"])
+      ) {
+        $CONTENEDORESDESPACHO[] = $DESPACHOEX["NUMERO_CONTENEDOR_DESPACHOEX"];
       }
-      if ($CONTENEDORESDESPACHO) {
-        $CONTENEDORESDESPACHO = array_values(array_unique($CONTENEDORESDESPACHO));
-        $NUMEROCONTENEDOR = $CONTENEDORESDESPACHO[0];
-      }
-
-      foreach ($ARRAYDESPACHOEX2 as $r) :
-        $ARRAYVERPLANTA = $PLANTA_ADO->verPlanta($r['ID_PLANTA']);
-        if($ARRAYVERPLANTA){
-          $LUGARDECARGA= $LUGARDECARGA.$ARRAYVERPLANTA[0]["RAZON_SOCIAL_PLANTA"]."  ";
-          $FDADESPACHOEX= $FDADESPACHOEX.$ARRAYVERPLANTA[0]["FDA_PLANTA"]."  ";
-        }else{
-          $FECHADESPACHOEX=$FECHADESPACHOEX;
-          $LUGARDECARGA=$LUGARDECARGA;
-        }
-      endforeach;     
-
-    }else{
-      $FDADESPACHOEX="Sin Datos";
-      $NUMEROSELLO="Sin Datos";
-      $FECHADESPACHOEX="Sin Datos";
-      $LUGARDECARGA="Sin Datos";
+    }
+    if ($CONTENEDORESDESPACHO) {
+      $CONTENEDORESDESPACHO = array_values(array_unique($CONTENEDORESDESPACHO));
+      $NUMEROCONTENEDOR = $CONTENEDORESDESPACHO[0];
     }
 
-    if($ARRAYDESPACHOEX){
-      foreach ($ARRAYDESPACHOEX as $despacho) :
-        $ARRAYTOMADO = $EXIEXPORTACION_ADO->buscarPordespachoEx($despacho['ID_DESPACHOEX']);
-        foreach ($ARRAYTOMADO as $r) :
-          $NOMBREECOMERCIAL = "Sin Datos";
-          $ARRAYEEXPORTACION = $EEXPORTACION_ADO->verEstandar($r['ID_ESTANDAR']);
-          if($ARRAYEEXPORTACION){
-            $ARRAYECOMERCIAL = $ECOMERCIAL_ADO->verEcomercial($ARRAYEEXPORTACION[0]['ID_ECOMERCIAL']);
-            if($ARRAYECOMERCIAL){
-              $NOMBREECOMERCIAL = $ARRAYECOMERCIAL[0]['NOMBRE_ECOMERCIAL'];
-            }
+    foreach ($ARRAYDESPACHOEX2 as $r) :
+      $ARRAYVERPLANTA = $PLANTA_ADO->verPlanta($r['ID_PLANTA']);
+      if ($ARRAYVERPLANTA) {
+        $LUGARDECARGA = $LUGARDECARGA . $ARRAYVERPLANTA[0]["RAZON_SOCIAL_PLANTA"] . "  ";
+        $FDADESPACHOEX = $FDADESPACHOEX . $ARRAYVERPLANTA[0]["FDA_PLANTA"] . "  ";
+      } else {
+        $FECHADESPACHOEX = $FECHADESPACHOEX;
+        $LUGARDECARGA = $LUGARDECARGA;
+      }
+    endforeach;
+  } else {
+    $FDADESPACHOEX = "Sin Datos";
+    $NUMEROSELLO = "Sin Datos";
+    $FECHADESPACHOEX = "Sin Datos";
+    $LUGARDECARGA = "Sin Datos";
+  }
+
+  if ($ARRAYDESPACHOEX) {
+    foreach ($ARRAYDESPACHOEX as $despacho) :
+      $ARRAYTOMADO = $EXIEXPORTACION_ADO->buscarPordespachoEx($despacho['ID_DESPACHOEX']);
+      foreach ($ARRAYTOMADO as $r) :
+        $NOMBREECOMERCIAL = "Sin Datos";
+        $ARRAYEEXPORTACION = $EEXPORTACION_ADO->verEstandar($r['ID_ESTANDAR']);
+        if ($ARRAYEEXPORTACION) {
+          $ARRAYECOMERCIAL = $ECOMERCIAL_ADO->verEcomercial($ARRAYEEXPORTACION[0]['ID_ECOMERCIAL']);
+          if ($ARRAYECOMERCIAL) {
+            $NOMBREECOMERCIAL = $ARRAYECOMERCIAL[0]['NOMBRE_ECOMERCIAL'];
           }
-          if(!isset($ARRAYGROSSKILO[$NOMBREECOMERCIAL])){
-            $ARRAYGROSSKILO[$NOMBREECOMERCIAL] = 0;
-          }
-          if(!isset($ARRAYNETKILO[$NOMBREECOMERCIAL])){
-            $ARRAYNETKILO[$NOMBREECOMERCIAL] = 0;
-          }
-          if(!isset($ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL])){
-            $ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL] = 0;
-          }
-          $ARRAYGROSSKILO[$NOMBREECOMERCIAL] = $ARRAYGROSSKILO[$NOMBREECOMERCIAL] + $r['BRUTO'];
-          $ARRAYNETKILO[$NOMBREECOMERCIAL] = $ARRAYNETKILO[$NOMBREECOMERCIAL] + $r['NETO'];
-          $ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL] = $ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL] + $r['ENVASE'];
-        endforeach;
+        }
+        if (!isset($ARRAYGROSSKILO[$NOMBREECOMERCIAL])) {
+          $ARRAYGROSSKILO[$NOMBREECOMERCIAL] = 0;
+        }
+        if (!isset($ARRAYNETKILO[$NOMBREECOMERCIAL])) {
+          $ARRAYNETKILO[$NOMBREECOMERCIAL] = 0;
+        }
+        if (!isset($ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL])) {
+          $ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL] = 0;
+        }
+        $ARRAYGROSSKILO[$NOMBREECOMERCIAL] = $ARRAYGROSSKILO[$NOMBREECOMERCIAL] + $r['BRUTO'];
+        $ARRAYNETKILO[$NOMBREECOMERCIAL] = $ARRAYNETKILO[$NOMBREECOMERCIAL] + $r['NETO'];
+        $ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL] = $ARRAYENVASEAGRUPADO[$NOMBREECOMERCIAL] + $r['ENVASE'];
       endforeach;
+    endforeach;
+  }
+
+
+  $NUMEROICARGA = $ARRAYICARGA[0]["NUMERO_ICARGA"];
+  $NUMEROIREFERENCIA = $ARRAYICARGA[0]["NREFERENCIA_ICARGA"];
+  $FECHA = $ARRAYICARGA[0]["FECHA"];
+  $BOOKINGINSTRUCTIVO = $ARRAYICARGA[0]['BOOKING_ICARGA'];
+  $TEMBARQUE = $ARRAYICARGA[0]['TEMBARQUE_ICARGA'];
+  $FECHAETD = $ARRAYICARGA[0]['FECHAETD'];
+  $FECHAETA = $ARRAYICARGA[0]['FECHAETA'];
+  $FECHAETDREAL = $ARRAYICARGA[0]['FECHAETDREAL_ICARGA'];
+  if ($FECHAETDREAL) {
+    $FECHAETDREAL = date("d/m/Y", strtotime($FECHAETDREAL));
+  } else {
+    $FECHAETDREAL = "Sin Datos";
+  }
+  $FECHAETAREAL = $ARRAYICARGA[0]['FECHAETAREAL'];
+  $BOLAWBCRTINSTRUCTIVO = $ARRAYICARGA[0]['CRT_ICARGA'];
+  if (!$BOLAWBCRTINSTRUCTIVO) {
+    $BOLAWBCRTINSTRUCTIVO = "Sin Datos";
+  }
+
+
+  $TINSTRUCTIVO = $ARRAYICARGA[0]['T_ICARGA'];
+  $O2INSTRUCTIVO = $ARRAYICARGA[0]['O2_ICARGA'];
+  $CO2INSTRUCTIVO = $ARRAYICARGA[0]['C02_ICARGA'];
+  $ALAMPAINSTRUCTIVO = $ARRAYICARGA[0]['ALAMPA_ICARGA'];
+
+  $OBSERVACIONES = $ARRAYICARGA[0]['OBSERVACION_ICARGA'];
+  $OBSERVACIONESI = $ARRAYICARGA[0]['OBSERVACIONI_ICARGA'];
+  $OBSERVACION_INVOICE_EDITABLE = obtenerObservacionInvoiceEditable($IDOP);
+  if ($OBSERVACION_INVOICE_EDITABLE !== "") {
+    $OBSERVACIONESI = $OBSERVACION_INVOICE_EDITABLE;
+  }
+  $CARGOS_INVOICE = obtenerCargosInvoice($IDOP);
+  $SEGURO_INVOICE = ($CARGOS_INVOICE['SEGURO_INVOICE'] !== null && $CARGOS_INVOICE['SEGURO_INVOICE'] > 0)
+    ? (float)$CARGOS_INVOICE['SEGURO_INVOICE'] : 0;
+  $FLETE_INVOICE  = ($CARGOS_INVOICE['FLETE_INVOICE']  !== null && $CARGOS_INVOICE['FLETE_INVOICE']  > 0)
+    ? (float)$CARGOS_INVOICE['FLETE_INVOICE']  : 0;
+  $COSTOFLETEICARGA = $ARRAYICARGA[0]['COSTO_FLETE_ICARGA'];
+  if ($ARRAYICARGA[0]['FUMIGADO_ICARGA'] == 1) {
+    $FUMIGADO = "Si";
+  } else if ($ARRAYICARGA[0]['FUMIGADO_ICARGA'] == 2) {
+    $FUMIGADO = "No";
+  } else {
+    $FUMIGADO = "Sin Datos";
+  }
+
+  $ESTADO = $ARRAYICARGA[0]['ESTADO'];
+  if ($ARRAYICARGA[0]['ESTADO'] == 1) {
+    $ESTADO = "Abierto";
+  } else if ($ARRAYICARGA[0]['ESTADO'] == 0) {
+    $ESTADO = "Cerrado";
+  } else {
+    $ESTADO = "Sin Datos";
+  }
+  $ARRAYRFINAL = $RFINAL_ADO->verRfinal($ARRAYICARGA[0]["ID_RFINAL"]);
+  if ($ARRAYRFINAL) {
+    $NOMBRERFINAL = $ARRAYRFINAL[0]["NOMBRE_RFINAL"];
+  } else {
+    $NOMBRERFINAL = "Sin Datos";
+  }
+  $ARRAYNOTIFICADOR = $NOTIFICADOR_ADO->verNotificador($ARRAYICARGA[0]["ID_NOTIFICADOR"]);
+  if ($ARRAYNOTIFICADOR) {
+    $NOMBRENOTIFICADOR = $ARRAYNOTIFICADOR[0]["NOMBRE_NOTIFICADOR"];
+    $DIRECCIONNOTIFICADOR = $ARRAYNOTIFICADOR[0]["DIRECCION_NOTIFICADOR"];
+    $EORINOTIFICADOR = $ARRAYNOTIFICADOR[0]["EORI_NOTIFICADOR"];
+    $TELEFONONOTIFICADOR = $ARRAYNOTIFICADOR[0]["TELEFONO_NOTIFICADOR"];
+    $EMAIL1NOTIFICADOR = $ARRAYNOTIFICADOR[0]["EMAIL1_NOTIFICADOR"];
+  } else {
+    $NOMBRENOTIFICADOR = "Sin Datos";
+    $EORINOTIFICADOR = "Sin Datos";
+    $TELEFONONOTIFICADOR = "Sin Datos";
+    $DIRECCIONNOTIFICADOR = "Sin Datos";
+    $EMAIL1NOTIFICADOR = "Sin Datos";
+  }
+  $ARRAYCONSIGNATARIO = $CONSIGNATARIO_ADO->verConsignatorio($ARRAYICARGA[0]['ID_CONSIGNATARIO']);
+  if ($ARRAYCONSIGNATARIO) {
+    $NOMBRECONSIGNATARIO = $ARRAYCONSIGNATARIO[0]["NOMBRE_CONSIGNATARIO"];
+    $DIRECCIONCONSIGNATARIO = $ARRAYCONSIGNATARIO[0]["DIRECCION_CONSIGNATARIO"];
+    $EORICONSIGNATARIO = $ARRAYCONSIGNATARIO[0]["EORI_CONSIGNATARIO"];
+    $TELEFONOCONSIGNATARIO = $ARRAYCONSIGNATARIO[0]["TELEFONO_CONSIGNATARIO"];
+    $EMAIL1CONSIGNATARIO = $ARRAYCONSIGNATARIO[0]["EMAIL1_CONSIGNATARIO"];
+  } else {
+    $NOMBRECONSIGNATARIO = "Sin Datos";
+    $EORICONSIGNATARIO = "Sin Datos";
+    $TELEFONOCONSIGNATARIO = "Sin Datos";
+    $DIRECCIONCONSIGNATARIO = "Sin Datos";
+    $EMAIL1CONSIGNATARIO = "Sin Datos";
+  }
+  $ARRAYFPAGO = $FPAGO_ADO->verFpago($ARRAYICARGA[0]['ID_FPAGO']);
+  if ($ARRAYFPAGO) {
+    $NOMBREFPAGO = $ARRAYFPAGO[0]["NOMBRE_FPAGO"];
+  } else {
+    $NOMBREFPAGO = "Sin Datos";
+  }
+  $ARRAYMVENTA = $MVENTA_ADO->verMventa($ARRAYICARGA[0]['ID_MVENTA']);
+  if ($ARRAYMVENTA) {
+    $NOMBREMVENTA = $ARRAYMVENTA[0]["NOMBRE_MVENTA"];
+  } else {
+    $NOMBREMVENTA = "Sin Datos";
+  }
+  $ARRAYCVENTA = $CVENTA_ADO->verCventa($ARRAYICARGA[0]['ID_CVENTA']);
+  if ($ARRAYMVENTA) {
+    $NOMBRECVENTA = $ARRAYCVENTA[0]["NOMBRE_CVENTA"];
+  } else {
+    $NOMBRECVENTA = "Sin Datos";
+  }
+  $ARRAYTFLETE = $TFLETE_ADO->verTflete($ARRAYICARGA[0]['ID_TFLETE']);
+  if ($ARRAYTFLETE) {
+    $NOMBRETFLETE = $ARRAYTFLETE[0]["NOMBRE_TFLETE"];
+  } else {
+    $NOMBRETFLETE = "Sin Datos";
+  }
+  $ARRAYATMOSFERA = $ATMOSFERA_ADO->verAtmosfera($ARRAYICARGA[0]['ID_ATMOSFERA']);
+  if ($ARRAYATMOSFERA) {
+    $NOMBREATMOSFERA = $ARRAYATMOSFERA[0]["NOMBRE_ATMOSFERA"];
+  } else {
+    $NOMBREATMOSFERA = "Sin Datos";
+  }
+  $ARRAYTCONTENEDOR = $TCONTENEDOR_ADO->verTcontenedor($ARRAYICARGA[0]['ID_TCONTENEDOR']);
+  if ($ARRAYTCONTENEDOR) {
+    $NOMBRETCONTENEDOR = $ARRAYTCONTENEDOR[0]["NOMBRE_TCONTENEDOR"];
+  } else {
+    $NOMBRETCONTENEDOR = "Sin Datos";
+  }
+  $ARRAYPAIS = $PAIS_ADO->verPais($ARRAYICARGA[0]['ID_PAIS']);
+  if ($ARRAYPAIS) {
+    $NOMBREPAIS = $ARRAYPAIS[0]["NOMBRE_PAIS"];
+  } else {
+    $NOMBREPAIS = "Sin Datos";
+  }
+  $ARRAYEXPORTADORA = $EXPORTADORA_ADO->verExportadora($ARRAYICARGA[0]['ID_EXPPORTADORA']);
+  if ($ARRAYEXPORTADORA) {
+    $RUTEXPPORTADORA = $ARRAYEXPORTADORA[0]["RUT_EXPORTADORA"] . "-" . $ARRAYEXPORTADORA[0]["DV_EXPORTADORA"];
+    $NOMBREEXPPORTADORA = $ARRAYEXPORTADORA[0]["NOMBRE_EXPORTADORA"];
+  } else {
+    $RUTEXPPORTADORA = "Sin Datos";
+    $NOMBREEXPPORTADORA = "Sin Datos";
+  }
+  $ARRAYDFINAL = $DFINAL_ADO->verDfinal($ARRAYICARGA[0]['ID_DFINAL']);
+  if ($ARRAYDFINAL) {
+    $NOMBREDFINAL = $ARRAYDFINAL[0]["NOMBRE_DFINAL"];
+  } else {
+    $NOMBREDFINAL = "Sin Datos";
+  }
+
+  if ($TEMBARQUE) {
+    if ($TEMBARQUE == "1") {
+      $NOMBRETEMBARQUE = "Terrestre";
+      $CRT = $ARRAYICARGA[0]['CRT_ICARGA'];
+      $ARRAYTRANSPORTE = $TRANSPORTE_ADO->verTransporte($ARRAYICARGA[0]['ID_TRANSPORTE']);
+      if ($ARRAYTRANSPORTE) {
+        $NOMBRETRANSPORTE = $ARRAYTRANSPORTE[0]["NOMBRE_TRANSPORTE"];
+      } else {
+        $NOMBRETRANSPORTE = "Sin Datos";
+      }
+      $ARRAYLCARGA = $LCARGA_ADO->verLcarga($ARRAYICARGA[0]['ID_LCARGA']);
+      if ($ARRAYLCARGA) {
+        $NOMBREORIGEN = $ARRAYLCARGA[0]["NOMBRE_LCARGA"];
+      } else {
+        $NOMBREORIGEN = "Sin Datos";
+      }
+      $ARRAYLDESTINO = $LDESTINO_ADO->verLdestino($ARRAYICARGA[0]['ID_LDESTINO']);
+      if ($ARRAYLDESTINO) {
+        $NOMBREDESTINO = $ARRAYLDESTINO[0]["NOMBRE_LDESTINO"];
+      } else {
+        $NOMBREDESTINO = "Sin Datos";
+      }
     }
-    
-      
-      $NUMEROICARGA=$ARRAYICARGA[0]["NUMERO_ICARGA"];
-      $NUMEROIREFERENCIA=$ARRAYICARGA[0]["NREFERENCIA_ICARGA"];
-      $FECHA=$ARRAYICARGA[0]["FECHA"];
-      $BOOKINGINSTRUCTIVO = $ARRAYICARGA[0]['BOOKING_ICARGA'];
-      $TEMBARQUE = $ARRAYICARGA[0]['TEMBARQUE_ICARGA'];
-      $FECHAETD = $ARRAYICARGA[0]['FECHAETD'];
-      $FECHAETA = $ARRAYICARGA[0]['FECHAETA'];
-      $FECHAETDREAL = $ARRAYICARGA[0]['FECHAETDREAL_ICARGA'];
-      if($FECHAETDREAL){
-        $FECHAETDREAL = date("d/m/Y", strtotime($FECHAETDREAL));
-      }else{
-        $FECHAETDREAL = "Sin Datos";
-      }
-      $FECHAETAREAL = $ARRAYICARGA[0]['FECHAETAREAL'];
-        $BOLAWBCRTINSTRUCTIVO = $ARRAYICARGA[0]['CRT_ICARGA'];
-        if(!$BOLAWBCRTINSTRUCTIVO){
-          $BOLAWBCRTINSTRUCTIVO = "Sin Datos";
-        }
+    if ($TEMBARQUE == "2") {
+      $NOMBRETEMBARQUE = "Aereo";
+      $NAVE = $ARRAYICARGA[0]['NAVE_ICARGA'];
+      $NVIAJE = $ARRAYICARGA[0]['NVIAJE_ICARGA'];
 
-
-      $TINSTRUCTIVO = $ARRAYICARGA[0]['T_ICARGA'];
-      $O2INSTRUCTIVO = $ARRAYICARGA[0]['O2_ICARGA'];
-      $CO2INSTRUCTIVO = $ARRAYICARGA[0]['C02_ICARGA'];
-      $ALAMPAINSTRUCTIVO = $ARRAYICARGA[0]['ALAMPA_ICARGA'];
-
-      $OBSERVACIONES = $ARRAYICARGA[0]['OBSERVACION_ICARGA'];
-      $OBSERVACIONESI = $ARRAYICARGA[0]['OBSERVACIONI_ICARGA'];
-      $OBSERVACION_INVOICE_EDITABLE = obtenerObservacionInvoiceEditable($IDOP);
-      if ($OBSERVACION_INVOICE_EDITABLE !== "") {
-        $OBSERVACIONESI = $OBSERVACION_INVOICE_EDITABLE;
+      $ARRAYLAEREA = $LAEREA_ADO->verLaerea($ARRAYICARGA[0]['ID_LAREA']);
+      if ($ARRAYLAEREA) {
+        $NOMBRETRANSPORTE = $ARRAYLAEREA[0]["NOMBRE_LAEREA"];
+      } else {
+        $NOMBRETRANSPORTE = "Sin Datos";
       }
-      $COSTOFLETEICARGA = $ARRAYICARGA[0]['COSTO_FLETE_ICARGA'];
-      if($ARRAYICARGA[0]['FUMIGADO_ICARGA']==1){
-        $FUMIGADO="Si";
-      }else if($ARRAYICARGA[0]['FUMIGADO_ICARGA']==2){
-        $FUMIGADO="No";
-      }else{
-        $FUMIGADO="Sin Datos";
+      $ARRAYACARGA = $ACARGA_ADO->verAcarga($ARRAYICARGA[0]['ID_ACARGA']);
+      if ($ARRAYACARGA) {
+        $NOMBREORIGEN = $ARRAYACARGA[0]["NOMBRE_ACARGA"];
+      } else {
+        $NOMBREORIGEN = "Sin Datos";
       }
-
-      $ESTADO = $ARRAYICARGA[0]['ESTADO'];
-      if ($ARRAYICARGA[0]['ESTADO'] == 1) {
-        $ESTADO = "Abierto";
-      }else if ($ARRAYICARGA[0]['ESTADO'] == 0) {
-        $ESTADO = "Cerrado";
-      }else{
-        $ESTADO="Sin Datos";
-      }  
-      $ARRAYRFINAL=$RFINAL_ADO->verRfinal($ARRAYICARGA[0]["ID_RFINAL"]);
-      if($ARRAYRFINAL){
-          $NOMBRERFINAL=$ARRAYRFINAL[0]["NOMBRE_RFINAL"];
-      }else{
-          $NOMBRERFINAL="Sin Datos";
+      $ARRAYADESTINO = $ADESTINO_ADO->verAdestino($ARRAYICARGA[0]['ID_ADESTINO']);
+      if ($ARRAYADESTINO) {
+        $NOMBREDESTINO = $ARRAYADESTINO[0]["NOMBRE_ADESTINO"];
+      } else {
+        $NOMBREDESTINO = "Sin Datos";
       }
-      $ARRAYNOTIFICADOR=$NOTIFICADOR_ADO->verNotificador($ARRAYICARGA[0]["ID_NOTIFICADOR"]);
-      if($ARRAYNOTIFICADOR){
-        $NOMBRENOTIFICADOR=$ARRAYNOTIFICADOR[0]["NOMBRE_NOTIFICADOR"];
-        $DIRECCIONNOTIFICADOR=$ARRAYNOTIFICADOR[0]["DIRECCION_NOTIFICADOR"];
-        $EORINOTIFICADOR=$ARRAYNOTIFICADOR[0]["EORI_NOTIFICADOR"];
-        $TELEFONONOTIFICADOR=$ARRAYNOTIFICADOR[0]["TELEFONO_NOTIFICADOR"];
-        $EMAIL1NOTIFICADOR=$ARRAYNOTIFICADOR[0]["EMAIL1_NOTIFICADOR"];
-      }else{
-        $NOMBRENOTIFICADOR="Sin Datos";
-        $EORINOTIFICADOR="Sin Datos";
-        $TELEFONONOTIFICADOR="Sin Datos";
-        $DIRECCIONNOTIFICADOR="Sin Datos";
-        $EMAIL1NOTIFICADOR="Sin Datos";
-      }
-      $ARRAYCONSIGNATARIO = $CONSIGNATARIO_ADO->verConsignatorio($ARRAYICARGA[0]['ID_CONSIGNATARIO']);            
-      if($ARRAYCONSIGNATARIO){
-        $NOMBRECONSIGNATARIO=$ARRAYCONSIGNATARIO[0]["NOMBRE_CONSIGNATARIO"];
-        $DIRECCIONCONSIGNATARIO=$ARRAYCONSIGNATARIO[0]["DIRECCION_CONSIGNATARIO"];
-        $EORICONSIGNATARIO=$ARRAYCONSIGNATARIO[0]["EORI_CONSIGNATARIO"];
-        $TELEFONOCONSIGNATARIO=$ARRAYCONSIGNATARIO[0]["TELEFONO_CONSIGNATARIO"];
-        $EMAIL1CONSIGNATARIO=$ARRAYCONSIGNATARIO[0]["EMAIL1_CONSIGNATARIO"];
-      }else{
-        $NOMBRECONSIGNATARIO="Sin Datos";
-        $EORICONSIGNATARIO="Sin Datos";
-        $TELEFONOCONSIGNATARIO="Sin Datos";
-        $DIRECCIONCONSIGNATARIO="Sin Datos";
-        $EMAIL1CONSIGNATARIO="Sin Datos";
-      }
-      $ARRAYFPAGO = $FPAGO_ADO->verFpago(  $ARRAYICARGA[0]['ID_FPAGO']);         
-      if($ARRAYFPAGO){
-        $NOMBREFPAGO=$ARRAYFPAGO[0]["NOMBRE_FPAGO"];
-      }else{
-        $NOMBREFPAGO="Sin Datos";
-      }
-      $ARRAYMVENTA = $MVENTA_ADO->verMventa( $ARRAYICARGA[0]['ID_MVENTA']);        
-      if($ARRAYMVENTA){
-        $NOMBREMVENTA=$ARRAYMVENTA[0]["NOMBRE_MVENTA"];
-      }else{
-        $NOMBREMVENTA="Sin Datos";
-      }
-      $ARRAYCVENTA = $CVENTA_ADO->verCventa( $ARRAYICARGA[0]['ID_CVENTA']);        
-      if($ARRAYMVENTA){
-        $NOMBRECVENTA=$ARRAYCVENTA[0]["NOMBRE_CVENTA"];
-      }else{
-        $NOMBRECVENTA="Sin Datos";
-      }
-      $ARRAYTFLETE= $TFLETE_ADO->verTflete( $ARRAYICARGA[0]['ID_TFLETE']);        
-      if($ARRAYTFLETE){
-        $NOMBRETFLETE=$ARRAYTFLETE[0]["NOMBRE_TFLETE"];
-      }else{
-        $NOMBRETFLETE="Sin Datos";
-      }      
-      $ARRAYATMOSFERA =$ATMOSFERA_ADO->verAtmosfera( $ARRAYICARGA[0]['ID_ATMOSFERA']);
-      if($ARRAYATMOSFERA){
-        $NOMBREATMOSFERA=$ARRAYATMOSFERA[0]["NOMBRE_ATMOSFERA"];
-      }else{
-        $NOMBREATMOSFERA="Sin Datos";
-      }
-      $ARRAYTCONTENEDOR =$TCONTENEDOR_ADO->verTcontenedor( $ARRAYICARGA[0]['ID_TCONTENEDOR']);
-      if($ARRAYTCONTENEDOR){
-        $NOMBRETCONTENEDOR=$ARRAYTCONTENEDOR[0]["NOMBRE_TCONTENEDOR"];
-      }else{
-        $NOMBRETCONTENEDOR="Sin Datos";
-      }      
-      $ARRAYPAIS =$PAIS_ADO->verPais( $ARRAYICARGA[0]['ID_PAIS']);
-      if($ARRAYPAIS){
-        $NOMBREPAIS=$ARRAYPAIS[0]["NOMBRE_PAIS"];
-      }else{
-        $NOMBREPAIS="Sin Datos";
-      }
-      $ARRAYEXPORTADORA = $EXPORTADORA_ADO->verExportadora( $ARRAYICARGA[0]['ID_EXPPORTADORA']);
-      if($ARRAYEXPORTADORA){
-        $RUTEXPPORTADORA=$ARRAYEXPORTADORA[0]["RUT_EXPORTADORA"]."-".$ARRAYEXPORTADORA[0]["DV_EXPORTADORA"];
-        $NOMBREEXPPORTADORA=$ARRAYEXPORTADORA[0]["NOMBRE_EXPORTADORA"];
-      }else{
-        $RUTEXPPORTADORA="Sin Datos";
-        $NOMBREEXPPORTADORA="Sin Datos";
-      }
-      $ARRAYDFINAL =$DFINAL_ADO->verDfinal( $ARRAYICARGA[0]['ID_DFINAL']);
-      if($ARRAYDFINAL){
-        $NOMBREDFINAL=$ARRAYDFINAL[0]["NOMBRE_DFINAL"];
-      }else{
-        $NOMBREDFINAL="Sin Datos";
-      }
-
-    if($TEMBARQUE){
-          if ($TEMBARQUE == "1") {
-              $NOMBRETEMBARQUE="Terrestre";
-              $CRT=$ARRAYICARGA[0]['CRT_ICARGA'];
-              $ARRAYTRANSPORTE =$TRANSPORTE_ADO->verTransporte( $ARRAYICARGA[0]['ID_TRANSPORTE']);        
-              if($ARRAYTRANSPORTE){
-                $NOMBRETRANSPORTE=$ARRAYTRANSPORTE[0]["NOMBRE_TRANSPORTE"];
-              }else{
-                $NOMBRETRANSPORTE="Sin Datos";
-              }            
-              $ARRAYLCARGA =$LCARGA_ADO->verLcarga(  $ARRAYICARGA[0]['ID_LCARGA']);       
-              if($ARRAYLCARGA){
-                $NOMBREORIGEN=$ARRAYLCARGA[0]["NOMBRE_LCARGA"];
-              }else{
-                $NOMBREORIGEN="Sin Datos";
-              }
-              $ARRAYLDESTINO =$LDESTINO_ADO->verLdestino( $ARRAYICARGA[0]['ID_LDESTINO']);     
-              if($ARRAYLDESTINO){
-                $NOMBREDESTINO=$ARRAYLDESTINO[0]["NOMBRE_LDESTINO"];
-              }else{
-                $NOMBREDESTINO="Sin Datos";
-              }
-          }
-          if ($TEMBARQUE == "2") {
-              $NOMBRETEMBARQUE="Aereo";
-              $NAVE=$ARRAYICARGA[0]['NAVE_ICARGA'];
-              $NVIAJE = $ARRAYICARGA[0]['NVIAJE_ICARGA'];
-             
-              $ARRAYLAEREA = $LAEREA_ADO->verLaerea( $ARRAYICARGA[0]['ID_LAREA']);      
-              if($ARRAYLAEREA){
-                $NOMBRETRANSPORTE=$ARRAYLAEREA[0]["NOMBRE_LAEREA"];
-              }else{
-                $NOMBRETRANSPORTE="Sin Datos";
-              }            
-              $ARRAYACARGA =$ACARGA_ADO->verAcarga(  $ARRAYICARGA[0]['ID_ACARGA']);  
-              if($ARRAYACARGA){
-                $NOMBREORIGEN=$ARRAYACARGA[0]["NOMBRE_ACARGA"];
-              }else{
-                $NOMBREORIGEN="Sin Datos";
-              }
-              $ARRAYADESTINO =$ADESTINO_ADO->verAdestino( $ARRAYICARGA[0]['ID_ADESTINO']);  
-              if($ARRAYADESTINO){
-                $NOMBREDESTINO=$ARRAYADESTINO[0]["NOMBRE_ADESTINO"];
-              }else{
-                $NOMBREDESTINO="Sin Datos";
-              }
-          }
-          if ($TEMBARQUE == "3") {
-              $NOMBRETEMBARQUE="Maritimo";
-              $NAVE  = $ARRAYICARGA[0]['NAVE_ICARGA'];
-              $NVIAJE = $ARRAYICARGA[0]['NVIAJE_ICARGA'];
-              $FECHASTACKING = $ARRAYICARGA[0]['FECHAESTACKING'];
-              $ARRAYNAVIERA =$NAVIERA_ADO->verNaviera( $ARRAYICARGA[0]['ID_NAVIERA']);   
-              if($ARRAYNAVIERA){
-                $NOMBRETRANSPORTE=$ARRAYNAVIERA[0]["NOMBRE_NAVIERA"];
-              }else{
-                $NOMBRETRANSPORTE="Sin Datos";
-              }            
-              $ARRAYPCARGA =$PCARGA_ADO->verPcarga(  $ARRAYICARGA[0]['ID_PCARGA']);
-              if($ARRAYPCARGA){
-                $NOMBREORIGEN=$ARRAYPCARGA[0]["NOMBRE_PCARGA"];
-              }else{
-                $NOMBREORIGEN="Sin Datos";
-              }
-              $ARRAYPDESTINO =$PDESTINO_ADO->verPdestino( $ARRAYICARGA[0]['ID_PDESTINO']);
-              if($ARRAYPDESTINO){
-                $NOMBREDESTINO=$ARRAYPDESTINO[0]["NOMBRE_PDESTINO"];
-              }else{
-                $NOMBREDESTINO="Sin Datos";
-              }
-          }
-    }      
-  
-    $ARRAYAGCARGA = $AGCARGA_ADO->verAgcarga(  $ARRAYICARGA[0]['ID_AGCARGA']); 
-    if($ARRAYAGCARGA){
-      $RUTAGCARGA=$ARRAYAGCARGA[0]["RUT_AGCARGA"]."-".$ARRAYAGCARGA[0]["DV_AGCARGA"];
-      $NOMBREAGCARGA=$ARRAYAGCARGA[0]["NOMBRE_AGCARGA"];
-      $DIRECCIONAGCARGA=$ARRAYAGCARGA[0]["DIRECCION_AGCARGA"];
-      $CONTACTOAGCARGA=$ARRAYAGCARGA[0]["CONTACTO_AGCARGA"];
-      $EMAILAGCARGA=$ARRAYAGCARGA[0]["EMAIL_AGCARGA"];
-      $TELEFONOAGCARGA=$ARRAYAGCARGA[0]["TELEFONO_AGCARGA"];
-    }else{
-      $RUTAGCARGA="Sin Datos";
-      $NOMBREAGCARGA="Sin Datos";
-      $DIRECCIONAGCARGA="Sin Datos";
-      $CONTACTOAGCARGA="Sin Datos";
-      $EMAILAGCARGA="Sin Datos";
-      $TELEFONOAGCARGA="Sin Datos";
-    } 
-    $ARRAYAADUANA = $AADUANA_ADO->verAaduana( $ARRAYICARGA[0]['ID_AADUANA']);
-    if($ARRAYAADUANA){
-      $RUTAADUANA=$ARRAYAADUANA[0]["RUT_AADUANA"]."-".$ARRAYAADUANA[0]["DV_AADUANA"];
-      $NOMBREAADUANA=$ARRAYAADUANA[0]["NOMBRE_AADUANA"];
-      $DIRECCIONAADUANA=$ARRAYAADUANA[0]["DIRECCION_AADUANA"];
-      $CONTACTOAADUANA=$ARRAYAADUANA[0]["CONTACTO_AADUANA"];
-      $EMAILAADUANA=$ARRAYAADUANA[0]["EMAIL_AADUANA"];
-      $TELEFONOAADUANA=$ARRAYAADUANA[0]["TELEFONO_AADUANA"];
-    }else{
-      $RUTAADUANA="Sin Datos";
-      $NOMBREAADUANA="Sin Datos";
-      $DIRECCIONAADUANA="Sin Datos";
-      $CONTACTOAADUANA="Sin Datos";
-      $EMAILAADUANA="Sin Datos";
-      $TELEFONOAADUANA="Sin Datos";
     }
+    if ($TEMBARQUE == "3") {
+      $NOMBRETEMBARQUE = "Maritimo";
+      $NAVE  = $ARRAYICARGA[0]['NAVE_ICARGA'];
+      $NVIAJE = $ARRAYICARGA[0]['NVIAJE_ICARGA'];
+      $FECHASTACKING = $ARRAYICARGA[0]['FECHAESTACKING'];
+      $ARRAYNAVIERA = $NAVIERA_ADO->verNaviera($ARRAYICARGA[0]['ID_NAVIERA']);
+      if ($ARRAYNAVIERA) {
+        $NOMBRETRANSPORTE = $ARRAYNAVIERA[0]["NOMBRE_NAVIERA"];
+      } else {
+        $NOMBRETRANSPORTE = "Sin Datos";
+      }
+      $ARRAYPCARGA = $PCARGA_ADO->verPcarga($ARRAYICARGA[0]['ID_PCARGA']);
+      if ($ARRAYPCARGA) {
+        $NOMBREORIGEN = $ARRAYPCARGA[0]["NOMBRE_PCARGA"];
+      } else {
+        $NOMBREORIGEN = "Sin Datos";
+      }
+      $ARRAYPDESTINO = $PDESTINO_ADO->verPdestino($ARRAYICARGA[0]['ID_PDESTINO']);
+      if ($ARRAYPDESTINO) {
+        $NOMBREDESTINO = $ARRAYPDESTINO[0]["NOMBRE_PDESTINO"];
+      } else {
+        $NOMBREDESTINO = "Sin Datos";
+      }
+    }
+  }
+
+  $ARRAYAGCARGA = $AGCARGA_ADO->verAgcarga($ARRAYICARGA[0]['ID_AGCARGA']);
+  if ($ARRAYAGCARGA) {
+    $RUTAGCARGA = $ARRAYAGCARGA[0]["RUT_AGCARGA"] . "-" . $ARRAYAGCARGA[0]["DV_AGCARGA"];
+    $NOMBREAGCARGA = $ARRAYAGCARGA[0]["NOMBRE_AGCARGA"];
+    $DIRECCIONAGCARGA = $ARRAYAGCARGA[0]["DIRECCION_AGCARGA"];
+    $CONTACTOAGCARGA = $ARRAYAGCARGA[0]["CONTACTO_AGCARGA"];
+    $EMAILAGCARGA = $ARRAYAGCARGA[0]["EMAIL_AGCARGA"];
+    $TELEFONOAGCARGA = $ARRAYAGCARGA[0]["TELEFONO_AGCARGA"];
+  } else {
+    $RUTAGCARGA = "Sin Datos";
+    $NOMBREAGCARGA = "Sin Datos";
+    $DIRECCIONAGCARGA = "Sin Datos";
+    $CONTACTOAGCARGA = "Sin Datos";
+    $EMAILAGCARGA = "Sin Datos";
+    $TELEFONOAGCARGA = "Sin Datos";
+  }
+  $ARRAYAADUANA = $AADUANA_ADO->verAaduana($ARRAYICARGA[0]['ID_AADUANA']);
+  if ($ARRAYAADUANA) {
+    $RUTAADUANA = $ARRAYAADUANA[0]["RUT_AADUANA"] . "-" . $ARRAYAADUANA[0]["DV_AADUANA"];
+    $NOMBREAADUANA = $ARRAYAADUANA[0]["NOMBRE_AADUANA"];
+    $DIRECCIONAADUANA = $ARRAYAADUANA[0]["DIRECCION_AADUANA"];
+    $CONTACTOAADUANA = $ARRAYAADUANA[0]["CONTACTO_AADUANA"];
+    $EMAILAADUANA = $ARRAYAADUANA[0]["EMAIL_AADUANA"];
+    $TELEFONOAADUANA = $ARRAYAADUANA[0]["TELEFONO_AADUANA"];
+  } else {
+    $RUTAADUANA = "Sin Datos";
+    $NOMBREAADUANA = "Sin Datos";
+    $DIRECCIONAADUANA = "Sin Datos";
+    $CONTACTOAADUANA = "Sin Datos";
+    $EMAILAADUANA = "Sin Datos";
+    $TELEFONOAADUANA = "Sin Datos";
+  }
 
 
 
   $ARRAYEMPRESA = $EMPRESA_ADO->verEmpresa($ARRAYICARGA[0]['ID_EMPRESA']);
-  if($ARRAYEMPRESA){
-    $NOMBREEMPRESA=$ARRAYEMPRESA[0]["NOMBRE_EMPRESA"];
-    $COC=$ARRAYEMPRESA[0]["COC"];
+  if ($ARRAYEMPRESA) {
+    $NOMBREEMPRESA = $ARRAYEMPRESA[0]["NOMBRE_EMPRESA"];
+    $COC = $ARRAYEMPRESA[0]["COC"];
     $RAZONSOCIALEMPRESA = $ARRAYEMPRESA[0]["RAZON_SOCIAL_EMPRESA"];
-    $RUTEMPRESA=$ARRAYEMPRESA[0]["RUT_EMPRESA"]."-".$ARRAYEMPRESA[0]["DV_EMPRESA"];
-    $DIRECCIONEMPRESA=$ARRAYEMPRESA[0]["DIRECCION_EMPRESA"];
-    $ARRAYCOMUNA=$COMUNA_ADO->verComuna2($ARRAYEMPRESA[0]["ID_COMUNA"]);
-    if($ARRAYCOMUNA){
-      $UBICACION=$ARRAYCOMUNA[0]["COMUNA"].", ".$ARRAYCOMUNA[0]["PAIS"];
-      $DIRECCIONEMPRESA=$DIRECCIONEMPRESA.", ".$UBICACION;
-    }else{
-      $DIRECCIONEMPRESA=$DIRECCIONEMPRESA;
+    $RUTEMPRESA = $ARRAYEMPRESA[0]["RUT_EMPRESA"] . "-" . $ARRAYEMPRESA[0]["DV_EMPRESA"];
+    $DIRECCIONEMPRESA = $ARRAYEMPRESA[0]["DIRECCION_EMPRESA"];
+    $ARRAYCOMUNA = $COMUNA_ADO->verComuna2($ARRAYEMPRESA[0]["ID_COMUNA"]);
+    if ($ARRAYCOMUNA) {
+      $UBICACION = $ARRAYCOMUNA[0]["COMUNA"] . ", " . $ARRAYCOMUNA[0]["PAIS"];
+      $DIRECCIONEMPRESA = $DIRECCIONEMPRESA . ", " . $UBICACION;
+    } else {
+      $DIRECCIONEMPRESA = $DIRECCIONEMPRESA;
     }
-  }else{    
-    $NOMBREEMPRESA="Sin Datos";
-    $RAZONSOCIALEMPRESA="Sin Datos";
-    $RUTEMPRESA="Sin Datos";
-    $DIRECCIONEMPRESA="Sin Datos";
+  } else {
+    $NOMBREEMPRESA = "Sin Datos";
+    $RAZONSOCIALEMPRESA = "Sin Datos";
+    $RUTEMPRESA = "Sin Datos";
+    $DIRECCIONEMPRESA = "Sin Datos";
   }
-  $ARRAYTEMPORADA = $TEMPORADA_ADO->verTemporada($ARRAYICARGA[0]['ID_TEMPORADA']);  
-  if($ARRAYTEMPORADA){
-    $NOMBRETEMPORADA=$ARRAYTEMPORADA[0]["NOMBRE_TEMPORADA"];
-  }else{
-    $NOMBRETEMPORADA="Sin Datos";
+  $ARRAYTEMPORADA = $TEMPORADA_ADO->verTemporada($ARRAYICARGA[0]['ID_TEMPORADA']);
+  if ($ARRAYTEMPORADA) {
+    $NOMBRETEMPORADA = $ARRAYTEMPORADA[0]["NOMBRE_TEMPORADA"];
+  } else {
+    $NOMBRETEMPORADA = "Sin Datos";
   }
-
-} 
+}
 
 
 
@@ -744,10 +770,10 @@ $html = '
           </div>
         </td>
         <td class="color2 left" width="70%">
-          <b>'.$RAZONSOCIALEMPRESA.'</b> <br>
-          '.$RUTEMPRESA.' <br>
-          '.$COC.' <br>
-          '.$DIRECCIONEMPRESA.' <br>          
+          <b>' . $RAZONSOCIALEMPRESA . '</b> <br>
+          ' . $RUTEMPRESA . ' <br>
+          ' . $COC . ' <br>
+          ' . $DIRECCIONEMPRESA . ' <br>          
         </td>
         <td class="color2 right">
         
@@ -763,43 +789,42 @@ $html = '
     <br>
 <div id="details" class="clearfix">
   <div id="client">
-    <div class="address"> <b>  Consignee:  </b> '.$NOMBRECONSIGNATARIO.'  </div>
-    <div class="address"> <b>  Address Consignee:  </b> '.$DIRECCIONCONSIGNATARIO.'  </div>
-    <div class="address"> <b> Tributary id Consignee: </b>'.$EORICONSIGNATARIO.'  </div>
-    <div class="address"> <b> Phone / Fax Consignee: </b>'.$TELEFONOCONSIGNATARIO.'  </div>
-    <div class="address"> <b>  Email Consignee:  </b> '.$EMAIL1CONSIGNATARIO.'  </div>
+    <div class="address"> <b>  Consignee:  </b> ' . $NOMBRECONSIGNATARIO . '  </div>
+    <div class="address"> <b>  Address Consignee:  </b> ' . $DIRECCIONCONSIGNATARIO . '  </div>
+    <div class="address"> <b> Tributary id Consignee: </b>' . $EORICONSIGNATARIO . '  </div>
+    <div class="address"> <b> Phone / Fax Consignee: </b>' . $TELEFONOCONSIGNATARIO . '  </div>
+    <div class="address"> <b>  Email Consignee:  </b> ' . $EMAIL1CONSIGNATARIO . '  </div>
     <div class="address">&nbsp;  </div>
 
-    '; 
-    if ($TEMBARQUE == "1") {
-      $html = $html . '
-        <div class="address"> <b>  Container number:  </b> '.$NUMEROCONTENEDOR.'  </div>
-        <div class="address"> <b>  FDA Packing:  </b> '.$FDADESPACHOEX.'  </div>
-        <div class="address"> <b>  Date Real ETD :   </b>  '.$FECHAETDREAL.'</div>
-        <div class="address"> <b>  Date Real ETA:  </b>  '.$FECHAETAREAL.' </div>
+    ';
+if ($TEMBARQUE == "1") {
+  $html = $html . '
+        <div class="address"> <b>  Container number:  </b> ' . $NUMEROCONTENEDOR . '  </div>
+        <div class="address"> <b>  FDA Packing:  </b> ' . $FDADESPACHOEX . '  </div>
+        <div class="address"> <b>  Date Real ETD :   </b>  ' . $FECHAETDREAL . '</div>
+        <div class="address"> <b>  Date Real ETA:  </b>  ' . $FECHAETAREAL . ' </div>
       ';
-      
-    }
-    if ($TEMBARQUE == "2") {
-        $html = $html . '
+}
+if ($TEMBARQUE == "2") {
+  $html = $html . '
 
-        <div class="address"> <b>  Container number:  </b> '.$NUMEROCONTENEDOR.'  </div>
-        <div class="address"> <b>  FDA Packing:  </b> '.$FDADESPACHOEX.'  </div>
-         <div class="address"> <b>  Date Real ETD :   </b>  '.$FECHAETDREAL.'</div>
-        <div class="address"> <b>  Date Real ETA:  </b>  '.$FECHAETAREAL.' </div>
+        <div class="address"> <b>  Container number:  </b> ' . $NUMEROCONTENEDOR . '  </div>
+        <div class="address"> <b>  FDA Packing:  </b> ' . $FDADESPACHOEX . '  </div>
+         <div class="address"> <b>  Date Real ETD :   </b>  ' . $FECHAETDREAL . '</div>
+        <div class="address"> <b>  Date Real ETA:  </b>  ' . $FECHAETAREAL . ' </div>
     
         ';
-     }
-    if ($TEMBARQUE == "3") {
-        $html = $html . '
+}
+if ($TEMBARQUE == "3") {
+  $html = $html . '
 
-        <div class="address"> <b>  Container number:  </b> '.$NUMEROCONTENEDOR.'  </div>
-        <div class="address"> <b>  FDA Packing:  </b> '.$FDADESPACHOEX.'  </div>
-         <div class="address"> <b>  Date Real ETD :   </b>  '.$FECHAETDREAL.'</div>
-        <div class="address"> <b>  Date Real ETA:  </b>  '.$FECHAETAREAL.' </div>
+        <div class="address"> <b>  Container number:  </b> ' . $NUMEROCONTENEDOR . '  </div>
+        <div class="address"> <b>  FDA Packing:  </b> ' . $FDADESPACHOEX . '  </div>
+         <div class="address"> <b>  Date Real ETD :   </b>  ' . $FECHAETDREAL . '</div>
+        <div class="address"> <b>  Date Real ETA:  </b>  ' . $FECHAETAREAL . ' </div>
     
         ';
-    }    
+}
 
 $html = $html . '
 
@@ -808,49 +833,49 @@ $html = $html . '
   </div>
   <div id="client"> 
   
-    <div class="address"> <b> Date Invoice:  </b> '.$FECHAETD.'  </div>
-    <div class="address"> <b>  Sales method:  </b>  '.$NOMBREMVENTA.' </div>
-    <div class="address"> <b>  Incoterm:  </b>   '.$NOMBRECVENTA.'</div>
-    <div class="address"> <b>  BL/AWB/CRT:  </b> '.$BOLAWBCRTINSTRUCTIVO.'  </div>
+    <div class="address"> <b> Date Invoice:  </b> ' . $FECHAETD . '  </div>
+    <div class="address"> <b>  Sales method:  </b>  ' . $NOMBREMVENTA . ' </div>
+    <div class="address"> <b>  Incoterm:  </b>   ' . $NOMBRECVENTA . '</div>
+    <div class="address"> <b>  BL/AWB/CRT:  </b> ' . $BOLAWBCRTINSTRUCTIVO . '  </div>
 
     ';
-    if ($TEMBARQUE == "1") {
-      $html = $html . '
+if ($TEMBARQUE == "1") {
+  $html = $html . '
         <div class="address">&nbsp;  </div>
         <div class="address">&nbsp;  </div>
-        <div class="address"> <b>  Transport Name:  </b> '.$NOMBRETRANSPORTE.'  </div>
-        <div class="address"> <b>  CRT:  </b> '.$CRT.'  </div>
-        <div class="address"> <b>  Place of Shipment:   </b>'.$NOMBREORIGEN.'  </div>
-        <div class="address"> <b>  Place of Destination:  </b> '.$NOMBREDESTINO.'  </div>
-        <div class="address"> <b>  Loading place:   </b> '.$LUGARDECARGA.'  </div>
+        <div class="address"> <b>  Transport Name:  </b> ' . $NOMBRETRANSPORTE . '  </div>
+        <div class="address"> <b>  CRT:  </b> ' . $CRT . '  </div>
+        <div class="address"> <b>  Place of Shipment:   </b>' . $NOMBREORIGEN . '  </div>
+        <div class="address"> <b>  Place of Destination:  </b> ' . $NOMBREDESTINO . '  </div>
+        <div class="address"> <b>  Loading place:   </b> ' . $LUGARDECARGA . '  </div>
       ';
-    }
-    if ($TEMBARQUE == "2") {
-        $html = $html . '
+}
+if ($TEMBARQUE == "2") {
+  $html = $html . '
     
         <div class="address">&nbsp;  </div>
         <div class="address">&nbsp;  </div>
-        <div class="address"> <b>  Airline Name:   </b>'.$NOMBRETRANSPORTE.'  </div>
-        <div class="address"> <b>  Airplane:   </b>'.$NAVE.' <b>Number Travel: </b>'.$NVIAJE.'  </div>
-        <div class="address"> <b>  Airport of Shipment:  </b> '.$NOMBREORIGEN.'  </div>
-        <div class="address"> <b>  Airport of Destination:   </b>'.$NOMBREDESTINO.'  </div>
-        <div class="address"> <b>  Loading place:   </b>'.$LUGARDECARGA.'  </div>
-    
-        ';
-     }
-    if ($TEMBARQUE == "3") {
-        $html = $html . '
-    
-        <div class="address">&nbsp;  </div>
-        <div class="address">&nbsp;  </div>
-        <div class="address"> <b>  Shipping company name:  </b> '.$NOMBRETRANSPORTE.'  </div>
-        <div class="address"> <b>  Vessel:   </b>'.$NAVE.' - <b>Voyage: </b>'.$NVIAJE.' </div>
-        <div class="address"> <b>  Port of Shipment:   </b>'.$NOMBREORIGEN.'  </div>
-        <div class="address"> <b>  Delivery:  </b> '.$NOMBREDESTINO.'  </div>
-        <div class="address"> <b>  Loading place:   </b>'.$LUGARDECARGA.'  </div>
+        <div class="address"> <b>  Airline Name:   </b>' . $NOMBRETRANSPORTE . '  </div>
+        <div class="address"> <b>  Airplane:   </b>' . $NAVE . ' <b>Number Travel: </b>' . $NVIAJE . '  </div>
+        <div class="address"> <b>  Airport of Shipment:  </b> ' . $NOMBREORIGEN . '  </div>
+        <div class="address"> <b>  Airport of Destination:   </b>' . $NOMBREDESTINO . '  </div>
+        <div class="address"> <b>  Loading place:   </b>' . $LUGARDECARGA . '  </div>
     
         ';
-    }    
+}
+if ($TEMBARQUE == "3") {
+  $html = $html . '
+    
+        <div class="address">&nbsp;  </div>
+        <div class="address">&nbsp;  </div>
+        <div class="address"> <b>  Shipping company name:  </b> ' . $NOMBRETRANSPORTE . '  </div>
+        <div class="address"> <b>  Vessel:   </b>' . $NAVE . ' - <b>Voyage: </b>' . $NVIAJE . ' </div>
+        <div class="address"> <b>  Port of Shipment:   </b>' . $NOMBREORIGEN . '  </div>
+        <div class="address"> <b>  Delivery:  </b> ' . $NOMBREDESTINO . '  </div>
+        <div class="address"> <b>  Loading place:   </b>' . $LUGARDECARGA . '  </div>
+    
+        ';
+}
 
 $html = $html . '
 
@@ -859,7 +884,7 @@ $html = $html . '
       </div>
         ';
 
-        $html = $html . '        
+$html = $html . '        
         <table border="0" cellspacing="0" cellpadding="0">
           <thead>
             <tr>
@@ -878,81 +903,95 @@ $html = $html . '
           </thead>
            <tbody>
           ';
-          foreach ($ARRAYDCARGA as $s) :
+foreach ($ARRAYDCARGA as $s) :
 
 
-            $netoCalculado = $s['NETOSF'];
-            $brutoCalculado = $s['BRUTOSRF'];
-            if(isset($ARRAYNETKILO[$s['NOMBRE']])){
-              $netoCalculado = $ARRAYNETKILO[$s['NOMBRE']];
-              if(isset($ARRAYENVASEAGRUPADO[$s['NOMBRE']]) && $ARRAYENVASEAGRUPADO[$s['NOMBRE']] > 0){
-                $netoCalculado = ($ARRAYNETKILO[$s['NOMBRE']] / $ARRAYENVASEAGRUPADO[$s['NOMBRE']]) * $s['ENVASESF'];
-              }
-            }
-            if(isset($ARRAYGROSSKILO[$s['NOMBRE']])){
-              $brutoCalculado = $ARRAYGROSSKILO[$s['NOMBRE']];
-              if(isset($ARRAYENVASEAGRUPADO[$s['NOMBRE']]) && $ARRAYENVASEAGRUPADO[$s['NOMBRE']] > 0){
-                $brutoCalculado = ($ARRAYGROSSKILO[$s['NOMBRE']] / $ARRAYENVASEAGRUPADO[$s['NOMBRE']]) * $s['ENVASESF'];
-              }
-            }
-
-            $html = $html . '
-              <tr class="">
-                    <td class="center">'.$s['ENVASE'].'</td>
-                    <td class="center">'.$s['NOMBRE'].'</td>
-                    <td class="center">'.$s['TMANEJO'].'</td>
-                    <td class="center">'.number_format($netoCalculado, 2, ",", ".").'</td>
-                    <td class="center">'.number_format($brutoCalculado, 2, ",", ".").'</td>
-                    <td class="center" style="text-transform: uppercase;">'.$s['TMONEDA'].'</td>
-                    <td class="center">'.$s['US'].'</td>
-                    <td class="center">'.$s['TOTALUS'].'</td>
-              </tr>
-            ';
-            $TOTALENVASEV+=$s['ENVASESF'];
-            $TOTALNETOV += $netoCalculado;
-            $TOTALBRUTOV += $brutoCalculado;
-            $TOTALUSV+=$s['TOTALUSSF'];
-            endforeach;
-
-if($COSTOFLETEICARGA!=""){
-  if($COSTOFLETEICARGA>0){
-    $TOTALUSV+=$COSTOFLETEICARGA;  
-            $html = $html . '              
-              <tr class="">
-                  <td class="center"> - </td>
-                    <td class="center">Freight cost </td>
-                    <td class="center"> - </td>
-                    <td class="center"> - </td>
-                    <td class="center"> - </td>
-                    <td class="center"></td>
-                    <td class="center"> - </td>
-                    <td class="center">'.number_format($COSTOFLETEICARGA, 2, ",", ".").'</td>
-              </tr>
-            ';
-
-  }else{
-    $COSTOFLETEICARGA=0;
+  $netoCalculado = $s['NETOSF'];
+  $brutoCalculado = $s['BRUTOSRF'];
+  if (isset($ARRAYNETKILO[$s['NOMBRE']])) {
+    $netoCalculado = $ARRAYNETKILO[$s['NOMBRE']];
+    if (isset($ARRAYENVASEAGRUPADO[$s['NOMBRE']]) && $ARRAYENVASEAGRUPADO[$s['NOMBRE']] > 0) {
+      $netoCalculado = ($ARRAYNETKILO[$s['NOMBRE']] / $ARRAYENVASEAGRUPADO[$s['NOMBRE']]) * $s['ENVASESF'];
+    }
   }
-}else{
-  $COSTOFLETEICARGA=0;
+  if (isset($ARRAYGROSSKILO[$s['NOMBRE']])) {
+    $brutoCalculado = $ARRAYGROSSKILO[$s['NOMBRE']];
+    if (isset($ARRAYENVASEAGRUPADO[$s['NOMBRE']]) && $ARRAYENVASEAGRUPADO[$s['NOMBRE']] > 0) {
+      $brutoCalculado = ($ARRAYGROSSKILO[$s['NOMBRE']] / $ARRAYENVASEAGRUPADO[$s['NOMBRE']]) * $s['ENVASESF'];
+    }
+  }
+
+  $html = $html . '
+              <tr class="">
+                    <td class="center">' . $s['ENVASE'] . '</td>
+                    <td class="center">' . $s['NOMBRE'] . '</td>
+                    <td class="center">' . $s['TMANEJO'] . '</td>
+                    <td class="center">' . number_format($netoCalculado, 2, ",", ".") . '</td>
+                    <td class="center">' . number_format($brutoCalculado, 2, ",", ".") . '</td>
+                    <td class="center" style="text-transform: uppercase;">' . $s['TMONEDA'] . '</td>
+                    <td class="center">' . $s['US'] . '</td>
+                    <td class="center">' . $s['TOTALUS'] . '</td>
+              </tr>
+            ';
+  $TOTALENVASEV += $s['ENVASESF'];
+  $TOTALNETOV += $netoCalculado;
+  $TOTALBRUTOV += $brutoCalculado;
+  $TOTALUSV += $s['TOTALUSSF'];
+endforeach;
+
+$_incoterm = strtoupper(trim((string)$NOMBRECVENTA));
+$_esCIF = strpos($_incoterm, 'CIF') !== false;
+$_esDPU = strpos($_incoterm, 'DPU') !== false;
+
+// Seguro solo para CIF
+if ($_esCIF && $SEGURO_INVOICE > 0) {
+  $TOTALUSV += $SEGURO_INVOICE;
+  $html = $html . '
+              <tr>
+                <td class="center">-</td>
+                <td class="center">Insurance (' . htmlspecialchars($NOMBRECVENTA) . ')</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center"></td>
+                <td class="center">-</td>
+                <td class="center">' . number_format($SEGURO_INVOICE, 2, ",", ".") . '</td>
+              </tr>
+  ';
 }
 
-            $html = $html . '
-                    
+// Flete para CIF y DPU
+if (($_esCIF || $_esDPU) && $FLETE_INVOICE > 0) {
+  $TOTALUSV += $FLETE_INVOICE;
+  $html = $html . '
+              <tr>
+                <td class="center">-</td>
+                <td class="center">Freight (' . htmlspecialchars($NOMBRECVENTA) . ')</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center">-</td>
+                <td class="center"></td>
+                <td class="center">-</td>
+                <td class="center">' . number_format($FLETE_INVOICE, 2, ",", ".") . '</td>
+              </tr>
+  ';
+}
+
+$html = $html . '
                         <tr class="bt">
-                          <th class="color center">'.number_format($TOTALENVASEV, 2, ",", ".").'</th>
+                          <th class="color center">' . number_format($TOTALENVASEV, 2, ",", ".") . '</th>
                           <th class="color right">Overall Kilogram </td>
                           <td class="color center">&nbsp;</td>
-                          <th class="color center">'.number_format($TOTALNETOV, 2, ",", ".").'</th>
-                          <th class="color center">'.number_format($TOTALBRUTOV, 2, ",", ".").'</th>
+                          <th class="color center">' . number_format($TOTALNETOV, 2, ",", ".") . '</th>
+                          <th class="color center">' . number_format($TOTALBRUTOV, 2, ",", ".") . '</th>
                           <td class="color center">&nbsp;</td>
                           <td class="color center">&nbsp;</td>
-                          <th class="color center">'.number_format($TOTALUSV, 2, ",", ".").'</th>
+                          <th class="color center">' . number_format($TOTALUSV, 2, ",", ".") . '</th>
                         </tr>
                     ';
-            
-            
-            
+
+
+
 
 $html = $html . '
     
@@ -965,27 +1004,17 @@ $html = $html . '
           <div class="address"><b>Invoice Note</b></div>
           <div class="address">  ' . $OBSERVACIONESI . ' </div>
         </div>
-        
-      </div>
-      <br><br>
-      <table border="0" cellspacing="0" cellpadding="0" width="100%">
-        <tr>
-          <td width="55%">&nbsp;</td>
-          <td width="45%" class="center" style="font-size: 10px;">
-            <div style="border-bottom: 1px solid #222; height: 28px; margin: 0 20px 6px 20px;">&nbsp;</div>
-            <div><b>Morreen Weldt C.</b></div>
-            <div>Export Manager</div>
-            <div><b>Volcan Foods Ltda.</b></div>
-            <div>RUT: 77.223.122-9</div>
-            <div>Fundo El Alamo, Los Angeles</div>
-            <div style="margin-top: 6px;">
-              <img src="../../assest/img/logo2.png" width="95px" height="28px"/>
-            </div>
-          </td>
-        </tr>
-      </table>
+  </div>
 
     </main>
+
+      <!-- FIRMA INSPECTOR – anclada cerca del footer -->
+<div style="position:fixed;bottom:10mm;right:12mm;display:table;">
+  <div style="border-top:1px solid #555;padding-top:8px;padding-bottom:4px;font-size:9px;font-family:Arial,sans-serif;color:#333;white-space:nowrap;">
+    MOREEN WELDT C. <br> Export Manager <br> Volcán Foods Ltda. <br> Fundo El Álamo, Los Ángeles <br>
+  </div>
+</div>
+
   </body>
 </html>
 

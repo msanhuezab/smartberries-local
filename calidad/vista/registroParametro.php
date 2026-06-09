@@ -73,7 +73,7 @@ function calidadNombreEspecie($idEspecie, $arrayEspecies) {
 }
 
 if (isset($_POST["GUARDARPARAMETRO"])) {
-    $nombreEspecie = calidadNombreEspecie($_POST["ID_ESPECIES"], $ESPECIES_ADO->listarEspeciesCalidadCBX());
+    $nombreEspecie = calidadNombreEspecie($_POST["ID_ESPECIES"], $ESPECIES_ADO->listarEspeciesCalidadEmpresaCBX($EMPRESAS));
     $codigoEtapa = $ABREVIATURAS_ETAPA[$_POST["ETAPA"]] ?? substr($_POST["ETAPA"], 0, 3);
     $codigoGrupo = $ABREVIATURAS_GRUPO[$GRUPO_REPORTE_ACTUAL] ?? substr($GRUPO_REPORTE_ACTUAL, 0, 4);
     $codigoEspecie = calidadAbreviarEspecie($nombreEspecie);
@@ -133,7 +133,7 @@ if (isset($_POST["DESHABILITARPARAMETRO"])) {
     $TIPOMENSAJE = "success";
 }
 
-$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadCBX();
+$ARRAYESPECIES = $ESPECIES_ADO->listarEspeciesCalidadEmpresaCBX($EMPRESAS);
 $ARRAYPARAMETROS = $CALIDADPARAMETRO_ADO->listarParametroActivo($EMPRESAS, $TEMPORADAS, "", "", $GRUPO_REPORTE_ACTUAL);
 if (isset($_GET["ID"])) {
     $ARRAYPARAMETRO_EDITAR = $CALIDADPARAMETRO_ADO->verParametro($_GET["ID"]);
