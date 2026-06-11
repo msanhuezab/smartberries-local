@@ -23,6 +23,13 @@ if ($TEMPORADAS) {
     <script type="text/javascript">
         function irPagina(url) { location.href = url; }
     </script>
+    <style>
+        @keyframes siren-pulse {
+            0%, 100% { color: #cc0000; transform: scale(1) rotate(-10deg); }
+            50%       { color: #ff6600; transform: scale(1.25) rotate(10deg); }
+        }
+        .icono-sirena { display: inline-block; animation: siren-pulse 0.6s ease-in-out infinite; }
+    </style>
 </head>
 
 <body class="hold-transition light-skin fixed sidebar-mini theme-primary">
@@ -57,6 +64,7 @@ if ($TEMPORADAS) {
                                         <table id="existenciamp_estadisticas" class="table table-bordered table-hover table-striped" style="width:100%;">
                                             <thead>
                                                 <tr class="text-center">
+                                                    <th><i class="fa fa-bell"></i></th>
                                                     <th>Folio Original</th>
                                                     <th>Folio Nuevo</th>
                                                     <th>Fecha Cosecha</th>
@@ -92,7 +100,12 @@ if ($TEMPORADAS) {
                                             </thead>
                                             <tbody>
                                                 <?php foreach ($ARRAYEXIMATERIAPRIMA as $r) : ?>
+                                                    <?php
+                                                        $fechaRec = !empty($r['FECHA_RECEPCION']) ? DateTime::createFromFormat('d-m-Y', trim($r['FECHA_RECEPCION'])) : false;
+                                                        $alertaRec = $fechaRec ? ((new DateTime())->diff($fechaRec)->days > 3) : false;
+                                                    ?>
                                                     <tr class="text-center">
+                                                        <td><?php if ($alertaRec): ?><span class="icono-sirena">🚨</span><?php endif; ?></td>
                                                         <td><span class="<?php echo $r['COLOR_BADGE']; ?>"><?php echo $r['FOLIO_EXIMATERIAPRIMA']; ?></span></td>
                                                         <td><span class="<?php echo $r['COLOR_BADGE']; ?>"><?php echo $r['FOLIO_AUXILIAR_EXIMATERIAPRIMA']; ?></span></td>
                                                         <td><?php echo $r['COSECHA']; ?></td>
@@ -171,12 +184,6 @@ if ($TEMPORADAS) {
     </div>
     <?php include_once "../../assest/config/urlBase.php"; ?>
     <script>
-        const Toast = Swal.mixin({ toast: true, position: 'top', showConfirmButton: false });
-        Toast.fire({
-            icon: "info",
-            title: "Información importante",
-            html: "<label>Las <b>Existencias</b> con letra <b>Roja</b> tienen más de 7 días desde su ingreso.</label>"
-        });
     </script>
 </body>
 </html>

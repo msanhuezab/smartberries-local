@@ -3809,7 +3809,7 @@ WHERE
         try {
             $datos = $this->conexion->prepare(
                 "SELECT * FROM view_eximateriaprima
-                 WHERE ID_TEMPORADA = ? AND ESTADO = 2 AND ID_EMPRESA != 5
+                 WHERE ID_TEMPORADA = ? AND ESTADO = 2
                  ORDER BY FOLIO_AUXILIAR_EXIMATERIAPRIMA ASC"
             );
             $datos->execute([$TEMPORADA]);

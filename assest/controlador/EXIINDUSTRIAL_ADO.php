@@ -3217,4 +3217,21 @@ class EXIINDUSTRIAL_ADO
             die($e->getMessage());
         }
     }
+
+    public function listarExiindustrialTemporadaDisponibleView($TEMPORADA)
+    {
+        try {
+            $datos = $this->conexion->prepare(
+                "SELECT * FROM view_exiindustrial
+                 WHERE ID_TEMPORADA = ? AND ESTADO = 2
+                 ORDER BY FOLIO_AUXILIAR_EXIINDUSTRIAL ASC"
+            );
+            $datos->execute([$TEMPORADA]);
+            $resultado = $datos->fetchAll();
+            $datos = null;
+            return $resultado;
+        } catch (Exception $e) {
+            die($e->getMessage());
+        }
+    }
 }

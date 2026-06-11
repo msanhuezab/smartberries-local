@@ -8767,6 +8767,20 @@ public function listarExiexportacionEstandarAgrupadoProceso($ESTANDAR)
 
 
 
-
-
+    public function listarExiexportacionTemporadaDisponibleView($TEMPORADA)
+    {
+        try {
+            $datos = $this->conexion->prepare(
+                "SELECT * FROM view_exiexportacion
+                 WHERE ID_TEMPORADA = ? AND ESTADO = 2
+                 ORDER BY FOLIO_AUXILIAR_EXIEXPORTACION ASC, ID_EXIEXPORTACION ASC"
+            );
+            $datos->execute([$TEMPORADA]);
+            $resultado = $datos->fetchAll();
+            $datos = null;
+            return $resultado;
+        } catch (Exception $e) {
+            die($e->getMessage());
+        }
+    }
 }
