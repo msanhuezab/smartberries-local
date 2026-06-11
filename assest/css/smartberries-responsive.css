@@ -359,3 +359,75 @@ button,
   color: #334155 !important;
   font-weight: 700 !important;
 }
+
+/* Modern Excel export icon for DataTables */
+.dt-buttons .buttons-excel,
+.dt-buttons .excel-icon-only,
+.dt-buttons button.buttons-excel,
+.dt-buttons a.buttons-excel,
+.dt-buttons .btn.buttons-excel,
+.dt-buttons .btn-primary.buttons-excel,
+.dt-buttons .btn-secondary.buttons-excel,
+.dt-buttons .btn-default.buttons-excel,
+.dt-buttons .buttons-excel:hover,
+.dt-buttons .excel-icon-only:hover,
+.dt-buttons button.buttons-excel:hover,
+.dt-buttons a.buttons-excel:hover,
+.dt-buttons .btn.buttons-excel:hover,
+.dt-buttons .btn-primary.buttons-excel:hover,
+.dt-buttons .btn-secondary.buttons-excel:hover,
+.dt-buttons .btn-default.buttons-excel:hover,
+.dt-buttons .buttons-excel:focus,
+.dt-buttons .excel-icon-only:focus,
+.dt-buttons button.buttons-excel:focus,
+.dt-buttons a.buttons-excel:focus,
+.dt-buttons .btn.buttons-excel:focus,
+.dt-buttons .btn-primary.buttons-excel:focus,
+.dt-buttons .btn-secondary.buttons-excel:focus,
+.dt-buttons .btn-default.buttons-excel:focus,
+.dt-buttons .buttons-excel:active,
+.dt-buttons .excel-icon-only:active,
+.dt-buttons button.buttons-excel:active,
+.dt-buttons a.buttons-excel:active,
+.dt-buttons .btn.buttons-excel:active,
+.dt-buttons .btn-primary.buttons-excel:active,
+.dt-buttons .btn-secondary.buttons-excel:active,
+.dt-buttons .btn-default.buttons-excel:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #107c41 !important;
+  padding: 0 !important;
+  min-width: 0;
+}
+
+.dt-buttons .excel-modern-icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+.dt-buttons .excel-modern-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dt-buttons .excel-modern-icon__sheet {
+  fill: #e8f5ee;
+}
+
+.dt-buttons .excel-modern-icon__fold {
+  fill: #b7e1c8;
+}
+
+.dt-buttons .excel-modern-icon__badge {
+  fill: #107c41;
+}
+
+.dt-buttons .excel-modern-icon__x {
+  fill: #ffffff;
+}

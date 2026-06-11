@@ -5,6 +5,26 @@
 
 $(function () {
     "use strict";
+    var EXCEL_MODERN_ICON = '<span class="excel-modern-icon" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path class="excel-modern-icon__sheet" d="M18 3h8c1.1 0 2 .9 2 2v22c0 1.1-.9 2-2 2H10c-1.1 0-2-.9-2-2V13l10-10z"/><path class="excel-modern-icon__fold" d="M18 3v8c0 1.1-.9 2-2 2H8l10-10z"/><rect class="excel-modern-icon__badge" x="3" y="11" width="17" height="14" rx="2"/><path class="excel-modern-icon__x" d="m8 15 2.7 3.5L8 22h2.6l1.5-2.2 1.6 2.2h2.7l-2.8-3.6 2.7-3.4h-2.6l-1.5 2.1-1.5-2.1H8z"/></svg></span>';
+    function applyModernExcelButtons(context) {
+        $('.buttons-excel', context || document)
+            .addClass('excel-icon-only')
+            .attr('title', 'Exportar Excel')
+            .attr('aria-label', 'Exportar Excel')
+            .html(EXCEL_MODERN_ICON);
+    }
+    if ($.fn.dataTable && $.fn.dataTable.ext && $.fn.dataTable.ext.buttons) {
+        $.each(['excel', 'excelHtml5'], function(_, buttonName) {
+            var excelButton = $.fn.dataTable.ext.buttons[buttonName];
+            if (!excelButton) return;
+            excelButton.text = EXCEL_MODERN_ICON;
+            excelButton.titleAttr = excelButton.titleAttr || 'Exportar Excel';
+            excelButton.className = ((excelButton.className || '') + ' excel-icon-only').trim();
+        });
+    }
+    $(document).on('init.dt draw.dt', function() {
+        applyModernExcelButtons();
+    });
     //Formato bases
     //Agrupados de modulos
     $('#modulo').DataTable({
@@ -5763,7 +5783,7 @@ $(function () {
             'buttons': [
                 {
                     extend: 'excel',
-                    text: '<i class="fa fa-file-excel-o"></i> Excel',
+                    text: EXCEL_MODERN_ICON,
                     exportOptions: {
                         modifier: { search: 'applied', order: 'applied' },
                         format: {
@@ -6335,7 +6355,7 @@ $(function () {
             'buttons': [
                 {
                     extend: 'excel',
-                    text: '<i class="fa fa-file-excel-o"></i> Excel',
+                    text: EXCEL_MODERN_ICON,
                     exportOptions: {
                         modifier: { search: 'applied', order: 'applied' },
                         format: {
@@ -6622,7 +6642,7 @@ $(function () {
             'buttons': [
                 {
                     extend: 'excel',
-                    text: '<i class="fa fa-file-excel-o"></i> Excel',
+                    text: EXCEL_MODERN_ICON,
                     exportOptions: {
                         modifier: { search: 'applied', order: 'applied' },
                         format: {
@@ -8569,7 +8589,7 @@ $(function () {
             },          
             'buttons': [{
                 extend: 'excel',
-                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                text: EXCEL_MODERN_ICON,
                 exportOptions: {
                     modifier: { search: 'applied', order: 'applied' },
                     format: {
@@ -8866,7 +8886,7 @@ $(function () {
             },          
             'buttons': [{
                 extend: 'excel',
-                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                text: EXCEL_MODERN_ICON,
                 exportOptions: {
                     modifier: { search: 'applied', order: 'applied' },
                     format: {
@@ -9462,7 +9482,7 @@ $(function () {
             },          
             'buttons': [{
                 extend: 'excel',
-                text: '<i class="fa fa-file-excel-o"></i> Excel',
+                text: EXCEL_MODERN_ICON,
                 exportOptions: {
                     modifier: { search: 'applied', order: 'applied' },
                     format: {
@@ -17121,17 +17141,10 @@ $(function () {
                 $("#TOTALNETOV").text(totalnetoconsolidado);
                 $("#TOTALBRUTOV").text(totalbrutoconsolidado);
             },
-            "scrollY": 450,
-            "scrollX": true,
-            'scrollCollapse': false,
-            'deferRender': true,
-            'scroller': false,
+            'scrollX': true,
             'paging': true,
-            'fixedHeader': true,
-            'fixedColumns':   false,
-            'colReorder': false,
-            'pageLength': 50,
-            'lengthMenu': [[25, 50, 100, 250, -1], [25, 50, 100, 250, 'Todo']],
+            'pageLength': 10,
+            'lengthMenu': [[10, 25, 50, -1], ['10', '25', '50', 'Todos']],
             'lengthChange': true, //ordernar por 10 25 100 500
             'searching': true, //buscador
             'ordering': true,
@@ -17139,7 +17152,7 @@ $(function () {
             'autoWidth': false,
             'responsive': false,
             'order': [
-                [0, 'asc'], //desc ->descente asc -> ascedente
+                [3, 'desc'], //desc ->descente asc -> ascedente
             ],
             "pagingType": "full_numbers",
             "language": {
@@ -17352,10 +17365,59 @@ $(function () {
                 },
                 "info": "Mostrando _START_ a _END_ de _TOTAL_ registros"
             },          
-            'buttons': [],
-            'dom': 'frtip',
-                        
-        }); 
+            'buttons': [{
+                extend: 'excel',
+                text: EXCEL_MODERN_ICON,
+                titleAttr: 'Exportar Excel',
+                className: 'excel-icon-only',
+                exportOptions: {
+                    modifier: { search: 'applied', order: 'applied' },
+                    format: {
+                        header: function(data) {
+                            var $el = $('<div>').html(data);
+                            $el.find('select, input, br').remove();
+                            return $el.text().trim();
+                        }
+                    }
+                }
+            }],
+            'dom': 'Blrtip',
+            'initComplete': function() {
+                var api = this.api();
+                api.columns().every(function() {
+                    var col = this, header = $(col.header());
+                    var vals = [];
+                    col.data().unique().sort().each(function(d) {
+                        var text = $('<span>').html(d).text().trim();
+                        if (text) vals.push(text);
+                    });
+                    if (vals.length <= 25) {
+                        var sel = $('<br><select class="form-control form-control-sm dt-col-filter" style="font-size:11px;"><option value="">Todos</option></select>')
+                            .appendTo(header)
+                            .on('change', function() {
+                                var v = $.fn.dataTable.util.escapeRegex($(this).val());
+                                col.search(v ? '^' + v + '$' : '', true, false).draw();
+                            });
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    }
+                });
+                api.on('draw.dt', function() {
+                    api.columns().every(function() {
+                        var col = this, idx = col.index();
+                        var sel = $(col.header()).find('select.dt-col-filter');
+                        if (!sel.length) return;
+                        if (sel.val()) return;
+                        var vals = [];
+                        api.column(idx, { search: 'applied' }).data().unique().sort().each(function(d) {
+                            var text = $('<span>').html(d).text().trim();
+                            if (text) vals.push(text);
+                        });
+                        sel.find('option:not(:first)').remove();
+                        $.each(vals, function(i, v) { sel.append($('<option>', { value: v, text: v })); });
+                    });
+                });
+            },
+        });
     
     
     //DETALLADOS
@@ -18083,4 +18145,5 @@ $(function () {
         $("#TOTALNETOV").text(totalnetoconsolidado);
         $("#TOTALBRUTOV").text(totalbrutoconsolidado);
     */
+    applyModernExcelButtons();
 }); // End of use strict

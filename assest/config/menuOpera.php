@@ -767,15 +767,13 @@ function _sbTree($pages) {
             <li class="<?php echo _sb('listarReembalajeEx.php'); ?>"><a href="listarReembalajeEx.php">Reembalaje</a></li>
           </ul>
         </li>
-        <li class="<?php echo _sbTree(['listarRecepcionmpDetallado.php','listarRecepcionindDetallado.php','listarRecepcionptDetallado.php','listarDespachompDetallado.php','listarDespachoindDetallado.php','listarDespachoptDetallado.php','listarDespachoexDetallado.php']); ?>">
+        <li class="<?php echo _sbTree(['listarRecepcionesDetallado.php','listarDespachompDetallado.php','listarDespachoindDetallado.php','listarDespachoptDetallado.php','listarDespachoexDetallado.php']); ?>">
           <a href="#">
             <i class="fa fa-list-alt"></i><span>Detallado</span>
             <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
           </a>
           <ul class="treeview-menu">
-            <li class="<?php echo _sb('listarRecepcionmpDetallado.php'); ?>"><a href="listarRecepcionmpDetallado.php">Recepción MP</a></li>
-            <li class="<?php echo _sb('listarRecepcionindDetallado.php'); ?>"><a href="listarRecepcionindDetallado.php">Recepción IND</a></li>
-            <li class="<?php echo _sb('listarRecepcionptDetallado.php'); ?>"><a href="listarRecepcionptDetallado.php">Recepción PT</a></li>
+            <li class="<?php echo _sb('listarRecepcionesDetallado.php'); ?>"><a href="listarRecepcionesDetallado.php">Recepciones</a></li>
             <li class="<?php echo _sb('listarDespachompDetallado.php'); ?>"><a href="listarDespachompDetallado.php">Despacho MP</a></li>
             <li class="<?php echo _sb('listarDespachoindDetallado.php'); ?>"><a href="listarDespachoindDetallado.php">Despacho IND</a></li>
             <li class="<?php echo _sb('listarDespachoptDetallado.php'); ?>"><a href="listarDespachoptDetallado.php">Despacho PT</a></li>

@@ -242,47 +242,10 @@ if (isset($_GET['exportar']) && $_GET['exportar'] === 'excel') {
                 <section class="content">
                     <div class="box">
                         <div class="box-body">
-                            <form method="get" class="mb-3">
-                                <div class="row align-items-end">
-                                    <div class="col-md-2 col-sm-6">
-                                        <label>Fecha desde</label>
-                                        <input type="date" class="form-control" name="fecha_desde" value="<?php echo $h($FILTROS['fecha_desde']); ?>">
-                                    </div>
-                                    <div class="col-md-2 col-sm-6">
-                                        <label>Fecha hasta</label>
-                                        <input type="date" class="form-control" name="fecha_hasta" value="<?php echo $h($FILTROS['fecha_hasta']); ?>">
-                                    </div>
-                                    <div class="col-md-2 col-sm-6">
-                                        <label>CSG</label>
-                                        <input type="text" class="form-control" name="csg" value="<?php echo $h($FILTROS['csg']); ?>">
-                                    </div>
-                                    <div class="col-md-2 col-sm-6">
-                                        <label>Productor</label>
-                                        <input type="text" class="form-control" name="productor" value="<?php echo $h($FILTROS['productor']); ?>">
-                                    </div>
-                                    <div class="col-md-2 col-sm-6">
-                                        <label>Especie</label>
-                                        <input type="text" class="form-control" name="especie" value="<?php echo $h($FILTROS['especie']); ?>">
-                                    </div>
-                                    <div class="col-md-2 col-sm-6">
-                                        <label>Variedad</label>
-                                        <input type="text" class="form-control" name="variedad" value="<?php echo $h($FILTROS['variedad']); ?>">
-                                    </div>
-                                </div>
-                                <div class="mt-3">
-                                    <button type="submit" class="btn btn-primary">Filtrar</button>
-                                    <a class="btn btn-default" href="listarDespachoexDetallado.php">Limpiar</a>
-                                    <button type="submit" class="btn btn-success" name="exportar" value="excel">Exportar Excel</button>
-                                    <span class="ml-3">
-                                        <?php echo count($ARRAYDESPACHOEX); ?> filas en <?php echo number_format($tiempoConsulta, 3, ',', '.'); ?> segundos
-                                    </span>
-                                </div>
-                            </form>
-
                             <div class="row">
                                 <div class="col-12">
                                     <div class="table-responsive">
-                                        <table id="detalladodex" class="table-hover" style="width: 100%;">
+                                        <table id="detalladodex" class="table table-bordered table-hover table-striped" style="width:100%;">
                                             <thead>
                                                 <tr class="text-center">
                                                     <?php foreach ($COLUMNAS_DETALLADO as $columna) : ?>
