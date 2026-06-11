@@ -767,17 +767,14 @@ function _sbTree($pages) {
             <li class="<?php echo _sb('listarReembalajeEx.php'); ?>"><a href="listarReembalajeEx.php">Reembalaje</a></li>
           </ul>
         </li>
-        <li class="<?php echo _sbTree(['listarRecepcionesDetallado.php','listarDespachompDetallado.php','listarDespachoindDetallado.php','listarDespachoptDetallado.php','listarDespachoexDetallado.php']); ?>">
+        <li class="<?php echo _sbTree(['listarRecepcionesDetallado.php','listarDespachosDetallado.php']); ?>">
           <a href="#">
             <i class="fa fa-list-alt"></i><span>Detallado</span>
             <span class="pull-right-container"><i class="fa fa-angle-right pull-right"></i></span>
           </a>
           <ul class="treeview-menu">
             <li class="<?php echo _sb('listarRecepcionesDetallado.php'); ?>"><a href="listarRecepcionesDetallado.php">Recepciones</a></li>
-            <li class="<?php echo _sb('listarDespachompDetallado.php'); ?>"><a href="listarDespachompDetallado.php">Despacho MP</a></li>
-            <li class="<?php echo _sb('listarDespachoindDetallado.php'); ?>"><a href="listarDespachoindDetallado.php">Despacho IND</a></li>
-            <li class="<?php echo _sb('listarDespachoptDetallado.php'); ?>"><a href="listarDespachoptDetallado.php">Despacho PT</a></li>
-            <li class="<?php echo _sb('listarDespachoexDetallado.php'); ?>"><a href="listarDespachoexDetallado.php">Despacho Expo</a></li>
+            <li class="<?php echo _sb('listarDespachosDetallado.php'); ?>"><a href="listarDespachosDetallado.php">Despachos</a></li>
           </ul>
         </li>
         <?php endif; ?>
