@@ -93,7 +93,8 @@ if ($TEMPORADAS) {
     if ($conexion) {
         $sql = "SELECT " . implode(', ', array_keys($COLUMNAS_DESPACHOS)) . "
                 FROM view_despachos
-                WHERE ID_TEMPORADA = :temporada";
+                WHERE ID_TEMPORADA = :temporada
+                  AND ID_EMPRESA <> 5";
         $params = [':temporada' => $TEMPORADAS];
 
         if (!empty($ESPECIE)) {

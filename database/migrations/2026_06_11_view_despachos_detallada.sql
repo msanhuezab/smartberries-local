@@ -114,6 +114,7 @@ LEFT JOIN principal_planta planta3 ON planta3.ID_PLANTA = des.ID_PLANTA3
 LEFT JOIN principal_temporada temp ON temp.ID_TEMPORADA = des.ID_TEMPORADA
 WHERE exi.ESTADO_REGISTRO = 1
   AND des.ESTADO_REGISTRO = 1
+  AND des.ID_EMPRESA <> 5
 
 UNION ALL
 
@@ -234,6 +235,7 @@ LEFT JOIN principal_temporada temp ON temp.ID_TEMPORADA = des.ID_TEMPORADA
 WHERE exi.ESTADO_REGISTRO = 1
   AND exi.ESTADO BETWEEN 3 AND 5
   AND des.ESTADO_REGISTRO = 1
+  AND des.ID_EMPRESA <> 5
 
 UNION ALL
 
@@ -352,6 +354,7 @@ LEFT JOIN principal_planta planta3 ON planta3.ID_PLANTA = des.ID_PLANTA3
 LEFT JOIN principal_temporada temp ON temp.ID_TEMPORADA = des.ID_TEMPORADA
 WHERE exi.ESTADO_REGISTRO = 1
   AND des.ESTADO_REGISTRO = 1
+  AND des.ID_EMPRESA <> 5
 
 UNION ALL
 

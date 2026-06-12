@@ -97,7 +97,8 @@ if ($TEMPORADAS) {
                     PLANTA,
                     TEMPORADA
                 FROM view_recepciones
-                WHERE ID_TEMPORADA = :temporada";
+                WHERE ID_TEMPORADA = :temporada
+                  AND ID_EMPRESA <> 5";
         $params = [':temporada' => $TEMPORADAS];
 
         if (!empty($ESPECIE)) {
